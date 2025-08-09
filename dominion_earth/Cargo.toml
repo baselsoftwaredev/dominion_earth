@@ -1,0 +1,25 @@
+[package]
+name = "dominion_earth"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = { workspace = true, default-features = false, features = [
+    "bevy_core_pipeline",
+    "bevy_gizmos",
+    "bevy_render",
+    "bevy_sprite",
+    "bevy_winit",
+    "bevy_asset",
+    "bevy_scene",
+    "x11",
+    "bevy_text",
+    "default_font",
+    "bevy_ui",
+] }
+bevy_egui = { workspace = true }
+core_sim = { path = "../core_sim" }
+ai_planner = { path = "../ai_planner" }
+serde = { workspace = true }
+ron = { workspace = true }
+anyhow = { workspace = true }

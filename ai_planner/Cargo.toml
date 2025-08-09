@@ -1,0 +1,13 @@
+[package]
+name = "ai_planner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+core_sim = { path = "../core_sim" }
+bevy_ecs = { workspace = true }
+serde = { workspace = true }
+rand = { workspace = true }
+rand_pcg = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
