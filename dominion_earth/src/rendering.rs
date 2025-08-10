@@ -5,6 +5,7 @@ use core_sim::*;
 pub struct TileAssets {
     pub plains: Handle<Image>,
     pub ocean: Handle<Image>,
+    pub capital_ancient: Handle<Image>,
     // Add more tile types as you create them
 }
 
@@ -18,8 +19,9 @@ pub struct WorldTile {
 pub fn setup_tile_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     let tile_assets = TileAssets {
         plains: asset_server.load("tiles/land/plains_tile.png"),
-        ocean: asset_server.load("tiles/land/ocean_tile.png"), // Temporary: use plains until you add ocean_tile.png
-                                                                // Add more tiles here as you create them
+        ocean: asset_server.load("tiles/land/ocean_tile.png"),
+        capital_ancient: asset_server.load("tiles/settlement/capital_ancient_age.png"),
+        // Add more tiles here as you create them
     };
     commands.insert_resource(tile_assets);
 }
@@ -65,8 +67,10 @@ pub fn spawn_world_tiles(
 
 /// Simple 2D rendering system for civilizations and units (keeping this for overlays)
 pub fn render_world_overlays(
+    mut commands: Commands,
     mut gizmos: Gizmos,
     world_map: Res<WorldMap>,
+    tile_assets: Res<TileAssets>,
     civs: Query<(&Civilization, &Position)>,
     cities: Query<(&City, &Position)>,
     units: Query<(&MilitaryUnit, &Position)>,
@@ -83,15 +87,12 @@ pub fn render_world_overlays(
         let screen_pos =
             map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
 
-        let civ_color = Color::srgb(
-            civilization.color[0],
-            civilization.color[1],
-            civilization.color[2],
-        );
-
-        // Draw capital as a larger circle
-        gizmos.circle_2d(screen_pos, tile_size * 2.0, civ_color);
-        gizmos.circle_2d(screen_pos, tile_size * 1.5, Color::WHITE);
+        // Spawn a sprite for the capital city tile art
+        commands.spawn((
+            Sprite::from_image(tile_assets.capital_ancient.clone()),
+            Transform::from_translation(screen_pos.extend(10.0)) // Z=10 to render above terrain
+                .with_scale(Vec3::splat(1.0)),
+        ));
     }
 
     // Render cities
