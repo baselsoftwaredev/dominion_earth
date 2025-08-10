@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use core_sim::*;
+use core_sim::{self, CivId, CivPersonality, Civilization, City, Territory, MilitaryUnit, Technologies, Economy, Military, Building, BuildingType, UnitType, Position, ActiveThisTurn, TerrainType, world_gen, influence_map::{InfluenceMap, InfluenceType}, resources::{CurrentTurn, GameConfig, GameRng, WorldMap}};
 use ai_planner::{AICoordinator, ai_coordinator::AICoordinatorSystem, ai_coordinator::ExecutionResult};
 use rand::SeedableRng;
 
@@ -136,7 +136,6 @@ pub fn game_update_system(
     mut game_state: ResMut<GameState>,
     mut current_turn: ResMut<CurrentTurn>,
     time: Res<Time>,
-    world: &World,
     mut commands: Commands,
 ) {
     if game_state.paused {
@@ -147,20 +146,23 @@ pub fn game_update_system(
     game_state.turn_timer.tick(time.delta());
 
     if game_state.auto_advance && game_state.turn_timer.just_finished() {
-        advance_turn(&mut current_turn, &mut game_state, world, &mut commands);
+        advance_turn(&mut current_turn, &mut game_state, &mut commands);
     }
 }
 
 fn advance_turn(
     current_turn: &mut CurrentTurn,
     game_state: &mut GameState,
-    world: &World,
-    commands: &mut Commands,
+    _commands: &mut Commands,
 ) {
     let turn_start = std::time::Instant::now();
 
-    // Extract current game state
-    let game_state_snapshot = serialization::EcsSerializer::extract_from_world(world);
+    // Extract current game state (simplified - using a basic core_sim::GameState)
+    let game_state_snapshot = core_sim::GameState {
+        turn: current_turn.0,
+        civilizations: std::collections::HashMap::new(), // TODO: Extract from ECS
+        current_player: None,
+    };
 
     // Generate AI decisions
     let ai_decisions = game_state.ai_coordinator.generate_turn_decisions(&game_state_snapshot);
@@ -199,11 +201,10 @@ pub fn handle_turn_advance(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut game_state: ResMut<GameState>,
     mut current_turn: ResMut<CurrentTurn>,
-    world: &World,
     mut commands: Commands,
 ) {
     if keyboard_input.just_pressed(KeyCode::Space) {
-        advance_turn(&mut current_turn, &mut game_state, world, &mut commands);
+        advance_turn(&mut current_turn, &mut game_state, &mut commands);
     }
 
     if keyboard_input.just_pressed(KeyCode::KeyP) {

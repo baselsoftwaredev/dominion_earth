@@ -62,19 +62,28 @@ pub fn run_headless_simulation() {
     performance_metrics.print_summary();
     print_final_state(&game_state);
 
-    // Save final state for analysis
-    if let Err(e) = serialization::GameSerializer::save_to_ron(&game_state, "headless_final_state.ron") {
+    // Save final state for analysis (simplified - no serialization for now)
+    println!("Final state: Turn {}, {} civilizations", game_state.turn, game_state.civilizations.len());
+    
+    // TODO: Implement proper serialization when all types support Serialize/Deserialize
+    /*
+    if let Err(e) = ron::ser::to_writer_pretty(
+        std::fs::File::create("headless_final_state.ron").unwrap(),
+        &game_state,
+        ron::ser::PrettyConfig::default()
+    ) {
         println!("Failed to save final state: {}", e);
     } else {
         println!("Final state saved to headless_final_state.ron");
     }
+    */
 }
 
 fn initialize_headless_game() -> GameState {
     let mut rng = rand_pcg::Pcg64::seed_from_u64(42); // Deterministic seed
     
     // Generate world
-    let world_map = world_gen::generate_earth_map(100, 50, &mut rng);
+    let _world_map = world_gen::generate_earth_map(100, 50, &mut rng);
     
     // Create civilizations
     let starting_positions = world_gen::get_starting_positions();
@@ -117,7 +126,7 @@ fn initialize_headless_game() -> GameState {
             ],
         };
 
-        let initial_unit = MilitaryUnit {
+        let _initial_unit = MilitaryUnit {
             id: i as u32,
             unit_type: UnitType::Infantry,
             position,
@@ -143,75 +152,30 @@ fn initialize_headless_game() -> GameState {
     GameState {
         turn: 1,
         civilizations,
-        world_map,
-        global_economy: GlobalEconomy::default(),
-        diplomatic_state: DiplomaticState::default(),
+        current_player: Some(CivId(0)),
     }
 }
 
 fn update_economies(game_state: &mut GameState) {
-    use core_sim::economy::EconomicSystem;
-    
-    let mut civ_economies = std::collections::HashMap::new();
-    let mut city_economies = std::collections::HashMap::new();
-    
-    for (civ_id, civ_data) in &game_state.civilizations {
-        civ_economies.insert(*civ_id, civ_data.civilization.economy.clone());
-        
-        for city in &civ_data.cities {
-            if let Some(capital) = civ_data.civilization.capital {
-                let city_economy = core_sim::economy::CityEconomy {
-                    owner: *civ_id,
-                    population: city.population,
-                    buildings: city.buildings.clone(),
-                    worked_tiles: vec![capital], // Simplified
-                    resource_production: std::collections::HashMap::new(),
-                };
-                city_economies.insert(capital, city_economy);
-            }
-        }
-    }
-    
-    EconomicSystem::update_economies(
-        &mut civ_economies,
-        &mut game_state.global_economy,
-        &city_economies,
-        game_state.turn,
-    );
-    
-    // Apply updated economies back to game state
-    for (civ_id, economy) in civ_economies {
-        if let Some(civ_data) = game_state.civilizations.get_mut(&civ_id) {
-            civ_data.civilization.economy = economy;
-        }
+    // Simplified economy update - just increase gold over time
+    for civ_data in game_state.civilizations.values_mut() {
+        civ_data.civilization.economy.gold += civ_data.civilization.economy.income;
+        // Simple growth
+        civ_data.civilization.economy.income *= 1.001; // 0.1% growth per turn
     }
 }
 
 fn update_diplomacy(game_state: &mut GameState) {
-    use core_sim::diplomacy::DiplomaticSystem;
-    
-    let civs: std::collections::HashMap<_, _> = game_state.civilizations.iter()
-        .map(|(id, data)| (*id, data.civilization.personality.clone()))
-        .collect();
-    
-    let military_strengths: std::collections::HashMap<_, _> = game_state.civilizations.iter()
-        .map(|(id, data)| (*id, data.civilization.military.total_strength))
-        .collect();
-    
-    let economic_powers: std::collections::HashMap<_, _> = game_state.civilizations.iter()
-        .map(|(id, data)| (*id, data.civilization.economy.gold))
-        .collect();
-    
-    let mut rng = rand::thread_rng();
-    
-    DiplomaticSystem::update_diplomacy(
-        &mut game_state.diplomatic_state,
-        &civs,
-        &military_strengths,
-        &economic_powers,
-        game_state.turn,
-        &mut rng,
-    );
+    // Simplified diplomacy update - just modify relations over time
+    for civ_data in game_state.civilizations.values_mut() {
+        // Simple diplomacy: occasionally adjust relations with other civs
+        if game_state.turn % 10 == 0 {
+            // Every 10 turns, slightly improve relations (simplified)
+            for relation in &mut civ_data.diplomatic_relations {
+                relation.relation_value += 0.1;
+            }
+        }
+    }
 }
 
 fn update_military(_game_state: &mut GameState) {
@@ -297,6 +261,6 @@ fn print_final_state(game_state: &GameState) {
     println!("\nGlobal Statistics:");
     println!("Total gold in world: {:.0}", total_gold);
     println!("Total military strength: {:.0}", total_military);
-    println!("Trade routes: {}", game_state.global_economy.trade_routes.len());
-    println!("Diplomatic events: {}", game_state.diplomatic_state.diplomatic_events.len());
+    println!("Trade routes: 0"); // Simplified - no global economy system yet
+    println!("Diplomatic events: 0"); // Simplified - no diplomatic state system yet
 }

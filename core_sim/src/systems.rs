@@ -10,7 +10,7 @@ use rand::Rng;
 
 /// Core systems for game simulation
 pub mod turn_management;
-pub mod movement;
+// pub mod movement; // Disabled - module not implemented yet
 // Temporarily disabled due to build issues
 // pub mod ai_decision;
 // pub mod combat_resolution;

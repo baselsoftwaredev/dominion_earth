@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
-use core_sim::*;
+use core_sim::{Position, TerrainType, Civilization, resources::{CurrentTurn, WorldMap}};
 use crate::game::GameState;
 
 /// Main UI system using egui

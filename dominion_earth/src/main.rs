@@ -5,7 +5,7 @@ mod input;
 mod headless;
 
 use bevy::prelude::*;
-use core_sim::*;
+use core_sim::{influence_map::InfluenceMap, resources::{CurrentTurn, GameConfig, GameRng, WorldMap}};
 use ai_planner::AICoordinator;
 
 fn main() {
@@ -26,14 +26,12 @@ fn main() {
                 ..default()
             }))
             .add_plugins(bevy_egui::EguiPlugin)
-            .init_resource::<WorldMap>()
             .init_resource::<CurrentTurn>()
             .init_resource::<GameConfig>()
             .init_resource::<GameRng>()
-            .init_resource::<GlobalEconomy>()
-            .init_resource::<DiplomaticState>()
+            .init_resource::<WorldMap>()
+            .init_resource::<game::GameState>()  // Use our local GameState wrapper
             .init_resource::<InfluenceMap>()
-            .insert_resource(AICoordinator::new())
             .add_systems(Startup, (
                 setup_camera,
                 game::setup_game,
@@ -50,5 +48,5 @@ fn main() {
 }
 
 fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn(Camera2d);
 }

@@ -226,3 +226,9 @@ impl InfluenceMap {
         }
     }
 }
+
+impl Default for InfluenceMap {
+    fn default() -> Self {
+        Self::new(100, 100) // Default size
+    }
+}

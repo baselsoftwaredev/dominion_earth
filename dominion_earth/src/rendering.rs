@@ -26,21 +26,22 @@ pub fn render_world(
                 let screen_pos = map_offset + Vec2::new(x as f32 * tile_size, y as f32 * tile_size);
                 
                 let color = match tile.terrain {
-                    TerrainType::Ocean => Color::BLUE,
-                    TerrainType::Plains => Color::GREEN,
-                    TerrainType::Mountains => Color::GRAY,
-                    TerrainType::Forest => Color::DARK_GREEN,
-                    TerrainType::Desert => Color::YELLOW,
-                    TerrainType::Coast => Color::CYAN,
-                    TerrainType::River => Color::CYAN,
+                    TerrainType::Ocean => Color::srgb(0.0, 0.0, 1.0),        // Blue
+                    TerrainType::Plains => Color::srgb(0.0, 1.0, 0.0),       // Green
+                    TerrainType::Hills => Color::srgb(0.6, 0.8, 0.4),        // Light Green
+                    TerrainType::Mountains => Color::srgb(0.5, 0.5, 0.5),    // Gray
+                    TerrainType::Forest => Color::srgb(0.0, 0.5, 0.0),       // Dark Green
+                    TerrainType::Desert => Color::srgb(1.0, 1.0, 0.0),       // Yellow
+                    TerrainType::Coast => Color::srgb(0.0, 1.0, 1.0),        // Cyan
+                    TerrainType::River => Color::srgb(0.0, 1.0, 1.0),        // Cyan
                 };
 
                 // Draw tile as a small rectangle
-                gizmos.rect_2d(screen_pos, 0.0, Vec2::splat(tile_size * 0.8), color);
+                gizmos.rect_2d(screen_pos, Vec2::splat(tile_size * 0.8), color);
 
                 // Show ownership
                 if let Some(_owner) = tile.owner {
-                    gizmos.rect_2d(screen_pos, 0.0, Vec2::splat(tile_size * 0.6), Color::RED);
+                    gizmos.rect_2d(screen_pos, Vec2::splat(tile_size * 0.6), Color::srgb(1.0, 0.0, 0.0)); // Red
                 }
             }
         }
@@ -50,7 +51,7 @@ pub fn render_world(
     for (civilization, position) in civs.iter() {
         let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
         
-        let civ_color = Color::rgb(
+        let civ_color = Color::srgb(
             civilization.color[0],
             civilization.color[1],
             civilization.color[2],
@@ -66,11 +67,11 @@ pub fn render_world(
         let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
         
         // Draw city as a square
-        gizmos.rect_2d(screen_pos, 0.0, Vec2::splat(tile_size * 1.5), Color::ORANGE);
+        gizmos.rect_2d(screen_pos, Vec2::splat(tile_size * 1.5), Color::srgb(1.0, 0.5, 0.0)); // Orange
         
         // City population indicator
         let pop_size = (city.population as f32 / 5000.0).clamp(0.5, 3.0);
-        gizmos.rect_2d(screen_pos, 0.0, Vec2::splat(tile_size * pop_size), Color::YELLOW);
+        gizmos.rect_2d(screen_pos, Vec2::splat(tile_size * pop_size), Color::srgb(1.0, 1.0, 0.0)); // Yellow
     }
 
     // Render military units
@@ -78,11 +79,11 @@ pub fn render_world(
         let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
         
         let unit_color = match unit.unit_type {
-            UnitType::Infantry => Color::MAROON,
-            UnitType::Cavalry => Color::PURPLE,
-            UnitType::Archer => Color::ORANGE_RED,
-            UnitType::Siege => Color::DARK_GRAY,
-            UnitType::Naval => Color::NAVY,
+            UnitType::Infantry => Color::srgb(0.5, 0.0, 0.0),    // Maroon
+            UnitType::Cavalry => Color::srgb(0.5, 0.0, 0.5),     // Purple
+            UnitType::Archer => Color::srgb(1.0, 0.27, 0.0),     // Orange Red
+            UnitType::Siege => Color::srgb(0.33, 0.33, 0.33),    // Dark Gray
+            UnitType::Naval => Color::srgb(0.0, 0.0, 0.5),       // Navy
         };
 
         // Draw unit as a small diamond
@@ -109,13 +110,13 @@ pub fn render_world(
         for x in (0..world_map.width).step_by(10) {
             let start = map_offset + Vec2::new(x as f32 * tile_size, 0.0);
             let end = map_offset + Vec2::new(x as f32 * tile_size, world_map.height as f32 * tile_size);
-            gizmos.line_2d(start, end, Color::rgba(1.0, 1.0, 1.0, 0.2));
+            gizmos.line_2d(start, end, Color::srgba(1.0, 1.0, 1.0, 0.2));
         }
         
         for y in (0..world_map.height).step_by(5) {
             let start = map_offset + Vec2::new(0.0, y as f32 * tile_size);
             let end = map_offset + Vec2::new(world_map.width as f32 * tile_size, y as f32 * tile_size);
-            gizmos.line_2d(start, end, Color::rgba(1.0, 1.0, 1.0, 0.2));
+            gizmos.line_2d(start, end, Color::srgba(1.0, 1.0, 1.0, 0.2));
         }
     }
 }

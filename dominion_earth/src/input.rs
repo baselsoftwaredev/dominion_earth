@@ -21,20 +21,22 @@ pub fn handle_input(
 
     if keyboard_input.just_pressed(KeyCode::Equal) || keyboard_input.just_pressed(KeyCode::NumpadAdd) {
         game_state.simulation_speed = (game_state.simulation_speed * 1.5).min(5.0);
-        game_state.turn_timer.set_duration(std::time::Duration::from_secs_f32(2.0 / game_state.simulation_speed));
-        println!("Simulation speed: {:.1}x", game_state.simulation_speed);
+        let speed = game_state.simulation_speed;
+        game_state.turn_timer.set_duration(std::time::Duration::from_secs_f32(2.0 / speed));
+        println!("Simulation speed: {:.1}x", speed);
     }
 
     if keyboard_input.just_pressed(KeyCode::Minus) || keyboard_input.just_pressed(KeyCode::NumpadSubtract) {
         game_state.simulation_speed = (game_state.simulation_speed / 1.5).max(0.2);
-        game_state.turn_timer.set_duration(std::time::Duration::from_secs_f32(2.0 / game_state.simulation_speed));
-        println!("Simulation speed: {:.1}x", game_state.simulation_speed);
+        let speed = game_state.simulation_speed;
+        game_state.turn_timer.set_duration(std::time::Duration::from_secs_f32(2.0 / speed));
+        println!("Simulation speed: {:.1}x", speed);
     }
 
     // Camera controls
     if let Ok(mut camera_transform) = camera_query.get_single_mut() {
         let mut movement = Vec3::ZERO;
-        let camera_speed = 200.0 * time.delta_seconds();
+        let camera_speed = 200.0 * time.delta_secs();
 
         if keyboard_input.pressed(KeyCode::ArrowUp) || keyboard_input.pressed(KeyCode::KeyW) {
             movement.y += camera_speed;
@@ -53,11 +55,11 @@ pub fn handle_input(
 
         // Zoom controls
         if keyboard_input.pressed(KeyCode::KeyQ) {
-            camera_transform.scale *= 1.0 + time.delta_seconds();
+            camera_transform.scale *= 1.0 + time.delta_secs();
             camera_transform.scale = camera_transform.scale.clamp(Vec3::splat(0.1), Vec3::splat(5.0));
         }
         if keyboard_input.pressed(KeyCode::KeyE) {
-            camera_transform.scale *= 1.0 - time.delta_seconds();
+            camera_transform.scale *= 1.0 - time.delta_secs();
             camera_transform.scale = camera_transform.scale.clamp(Vec3::splat(0.1), Vec3::splat(5.0));
         }
     }
@@ -87,8 +89,10 @@ pub fn handle_mouse_input(
                 let delta = cursor_event.position - last_pos;
                 
                 if let Ok(mut camera_transform) = camera_query.get_single_mut() {
+                    // Store scale to avoid borrow checker issue
+                    let scale_x = camera_transform.scale.x;
                     // Invert delta to make panning feel natural
-                    camera_transform.translation -= Vec3::new(delta.x, delta.y, 0.0) * camera_transform.scale.x;
+                    camera_transform.translation -= Vec3::new(delta.x, delta.y, 0.0) * scale_x;
                 }
             }
             *last_cursor_pos = Some(cursor_event.position);

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Position component for entities on the world map
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
@@ -296,7 +296,7 @@ pub enum BuildingType {
 }
 
 /// Territory control component
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Territory {
     pub owner: CivId,
     pub control_strength: f32,
