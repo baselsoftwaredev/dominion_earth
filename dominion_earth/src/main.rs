@@ -1,16 +1,19 @@
 mod game;
-mod ui;
-mod rendering;
-mod input;
 mod headless;
+mod input;
+mod rendering;
+mod ui;
 
-use bevy::prelude::*;
-use core_sim::{influence_map::InfluenceMap, resources::{CurrentTurn, GameConfig, GameRng, WorldMap}};
 use ai_planner::AICoordinator;
+use bevy::prelude::*;
+use core_sim::{
+    influence_map::InfluenceMap,
+    resources::{CurrentTurn, GameConfig, GameRng, WorldMap},
+};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    
+
     if args.len() > 1 && args[1] == "--headless" {
         // Run headless simulation for testing
         headless::run_headless_simulation();
@@ -30,19 +33,27 @@ fn main() {
             .init_resource::<GameConfig>()
             .init_resource::<GameRng>()
             .init_resource::<WorldMap>()
-            .init_resource::<game::GameState>()  // Use our local GameState wrapper
+            .init_resource::<game::GameState>() // Use our local GameState wrapper
             .init_resource::<InfluenceMap>()
-            .add_systems(Startup, (
-                setup_camera,
-                game::setup_game,
-            ))
-            .add_systems(Update, (
-                input::handle_input,
-                input::handle_mouse_input,
-                game::game_update_system,
-                ui::ui_system,
-                rendering::render_world,
-            ))
+            .add_systems(
+                Startup,
+                (
+                    setup_camera,
+                    rendering::setup_tile_assets,
+                    game::setup_game,
+                    rendering::spawn_world_tiles.after(game::setup_game),
+                ),
+            )
+            .add_systems(
+                Update,
+                (
+                    input::handle_input,
+                    input::handle_mouse_input,
+                    game::game_update_system,
+                    ui::ui_system,
+                    rendering::render_world_overlays,
+                ),
+            )
             .run();
     }
 }
