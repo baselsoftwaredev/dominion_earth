@@ -119,7 +119,7 @@ pub fn ui_system(
                 
                 // Draw some sample points for civilizations
                 let civs_vec: Vec<_> = civs.iter().collect();
-                for (i, civ) in civs_vec.iter().enumerate().take(10) {
+                for (_i, civ) in civs_vec.iter().enumerate().take(10) {
                     if let Some(capital) = civ.capital {
                         let x_ratio = capital.x as f32 / 100.0; // Assuming 100 width
                         let y_ratio = capital.y as f32 / 50.0;  // Assuming 50 height

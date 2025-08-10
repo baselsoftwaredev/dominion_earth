@@ -6,6 +6,7 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 use rand::Rng;
+use rand::seq::SliceRandom;
 
 /// Core systems for game simulation
 pub mod turn_management;
@@ -329,5 +330,35 @@ pub fn spawn_civilizations_system(
         };
 
         commands.spawn((initial_unit, position));
+    }
+}
+
+/// System to move all military units on land (Plains) to a random adjacent land tile each turn
+pub fn move_units_on_land_each_turn(
+    mut units: Query<(&mut Position, &MilitaryUnit)>,
+    world_map: Res<WorldMap>,
+    mut rng: ResMut<GameRng>,
+) {
+    for (mut pos, _unit) in units.iter_mut() {
+        // Only move if on a Plains tile
+        if let Some(tile) = world_map.get_tile(*pos) {
+            if matches!(tile.terrain, crate::TerrainType::Plains) {
+                // Get all adjacent positions
+                let adj = pos.adjacent_positions();
+                // Filter to valid land (Plains) tiles
+                let mut valid_moves = vec![];
+                for p in adj.iter() {
+                    if let Some(adj_tile) = world_map.get_tile(*p) {
+                        if matches!(adj_tile.terrain, crate::TerrainType::Plains) {
+                            valid_moves.push(*p);
+                        }
+                    }
+                }
+                // Move to a random valid adjacent tile if possible
+                if let Some(new_pos) = valid_moves.choose(&mut rng.0) {
+                    *pos = *new_pos;
+                }
+            }
+        }
     }
 }

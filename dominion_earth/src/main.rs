@@ -51,6 +51,7 @@ fn main() {
                     input::handle_input,
                     input::handle_mouse_input,
                     game::game_update_system,
+                    core_sim::systems::move_units_on_land_each_turn,
                     ui::ui_system,
                     rendering::render_world_overlays,
                 ),
