@@ -1,5 +1,7 @@
-use core_sim::{CivId, GameState, Position, UnitType, BuildingType, DiplomaticAction, GameResource as Resource};
 use crate::{AIAction, StrategicGoal};
+use core_sim::{
+    BuildingType, CivId, DiplomaticAction, GameResource as Resource, GameState, Position, UnitType,
+};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 /// Goal-Oriented Action Planning (GOAP) system
@@ -39,24 +41,43 @@ impl GOAPPlanner {
             state.set("territory_count", territory_count as f32);
 
             // Military strength
-            state.set("military_strength", civ_data.civilization.military.total_strength);
+            state.set(
+                "military_strength",
+                civ_data.civilization.military.total_strength,
+            );
 
             // Economic state
             state.set("gold", civ_data.civilization.economy.gold);
             state.set("income", civ_data.civilization.economy.income);
 
             // Technology level
-            let tech_count = civ_data.civilization.technologies.known.values().filter(|&&v| v).count();
+            let tech_count = civ_data
+                .civilization
+                .technologies
+                .known
+                .values()
+                .filter(|&&v| v)
+                .count();
             state.set("technology_level", tech_count as f32);
 
             // City count
             state.set("city_count", civ_data.cities.len() as f32);
 
             // Has capital
-            state.set("has_capital", if civ_data.civilization.capital.is_some() { 1.0 } else { 0.0 });
+            state.set(
+                "has_capital",
+                if civ_data.civilization.capital.is_some() {
+                    1.0
+                } else {
+                    0.0
+                },
+            );
 
             // Trade routes
-            state.set("trade_routes", civ_data.civilization.economy.trade_routes.len() as f32);
+            state.set(
+                "trade_routes",
+                civ_data.civilization.economy.trade_routes.len() as f32,
+            );
         }
 
         state
@@ -133,12 +154,13 @@ impl GOAPPlanner {
                 }
 
                 let new_state = action.apply_effects(&current_state);
-                
+
                 if closed_set.contains(&new_state) {
                     continue;
                 }
 
-                let tentative_g_score = g_score.get(&current_state).unwrap_or(&f32::INFINITY) + action.cost;
+                let tentative_g_score =
+                    g_score.get(&current_state).unwrap_or(&f32::INFINITY) + action.cost;
 
                 if tentative_g_score < *g_score.get(&new_state).unwrap_or(&f32::INFINITY) {
                     came_from.insert(new_state.clone(), (current_state.clone(), action.clone()));
@@ -191,68 +213,45 @@ impl GOAPPlanner {
             GOAPAction {
                 name: "expand_territory".to_string(),
                 cost: 2.0,
-                preconditions: vec![
-                    ("has_capital".to_string(), 1.0),
-                    ("gold".to_string(), 10.0),
-                ],
+                preconditions: vec![("has_capital".to_string(), 1.0), ("gold".to_string(), 10.0)],
                 effects: vec![
                     ("territory_count".to_string(), 1.0), // Adds 1 territory
                 ],
                 action_type: GOAPActionType::Expand,
             },
-            
             // Research technology action
             GOAPAction {
                 name: "research_technology".to_string(),
                 cost: 3.0,
-                preconditions: vec![
-                    ("gold".to_string(), 50.0),
-                ],
-                effects: vec![
-                    ("technology_level".to_string(), 1.0),
-                ],
+                preconditions: vec![("gold".to_string(), 50.0)],
+                effects: vec![("technology_level".to_string(), 1.0)],
                 action_type: GOAPActionType::Research,
             },
-            
             // Build military unit action
             GOAPAction {
                 name: "build_military_unit".to_string(),
                 cost: 2.5,
-                preconditions: vec![
-                    ("gold".to_string(), 30.0),
-                    ("city_count".to_string(), 1.0),
-                ],
-                effects: vec![
-                    ("military_strength".to_string(), 10.0),
-                ],
+                preconditions: vec![("gold".to_string(), 30.0), ("city_count".to_string(), 1.0)],
+                effects: vec![("military_strength".to_string(), 10.0)],
                 action_type: GOAPActionType::BuildMilitary,
             },
-            
             // Establish trade route action
             GOAPAction {
                 name: "establish_trade".to_string(),
                 cost: 1.5,
-                preconditions: vec![
-                    ("city_count".to_string(), 1.0),
-                ],
+                preconditions: vec![("city_count".to_string(), 1.0)],
                 effects: vec![
                     ("trade_routes".to_string(), 1.0),
                     ("income".to_string(), 5.0),
                 ],
                 action_type: GOAPActionType::Trade,
             },
-            
             // Build economic building action
             GOAPAction {
                 name: "build_economic_building".to_string(),
                 cost: 2.0,
-                preconditions: vec![
-                    ("gold".to_string(), 25.0),
-                    ("city_count".to_string(), 1.0),
-                ],
-                effects: vec![
-                    ("income".to_string(), 3.0),
-                ],
+                preconditions: vec![("gold".to_string(), 25.0), ("city_count".to_string(), 1.0)],
+                effects: vec![("income".to_string(), 3.0)],
                 action_type: GOAPActionType::BuildEconomic,
             },
         ]
@@ -297,7 +296,7 @@ impl std::hash::Hash for WorldState {
         // Sort keys for consistent hashing
         let mut sorted_keys: Vec<_> = self.values.keys().collect();
         sorted_keys.sort();
-        
+
         for key in sorted_keys {
             key.hash(state);
             self.values[key].hash(state);
@@ -326,7 +325,12 @@ pub enum GOAPActionType {
 }
 
 impl GOAPAction {
-    pub fn preconditions_met(&self, state: &WorldState, _civ_id: CivId, _game_state: &GameState) -> bool {
+    pub fn preconditions_met(
+        &self,
+        state: &WorldState,
+        _civ_id: CivId,
+        _game_state: &GameState,
+    ) -> bool {
         for (key, required_value) in &self.preconditions {
             let current_value = state.get(key).unwrap_or(0.0);
             if current_value < *required_value {
@@ -338,20 +342,23 @@ impl GOAPAction {
 
     pub fn apply_effects(&self, state: &WorldState) -> WorldState {
         let mut new_state = state.clone();
-        
+
         for (key, effect_value) in &self.effects {
             new_state.add(key, *effect_value);
         }
-        
+
         // Apply costs (reduce gold)
         new_state.add("gold", -self.cost * 5.0); // Cost scaling
-        
+
         new_state
     }
 
     pub fn to_ai_action(&self, civ_id: CivId, game_state: &GameState) -> Option<AIAction> {
         let civ_data = game_state.civilizations.get(&civ_id)?;
-        let capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
+        let capital = civ_data
+            .civilization
+            .capital
+            .unwrap_or(Position::new(50, 25));
 
         match self.action_type {
             GOAPActionType::Expand => {
@@ -371,13 +378,11 @@ impl GOAPAction {
                     priority: 1.0 - self.cost / 10.0,
                 })
             }
-            GOAPActionType::BuildMilitary => {
-                Some(AIAction::BuildUnit {
-                    unit_type: UnitType::Infantry,
-                    position: capital,
-                    priority: 1.0 - self.cost / 10.0,
-                })
-            }
+            GOAPActionType::BuildMilitary => Some(AIAction::BuildUnit {
+                unit_type: UnitType::Infantry,
+                position: capital,
+                priority: 1.0 - self.cost / 10.0,
+            }),
             GOAPActionType::Trade => {
                 // Find trade partner
                 for other_civ in game_state.civilizations.values() {
@@ -391,13 +396,11 @@ impl GOAPAction {
                 }
                 None
             }
-            GOAPActionType::BuildEconomic => {
-                Some(AIAction::BuildBuilding {
-                    building_type: BuildingType::Market,
-                    position: capital,
-                    priority: 1.0 - self.cost / 10.0,
-                })
-            }
+            GOAPActionType::BuildEconomic => Some(AIAction::BuildBuilding {
+                building_type: BuildingType::Market,
+                position: capital,
+                priority: 1.0 - self.cost / 10.0,
+            }),
             GOAPActionType::Diplomacy => {
                 // Find diplomatic target
                 for other_civ in game_state.civilizations.values() {
