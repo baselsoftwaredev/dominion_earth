@@ -4,7 +4,6 @@ mod input;
 mod rendering;
 mod ui;
 
-use ai_planner::AICoordinator;
 use bevy::prelude::*;
 use core_sim::{
     influence_map::InfluenceMap,

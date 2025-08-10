@@ -1,5 +1,5 @@
 use core_sim::*;
-use ai_planner::{AICoordinator, ai_coordinator::AICoordinatorSystem};
+use ai_planner::{ai_coordinator::AICoordinatorSystem};
 use rand::SeedableRng;
 use std::time::Instant;
 

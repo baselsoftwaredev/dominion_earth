@@ -1,6 +1,6 @@
 use bevy::prelude::*;
-use core_sim::{self, CivId, CivPersonality, Civilization, City, Territory, MilitaryUnit, Technologies, Economy, Military, Building, BuildingType, UnitType, Position, ActiveThisTurn, TerrainType, world_gen, influence_map::{InfluenceMap, InfluenceType}, resources::{CurrentTurn, GameConfig, GameRng, WorldMap}};
-use ai_planner::{AICoordinator, ai_coordinator::AICoordinatorSystem, ai_coordinator::ExecutionResult};
+use core_sim::{self, CivId, CivPersonality, Civilization, City, MilitaryUnit, Technologies, Economy, Military, Building, BuildingType, UnitType, ActiveThisTurn, world_gen, influence_map::{InfluenceMap, InfluenceType}, resources::{CurrentTurn, GameConfig, GameRng, WorldMap}};
+use ai_planner::{ai_coordinator::AICoordinatorSystem, ai_coordinator::ExecutionResult};
 use rand::SeedableRng;
 
 /// Main game state resource
@@ -193,27 +193,5 @@ fn advance_turn(
     if current_turn.0 >= 500 {
         println!("Game completed after 500 turns!");
         // Could trigger end game logic here
-    }
-}
-
-/// System to handle turn advancement requests
-pub fn handle_turn_advance(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mut game_state: ResMut<GameState>,
-    mut current_turn: ResMut<CurrentTurn>,
-    mut commands: Commands,
-) {
-    if keyboard_input.just_pressed(KeyCode::Space) {
-        advance_turn(&mut current_turn, &mut game_state, &mut commands);
-    }
-
-    if keyboard_input.just_pressed(KeyCode::KeyP) {
-        game_state.paused = !game_state.paused;
-        println!("Game {}", if game_state.paused { "paused" } else { "resumed" });
-    }
-
-    if keyboard_input.just_pressed(KeyCode::KeyA) {
-        game_state.auto_advance = !game_state.auto_advance;
-        println!("Auto-advance {}", if game_state.auto_advance { "enabled" } else { "disabled" });
     }
 }
