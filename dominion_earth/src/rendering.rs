@@ -65,6 +65,33 @@ pub fn spawn_world_tiles(
     }
 }
 
+/// Generate a unique color for each civilization based on their ID
+fn get_civ_color(civ_id: &CivId) -> Color {
+    // Simple hash-based color generation for consistent colors per civilization
+    let hash = civ_id.0.wrapping_mul(31);
+
+    // Convert hash to HSV for better color distribution
+    let hue = (hash % 360) as f32;
+    let saturation = 0.7;
+    let value = 0.9;
+
+    // Convert HSV to RGB
+    let c = value * saturation;
+    let x = c * (1.0 - ((hue / 60.0) % 2.0 - 1.0).abs());
+    let m = value - c;
+
+    let (r, g, b) = match hue as u32 / 60 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+
+    Color::srgb(r + m, g + m, b + m)
+}
+
 /// Simple 2D rendering system for civilizations and units (keeping this for overlays)
 pub fn render_world_overlays(
     mut commands: Commands,
@@ -83,6 +110,8 @@ pub fn render_world_overlays(
     // Define rendering parameters
     let tile_size = 64.0; // Match your 64x64 tile images
     let map_offset = Vec2::new(-3200.0, -1600.0); // Adjusted for 64px tiles
+
+    // Render civilization capitals
     for (civilization, position) in civs.iter() {
         let screen_pos =
             map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
@@ -93,6 +122,10 @@ pub fn render_world_overlays(
             Transform::from_translation(screen_pos.extend(10.0)) // Z=10 to render above terrain
                 .with_scale(Vec3::splat(1.0)),
         ));
+
+        // Draw a colored circle around the capital for this civilization
+        let civ_color = get_civ_color(&civilization.id);
+        gizmos.circle_2d(screen_pos, tile_size * 0.8, civ_color);
     }
 
     // Render cities
@@ -100,20 +133,13 @@ pub fn render_world_overlays(
         let screen_pos =
             map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
 
-        // Draw city as a square
-        gizmos.rect_2d(
+        // City population indicator (circle to match capitals)
+        let pop_size = (city.population as f32 / 5000.0).clamp(0.5, 2.0);
+        gizmos.circle_2d(
             screen_pos,
-            Vec2::splat(tile_size * 1.5),
-            Color::srgb(1.0, 0.5, 0.0),
-        ); // Orange
-
-        // City population indicator
-        let pop_size = (city.population as f32 / 5000.0).clamp(0.5, 3.0);
-        gizmos.rect_2d(
-            screen_pos,
-            Vec2::splat(tile_size * pop_size),
+            tile_size * pop_size,
             Color::srgb(1.0, 1.0, 0.0),
-        ); // Yellow
+        ); // Yellow circle for cities
     }
 
     // Render military units

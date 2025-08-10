@@ -4,39 +4,31 @@ This is a turn-based, 4-directional tile-based grand strategy game built with Ru
 
 ## Architecture Overview
 
-**Three-Crate Structure:**
+**Three-Crate Workspace Structure:**
 
 - `core_sim/`: Pure ECS simulation engine (no graphics dependencies)
 - `ai_planner/`: Multi-layered AI system (Utility AI + GOAP + HTN)
 - `dominion_earth/`: Bevy frontend with 2D rendering and UI
 
-**Key Design Pattern:** The simulation separates pure game logic from presentation, enabling headless performance testing.
+**Key Design Pattern:** Clean separation between game logic and presentation enables headless performance testing and modular development.
 
-## Movement System & Game Mechanics
+## Current Build Status
 
-**4-Directional Tile-Based Movement:**
+**Build Commands:**
 
-- Movement restricted to cardinal directions only: North, South, East, West
-- No diagonal movement allowed
-- `Position` struct enhanced with movement methods: `adjacent_positions()`, `manhattan_distance_to()`, `is_adjacent_to()`, `direction_to()`, `move_in_direction()`
-- `Direction` enum provides `North/South/East/West` with utility methods like `opposite()` and `all()`
-- Pathfinding uses Manhattan distance heuristic for optimal 4-directional paths
-
-**CRITICAL:** Update `WorldMap::neighbors()` to use 4-directional only:
-
-```rust
-// WRONG (8-directional - current implementation)
-let directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
-
-// CORRECT (4-directional - needed fix)
-let directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]; // North, South, East, West
+```bash
+cargo check -p core_sim      # ✅ Builds successfully
+cargo check -p ai_planner    # ✅ Builds successfully
+cargo check                  # ✅ Builds successfully (with warnings)
 ```
+
+**Build Status:** All crates now build successfully. Only minor warnings remain for unused variables and dead code.
 
 ## Critical ECS Patterns
 
-### Component Structure
+### Manual Component Implementation Required
 
-Components avoid `#[derive(Component)]` due to proc macro metadata version 10 incompatibility. All components require manual implementation:
+**CRITICAL:** All components use manual `Component` trait implementation (no `#[derive(Component)]`):
 
 ```rust
 impl Component for YourComponent {
@@ -44,140 +36,121 @@ impl Component for YourComponent {
 }
 ```
 
-**Key Components:**
+### Resource Naming Conflict
 
-- `Position`: World coordinates with 4-directional movement methods
-- `Direction`: Cardinal directions enum (North/South/East/West only)
-- `Civilization`: Core civ data with embedded `CivPersonality` (8 traits: land_hunger, industry_focus, etc.)
-- `City`, `Territory`, `MilitaryUnit`: Game entities requiring Position
-- `MovementOrder`: For unit movement with pathfinding
-- `AIAction`: GOAP-based AI decisions (moved from ai_planner to core_sim)
-
-### Resource vs. GameResource Conflict
-
-**Important:** Bevy's `Resource` trait conflicts with game's `Resource` enum. Use:
+**CRITICAL:** Bevy's `Resource` trait conflicts with game's `Resource` enum:
 
 ```rust
+// Always use this import pattern
 use crate::resources::{Resource as GameResource, CurrentTurn, WorldMap};
 ```
 
-### System Organization
+### System Organization Pattern
 
-Systems live in `core_sim/src/systems/` as individual files, coordinated through `systems.rs`. All systems use Bevy ECS queries and resources.
+- Systems organized in `core_sim/src/systems/` as individual modules
+- Central coordination through `systems.rs`
+- Standard ECS query patterns: `Query<(&Component1, &Component2), With<Filter>>`
 
-## Data-Driven Design
+## 4-Directional Movement System
 
-**RON Files in `assets/data/`:**
-
-- `civilizations.ron`: Defines 40+ civs with starting positions, personalities, and initial assets
-- `units.ron`: Unit types with combat stats and tech requirements
-- `technologies.ron`: Tech tree definitions
-- `terrain.ron`: Map tile types and modifiers
-
-**Pattern:** All game content should be externalized to RON files, not hardcoded.
-
-## AI System Architecture
-
-**Three-Layer Decision Making:**
-
-1. `utility_ai`: Scores potential actions based on current state
-2. `goap`: Plans action sequences to achieve goals
-3. `htn_planner`: Manages high-level strategic decisions
-
-**Implementation:** AI decisions flow through `AICoordinator::make_decision()` → `AIDecisionSystem::execute_ai_decision()`
-
-**GOAP Integration:** `AIAction` enum moved from ai_planner to core_sim to resolve circular dependencies. AI actions include:
-
-- `Expand`, `Research`, `BuildUnit`, `BuildBuilding`, `Trade`, `Attack`, `Diplomacy`, `Defend`
-- Each action has priority scoring and position targeting for spatial decision-making
-
-## Critical Build Context
-
-
-**AI Agent Build Reporting Requirement:**
-On every run, the AI agent must check and update the current state of build errors and warnings for all crates. If there are any errors or warnings, they should be summarized and reflected in this section of the instructions. This ensures the instructions always reflect the latest build status and help guide further development and debugging.
-
-**Core State:**
-
-**Build Commands:**
-
-```bash
-cargo check -p core_sim  # ✅ Builds successfully
-cargo check -p ai_planner # ❌ Multiple errors requiring fixes
-cargo build --release    # ❌ Blocked by ai_planner issues
-cargo run --release -- --headless --turns 200  # ❌ Blocked by build issues
-```
-
-**Immediate Fix Requirements:**
+**CRITICAL CONSTRAINT:** All movement restricted to cardinal directions only:
 
 ```rust
-// 1. Add missing From trait implementations (✅ COMPLETED)
-impl From<ron::Error> for SimError { /* ... */ }
-impl From<serde_json::Error> for SimError { /* ... */ }
-impl From<std::io::Error> for SimError { /* ... */ }
-
-// 2. Update GameState structure to include missing fields
-pub struct GameState {
-    pub turn: u32,
-    pub civilizations: HashMap<CivId, CivilizationData>,
-    pub current_player: Option<CivId>,
-    // TODO: Add these back when implementing full features:
-    // pub world_map: WorldMap,
-    // pub diplomatic_state: DiplomaticState,
+// Position provides 4-directional methods
+impl Position {
+    pub fn adjacent_positions(&self) -> [Position; 4] {
+        [
+            Position::new(self.x, self.y + 1), // North
+            Position::new(self.x, self.y - 1), // South
+            Position::new(self.x + 1, self.y), // East
+            Position::new(self.x - 1, self.y), // West
+        ]
+    }
+    pub fn manhattan_distance_to(&self, other: &Position) -> i32
+    pub fn is_adjacent_to(&self, other: &Position) -> bool
 }
-
-// 3. Fix ai_planner module references
-use core_sim::{DiplomaticAction, GameResource as Resource};
-// instead of core_sim::diplomacy::DiplomaticAction
 ```
+
+- Pathfinding uses Manhattan distance heuristic
+- No diagonal movement allowed
+- Direction enum: `North/South/East/West` only
+
+## Data-Driven Configuration
+
+**RON File Locations:** `dominion_earth/assets/data/`
+
+- `civilizations.ron`: 40+ civs with positions, personalities (8 f32 traits 0.0-1.0), starting assets
+- `units.ron`, `technologies.ron`, `terrain.ron`: Game content definitions
+
+**RON Syntax Pattern:** `(field: value, ...)` not `{field: value}`
+
+**CivPersonality Traits:**
+
+```ron
+personality: (
+    land_hunger: 0.6,      // Expansion aggressiveness
+    industry_focus: 0.7,   // Production preference
+    tech_focus: 0.8,       // Research priority
+    interventionism: 0.4,  // Foreign engagement
+    risk_tolerance: 0.5,   // Decision boldness
+    honor_treaties: 0.8,   // Diplomatic reliability
+    militarism: 0.5,       // Military preference
+    isolationism: 0.3,     // Isolation tendency
+),
+```
+
+## AI Architecture
+
+**Three-Layer Decision System:**
+
+1. **Utility AI**: Scores actions based on current state
+2. **GOAP**: Plans action sequences for goal achievement
+3. **HTN**: High-level strategic decision management
+
+**Decision Flow:** `AICoordinator::generate_decisions()` → `AIDecisionSystem::execute_ai_decision()`
+
+**AIAction Types:** `Expand`, `Research`, `BuildUnit`, `BuildBuilding`, `Trade`, `Attack`, `Diplomacy`, `Defend`
+
+## Performance & Testing
+
+**Headless Mode:**
+
+```bash
+cargo run --release -- --headless --turns 200
+```
+
+**Performance Target:** 200 turns in <2 seconds (release mode)
+
+**Deterministic Simulation:** Uses `GameRng` resource with seeded `rand_pcg` for reproducible results
 
 ## Key Files for Understanding
 
-- `core_sim/src/lib.rs`: Main exports and GameState definition with SimError enum
-- `core_sim/src/components.rs`: All ECS components with manual Component implementations and 4-directional movement
-- `core_sim/src/systems.rs`: System coordination and main game loop
-- `core_sim/src/pathfinding.rs`: A\* pathfinding with Manhattan distance heuristic for 4-directional movement
-- `core_sim/src/resources.rs`: WorldMap with neighbors() method (needs 4-directional fix)
-- `ai_planner/src/ai_coordinator.rs`: AI decision-making entry point
-- `assets/data/civilizations.ron`: Civilization definitions and personalities
+- `core_sim/src/lib.rs`: Core exports, GameState, SimError definitions
+- `core_sim/src/components.rs`: All ECS components with manual implementations
+- `core_sim/src/systems.rs`: System coordination and game loop
+- `ai_planner/src/ai_coordinator.rs`: Multi-layer AI decision making
+- `dominion_earth/src/main.rs`: Bevy app setup with headless/GUI modes
+- `dominion_earth/assets/data/civilizations.ron`: Civ definitions and personalities
 
-## Development Patterns
+## Common Development Patterns
 
-**ECS Queries:** Use `Query<(&Component1, &Component2), With<Filter>>` pattern extensively
 **Error Handling:** `SimResult<T>` type alias with custom `SimError` enum
-**Randomization:** Deterministic via `GameRng` resource for reproducible gameplay
-**Performance:** Release builds target 200 turns in <2 seconds for headless simulation
-**Movement System:** 4-directional pathfinding with `Position` methods and `Direction` enum
 
-## Common Pitfalls
+**Serde Integration:** Mix of `#[derive(Serialize, Deserialize)]` and manual implementations for complex types
 
-- Don't use `#[derive(Component)]` - manual Component implementation needed
-- Import `GameResource` not `Resource` to avoid trait conflicts
-- RON files use specific syntax: `(field: value, ...)` not `{field: value}`
-- AI personalities are f32 values 0.0-1.0, affect all strategic decisions
-- Movement system MUST use 4-directional only - ✅ `WorldMap::neighbors()` method fixed
-- Remember to add `From` trait implementations for `SimError` variants (✅ COMPLETED)
-- Add `#[derive(Serialize, Deserialize)]` to types used in RON files - manual implementation required for complex types
-- AI planner crate needs significant refactoring to match current GameState structure
-- GameState currently simplified - missing world_map and diplomatic_state fields that ai_planner expects
+**Release Optimization:** LTO enabled, single codegen unit, panic=abort for performance
 
-## Known Technical Debt
+## Critical Pitfalls to Avoid
 
-1. **AI Planner Integration**: ai_planner expects GameState fields not yet implemented:
-   - `game_state.world_map` - needs to be added as Resource or field
-   - `game_state.diplomatic_state` - diplomatic system needs implementation
-2. **Component Architecture**: Manual Component implementations work but create maintenance overhead
+- **Never** use `#[derive(Component)]` - manual implementation required
+- **Always** import `Resource as GameResource` to avoid trait conflicts
+- **Remember** RON syntax uses parentheses, not braces
+- **Ensure** all movement logic respects 4-directional constraint
+- **Verify** `From` trait implementations exist for `SimError` variants
+- **Test** changes with both `cargo run` and `cargo run -- --headless`
 
-3. **Serde Integration**: Mix of manual and derived implementations needs standardization
+## Current Technical Debt
 
-4. **Module Organization**: Some cross-crate dependencies assume modules that don't exist (e.g., `core_sim::diplomacy`)
-
-## Development Priority Order
-
-1. ✅ **Core ECS Foundation** - Components, basic simulation
-2. ✅ **4-Directional Movement** - Tile-based movement system
-3. ✅ **Manual Component Traits** - Work around proc macro issues
-4. 🔄 **AI Planner Fixes** - Update to match current GameState
-5. ❌ **Full Diplomatic System** - Implement missing diplomatic features
-6. ❌ **World Map Integration** - Add WorldMap to GameState or as Resource
-7. ❌ **Performance Optimization** - Headless simulation targets
+1. **Frontend Type Issues**: CivId string conversion needed in rendering system
+2. **System Module Organization**: Some systems temporarily disabled in `systems.rs`
+3. **Manual Component Maintenance**: Overhead from avoiding derive macros
