@@ -161,7 +161,7 @@ pub enum StrategicGoal {
 }
 
 /// High-level tasks for HTN planning
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum HTNTask {
     ConquestCampaign,
     DiplomaticCampaign,

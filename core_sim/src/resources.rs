@@ -47,10 +47,12 @@ impl WorldMap {
     }
 
     pub fn neighbors(&self, pos: Position) -> Vec<Position> {
+        // 4-directional movement only: North, South, East, West
         let directions = [
-            (-1, -1), (-1, 0), (-1, 1),
-            (0, -1),           (0, 1),
-            (1, -1),  (1, 0),  (1, 1),
+            (0, 1),   // North
+            (0, -1),  // South
+            (1, 0),   // East
+            (-1, 0),  // West
         ];
 
         directions

@@ -8,14 +8,11 @@ impl TurnManagementSystem {
     /// Advance to the next turn
     pub fn advance_turn(
         mut game_state: ResMut<GameState>,
-        mut commands: Commands,
     ) {
-        game_state.current_turn += 1;
+        let previous_turn = game_state.turn;
+        game_state.turn += 1;
         
-        // Emit turn changed event
-        commands.add(|world: &mut World| {
-            tracing::info!("Advanced to turn {}", world.resource::<GameState>().current_turn);
-        });
+        tracing::info!("Advanced from turn {} to turn {}", previous_turn, game_state.turn);
     }
 
     /// Check if turn should advance
@@ -34,7 +31,7 @@ impl TurnManagementSystem {
     ) {
         for mut civ_id in civs.iter_mut() {
             // Reset turn-based state for each civilization
-            tracing::debug!("Initializing turn {} for civ {:?}", game_state.current_turn, civ_id);
+            tracing::debug!("Initializing turn {} for civ {:?}", game_state.turn, civ_id);
         }
     }
 
@@ -42,7 +39,7 @@ impl TurnManagementSystem {
     pub fn finalize_turn(
         game_state: Res<GameState>,
     ) {
-        tracing::debug!("Finalizing turn {}", game_state.current_turn);
+        tracing::debug!("Finalizing turn {}", game_state.turn);
         // Cleanup any temporary turn state
     }
 }

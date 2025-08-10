@@ -1,5 +1,6 @@
 use crate::CivId;
 use bevy_ecs::prelude::*;
+use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
 /// Position component for entities on the world map
@@ -319,8 +320,54 @@ pub enum TerrainType {
     River,
 }
 
+// Manual Component implementation
+impl Component for TerrainType {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
+// Manual Serialize/Deserialize implementation
+impl Serialize for TerrainType {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            TerrainType::Plains => serializer.serialize_str("Plains"),
+            TerrainType::Hills => serializer.serialize_str("Hills"),
+            TerrainType::Mountains => serializer.serialize_str("Mountains"),
+            TerrainType::Forest => serializer.serialize_str("Forest"),
+            TerrainType::Desert => serializer.serialize_str("Desert"),
+            TerrainType::Coast => serializer.serialize_str("Coast"),
+            TerrainType::Ocean => serializer.serialize_str("Ocean"),
+            TerrainType::River => serializer.serialize_str("River"),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for TerrainType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.as_str() {
+            "Plains" => Ok(TerrainType::Plains),
+            "Hills" => Ok(TerrainType::Hills),
+            "Mountains" => Ok(TerrainType::Mountains),
+            "Forest" => Ok(TerrainType::Forest),
+            "Desert" => Ok(TerrainType::Desert),
+            "Coast" => Ok(TerrainType::Coast),
+            "Ocean" => Ok(TerrainType::Ocean),
+            "River" => Ok(TerrainType::River),
+            _ => Err(serde::de::Error::unknown_variant(&s, &[
+                "Plains", "Hills", "Mountains", "Forest", "Desert", "Coast", "Ocean", "River"
+            ])),
+        }
+    }
+}
+
 /// Diplomatic relationship component
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiplomaticRelation {
     pub civ_a: CivId,
     pub civ_b: CivId,
@@ -334,12 +381,23 @@ impl Component for DiplomaticRelation {
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Treaty {
     NonAggression { turns_remaining: u32 },
     Alliance { turns_remaining: u32 },
     TradePact { turns_remaining: u32 },
     War { started_turn: u32 },
+}
+
+/// Diplomatic actions that civilizations can take
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum DiplomaticAction {
+    ProposeAlliance,
+    ProposeNonAggression,
+    ProposeTradePact,
+    DeclareWar,
+    MakePeace,
+    BreakTreaty,
 }
 
 /// Movement order for units
@@ -431,7 +489,7 @@ pub enum AIAction {
     },
     Diplomacy {
         target: CivId,
-        action: crate::diplomacy::DiplomaticAction,
+        action: DiplomaticAction,
         priority: f32,
     },
     Defend {

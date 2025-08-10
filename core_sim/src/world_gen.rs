@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::*;
-use crate::{Position, Territory, CivId, WorldMap, TerrainType, resources::MapTile};
+use crate::{Position, Territory, CivId, WorldMap, TerrainType, resources::MapTile, resources::Resource as GameResource};
 use rand::Rng;
 
 /// Generate a basic Earth-like world map
@@ -128,24 +128,24 @@ fn place_resources(map: &mut WorldMap, rng: &mut impl Rng) {
             if tile.resource.is_none() && !matches!(tile.terrain, TerrainType::Ocean) {
                 tile.resource = Some(match tile.terrain {
                     TerrainType::Mountains => {
-                        if rng.gen_bool(0.5) { Resource::Iron } else { Resource::Stone }
+                        if rng.gen_bool(0.5) { GameResource::Iron } else { GameResource::Stone }
                     }
                     TerrainType::Hills => {
                         match rng.gen_range(0..3) {
-                            0 => Resource::Iron,
-                            1 => Resource::Gold,
-                            _ => Resource::Stone,
+                            0 => GameResource::Iron,
+                            1 => GameResource::Gold,
+                            _ => GameResource::Stone,
                         }
                     }
                     TerrainType::Plains => {
-                        if rng.gen_bool(0.7) { Resource::Wheat } else { Resource::Horses }
+                        if rng.gen_bool(0.7) { GameResource::Wheat } else { GameResource::Horses }
                     }
-                    TerrainType::Forest => Resource::Wood,
+                    TerrainType::Forest => GameResource::Wood,
                     TerrainType::Desert => {
-                        if rng.gen_bool(0.3) { Resource::Gold } else { Resource::Spices }
+                        if rng.gen_bool(0.3) { GameResource::Gold } else { GameResource::Spices }
                     }
-                    TerrainType::Coast => Resource::Fish,
-                    TerrainType::River => Resource::Fish,
+                    TerrainType::Coast => GameResource::Fish,
+                    TerrainType::River => GameResource::Fish,
                     TerrainType::Ocean => continue,
                 });
                 placed += 1;

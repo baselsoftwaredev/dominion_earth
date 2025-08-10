@@ -1,5 +1,10 @@
 use crate::{AICoordinator, AIAction};
-use core_sim::{CivId, GameState};
+use core_sim::{
+    CivId, GameState, CivilizationData, Position, 
+    UnitType, BuildingType, DiplomaticAction,
+    GameResource as Resource,
+    resources::{DiplomaticProposal, Negotiation}
+};
 use std::collections::HashMap;
 
 /// Coordinates AI decision making for all civilizations
@@ -319,7 +324,7 @@ impl AICoordinatorSystem {
         &self,
         civ_id: CivId,
         target: CivId,
-        action: &core_sim::diplomacy::DiplomaticAction,
+        action: &DiplomaticAction,
         game_state: &mut GameState,
     ) -> ExecutionResult {
         // Simplified diplomacy implementation

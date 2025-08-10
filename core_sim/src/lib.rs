@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 
 pub mod components;
 pub mod influence_map;
@@ -43,7 +44,7 @@ impl Default for GameState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CivId(pub u32);
 
 // Manual Component implementation
@@ -65,6 +66,24 @@ pub enum SimError {
     Serialization(ron::Error),
     JsonSerialization(serde_json::Error),
     Io(std::io::Error),
+}
+
+impl From<ron::Error> for SimError {
+    fn from(error: ron::Error) -> Self {
+        SimError::Serialization(error)
+    }
+}
+
+impl From<serde_json::Error> for SimError {
+    fn from(error: serde_json::Error) -> Self {
+        SimError::JsonSerialization(error)
+    }
+}
+
+impl From<std::io::Error> for SimError {
+    fn from(error: std::io::Error) -> Self {
+        SimError::Io(error)
+    }
 }
 
 pub type SimResult<T> = Result<T, SimError>;
