@@ -175,7 +175,7 @@ impl AICoordinatorSystem {
     fn execute_build_unit(
         &self,
         civ_id: CivId,
-        unit_type: core_sim::UnitType,
+        unit_type: UnitType,
         position: core_sim::Position,
         game_state: &mut GameState,
     ) -> ExecutionResult {
@@ -218,7 +218,7 @@ impl AICoordinatorSystem {
     fn execute_build_building(
         &self,
         civ_id: CivId,
-        building_type: core_sim::BuildingType,
+        building_type: BuildingType,
         position: core_sim::Position,
         game_state: &mut GameState,
     ) -> ExecutionResult {
@@ -264,7 +264,7 @@ impl AICoordinatorSystem {
         &self,
         civ_id: CivId,
         partner: CivId,
-        _resource: core_sim::Resource,
+        _resource: Resource,
         game_state: &mut GameState,
     ) -> ExecutionResult {
         if let (Some(civ_data), Some(_partner_data)) = (

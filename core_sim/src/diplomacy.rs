@@ -1,4 +1,5 @@
 use crate::{CivId, Treaty, DiplomaticRelation, DiplomaticState, CivPersonality};
+use crate::resources::{Negotiation, DiplomaticProposal, DiplomaticEventType};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use rand::Rng;
@@ -56,7 +57,7 @@ impl DiplomaticSystem {
     }
 
     fn calculate_negotiation_success_chance(
-        negotiation: &crate::Negotiation,
+        negotiation: &Negotiation,
         civs: &HashMap<CivId, CivPersonality>,
         relations: &HashMap<(CivId, CivId), DiplomaticRelation>,
     ) -> f32 {
@@ -70,22 +71,22 @@ impl DiplomaticSystem {
                 .unwrap_or(0.0);
             
             let base_chance = match negotiation.proposal {
-                crate::DiplomaticProposal::TradePact => 0.6,
-                crate::DiplomaticProposal::NonAggressionPact => 0.4,
-                crate::DiplomaticProposal::Alliance => 0.2,
-                crate::DiplomaticProposal::PeaceTreaty => 0.8,
-                crate::DiplomaticProposal::TechnologyExchange(_) => 0.3,
-                crate::DiplomaticProposal::ResourceTrade(_, _) => 0.7,
+                DiplomaticProposal::TradePact => 0.6,
+                DiplomaticProposal::NonAggressionPact => 0.4,
+                DiplomaticProposal::Alliance => 0.2,
+                DiplomaticProposal::PeaceTreaty => 0.8,
+                DiplomaticProposal::TechnologyExchange(_) => 0.3,
+                DiplomaticProposal::ResourceTrade(_, _) => 0.7,
             };
             
             let relation_modifier = current_relation / 100.0; // -1.0 to 1.0
             let personality_modifier = match negotiation.proposal {
-                crate::DiplomaticProposal::TradePact => target.industry_focus * 0.5,
-                crate::DiplomaticProposal::NonAggressionPact => target.honor_treaties * 0.3,
-                crate::DiplomaticProposal::Alliance => (target.honor_treaties + target.interventionism) * 0.25,
-                crate::DiplomaticProposal::PeaceTreaty => target.honor_treaties * 0.4,
-                crate::DiplomaticProposal::TechnologyExchange(_) => target.tech_focus * 0.4,
-                crate::DiplomaticProposal::ResourceTrade(_, _) => target.industry_focus * 0.3,
+                DiplomaticProposal::TradePact => target.industry_focus * 0.5,
+                DiplomaticProposal::NonAggressionPact => target.honor_treaties * 0.3,
+                DiplomaticProposal::Alliance => (target.honor_treaties + target.interventionism) * 0.25,
+                DiplomaticProposal::PeaceTreaty => target.honor_treaties * 0.4,
+                DiplomaticProposal::TechnologyExchange(_) => target.tech_focus * 0.4,
+                DiplomaticProposal::ResourceTrade(_, _) => target.industry_focus * 0.3,
             };
             
             (base_chance + relation_modifier * 0.5 + personality_modifier * 0.3).clamp(0.0, 1.0)
@@ -94,25 +95,25 @@ impl DiplomaticSystem {
         }
     }
 
-    fn accept_proposal(negotiation: &crate::Negotiation, diplomatic_state: &mut DiplomaticState) {
+    fn accept_proposal(negotiation: &Negotiation, diplomatic_state: &mut DiplomaticState) {
         let relation_key = (negotiation.initiator, negotiation.target);
         let relation = diplomatic_state.relations.get_mut(&relation_key);
         
         if let Some(relation) = relation {
             match &negotiation.proposal {
-                crate::DiplomaticProposal::TradePact => {
+                DiplomaticProposal::TradePact => {
                     relation.trade_agreement = true;
                     relation.relation_value += 10.0;
                 }
-                crate::DiplomaticProposal::NonAggressionPact => {
+                DiplomaticProposal::NonAggressionPact => {
                     relation.treaties.push(Treaty::NonAggression { turns_remaining: 50 });
                     relation.relation_value += 15.0;
                 }
-                crate::DiplomaticProposal::Alliance => {
+                DiplomaticProposal::Alliance => {
                     relation.treaties.push(Treaty::Alliance { turns_remaining: 100 });
                     relation.relation_value += 25.0;
                 }
-                crate::DiplomaticProposal::PeaceTreaty => {
+                DiplomaticProposal::PeaceTreaty => {
                     // Remove war status
                     relation.treaties.retain(|treaty| !matches!(treaty, Treaty::War { .. }));
                     relation.relation_value += 20.0;
@@ -124,10 +125,10 @@ impl DiplomaticSystem {
         // Add diplomatic event
         diplomatic_state.diplomatic_events.push(crate::DiplomaticEvent {
             event_type: match negotiation.proposal {
-                crate::DiplomaticProposal::Alliance => crate::DiplomaticEventType::AllianceFormed,
-                crate::DiplomaticProposal::PeaceTreaty => crate::DiplomaticEventType::PeaceSigned,
-                crate::DiplomaticProposal::TradePact => crate::DiplomaticEventType::TradeAgreementSigned,
-                _ => crate::DiplomaticEventType::TradeAgreementSigned, // Generic for other agreements
+                DiplomaticProposal::Alliance => DiplomaticEventType::AllianceFormed,
+                DiplomaticProposal::PeaceTreaty => DiplomaticEventType::PeaceSigned,
+                DiplomaticProposal::TradePact => DiplomaticEventType::TradeAgreementSigned,
+                _ => DiplomaticEventType::TradeAgreementSigned, // Generic for other agreements
             },
             involved_civs: vec![negotiation.initiator, negotiation.target],
             turn: 0, // Will be set by caller
@@ -220,7 +221,7 @@ impl DiplomaticSystem {
                     );
                     
                     if let Some(event) = event {
-                        diplomatic_state.diplomatic_events.push(event);
+                        diplomatic_state.diplomatic_events.push(event.clone());
                         
                         // Apply event effects to relations
                         let relation_key = (civ_a, civ_b);
@@ -245,18 +246,18 @@ impl DiplomaticSystem {
         let personality_b = civs.get(&civ_b)?;
         
         let event_types = [
-            crate::DiplomaticEventType::DiplomaticInsult,
-            crate::DiplomaticEventType::TradeAgreementSigned,
+            DiplomaticEventType::DiplomaticInsult,
+            DiplomaticEventType::TradeAgreementSigned,
         ];
         
         let event_type = event_types[rng.gen_range(0..event_types.len())].clone();
         
         // Check if event makes sense given personalities
         let event_probability = match event_type {
-            crate::DiplomaticEventType::DiplomaticInsult => {
+            DiplomaticEventType::DiplomaticInsult => {
                 personality_a.interventionism * 0.5 + (1.0 - personality_a.honor_treaties) * 0.3
             }
-            crate::DiplomaticEventType::TradeAgreementSigned => {
+            DiplomaticEventType::TradeAgreementSigned => {
                 (personality_a.industry_focus + personality_b.industry_focus) * 0.25
             }
             _ => 0.1,
@@ -275,20 +276,20 @@ impl DiplomaticSystem {
 
     fn apply_event_to_relation(event: &crate::DiplomaticEvent, relation: &mut DiplomaticRelation) {
         match event.event_type {
-            crate::DiplomaticEventType::DiplomaticInsult => {
+            DiplomaticEventType::DiplomaticInsult => {
                 relation.relation_value -= 10.0;
             }
-            crate::DiplomaticEventType::TradeAgreementSigned => {
+            DiplomaticEventType::TradeAgreementSigned => {
                 relation.trade_agreement = true;
                 relation.relation_value += 5.0;
             }
-            crate::DiplomaticEventType::AllianceFormed => {
+            DiplomaticEventType::AllianceFormed => {
                 relation.relation_value += 20.0;
             }
-            crate::DiplomaticEventType::WarDeclared => {
+            DiplomaticEventType::WarDeclared => {
                 relation.relation_value -= 50.0;
             }
-            crate::DiplomaticEventType::PeaceSigned => {
+            DiplomaticEventType::PeaceSigned => {
                 relation.relation_value += 15.0;
             }
             _ => {}

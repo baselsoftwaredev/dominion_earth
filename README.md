@@ -112,7 +112,9 @@ The AI system uses a three-layer approach:
 All game content is defined in RON (Rusty Object Notation) files located in `assets/data/`:
 
 ### civilizations.ron
+
 Defines starting civilizations, their locations, personalities, and initial resources:
+
 ```ron
 (
     civilizations: [
@@ -134,7 +136,9 @@ Defines starting civilizations, their locations, personalities, and initial reso
 ```
 
 ### units.ron
+
 Unit types, combat stats, and special abilities:
+
 ```ron
 (
     unit_types: [
@@ -153,7 +157,9 @@ Unit types, combat stats, and special abilities:
 ```
 
 ### technologies.ron
+
 Technology tree with prerequisites and unlocks:
+
 ```ron
 (
     technologies: [
@@ -171,7 +177,9 @@ Technology tree with prerequisites and unlocks:
 ```
 
 ### terrain.ron
+
 Terrain types, resources, and improvements:
+
 ```ron
 (
     terrain_types: [
@@ -287,6 +295,7 @@ cargo test test_deterministic_simulation
 ### Scalability
 
 The engine supports:
+
 - **Civilizations**: 1-100+ (performance scales roughly linearly)
 - **Map Size**: 50x25 to 200x100 tiles
 - **Turns**: Unlimited (with save/load support)
@@ -322,6 +331,7 @@ The engine supports:
 ### Common Issues
 
 **Build Errors**:
+
 ```bash
 # Clean and rebuild
 cargo clean
@@ -329,6 +339,7 @@ cargo build
 ```
 
 **Performance Issues**:
+
 ```bash
 # Ensure release mode for performance testing
 cargo build --release
@@ -336,6 +347,7 @@ cargo run --release -- --headless
 ```
 
 **Asset Loading Errors**:
+
 - Check RON file syntax with `ron` crate tools
 - Verify all required fields are present
 - Check file paths are correct
@@ -343,6 +355,7 @@ cargo run --release -- --headless
 ### Debug Mode
 
 Enable debug logging for detailed information:
+
 ```bash
 RUST_LOG=debug cargo run 2>&1 | tee debug.log
 ```

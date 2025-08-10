@@ -1,13 +1,17 @@
+use crate::CivId;
 use bevy_ecs::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::{CivId, SimResult};
 
 /// Position component for entities on the world map
-#[derive(Component, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
+}
+
+// Manual Component implementation to avoid proc macro issues
+impl Component for Position {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl Position {
@@ -20,10 +24,86 @@ impl Position {
         let dy = (self.y - other.y) as f32;
         (dx * dx + dy * dy).sqrt()
     }
+
+    /// Manhattan distance for 4-directional movement
+    pub fn manhattan_distance_to(&self, other: &Position) -> i32 {
+        (self.x - other.x).abs() + (self.y - other.y).abs()
+    }
+
+    /// Get adjacent positions in 4 directions (North, South, East, West)
+    pub fn adjacent_positions(&self) -> [Position; 4] {
+        [
+            Position::new(self.x, self.y + 1), // North
+            Position::new(self.x, self.y - 1), // South
+            Position::new(self.x + 1, self.y), // East
+            Position::new(self.x - 1, self.y), // West
+        ]
+    }
+
+    /// Check if another position is adjacent (4-directional)
+    pub fn is_adjacent_to(&self, other: &Position) -> bool {
+        self.manhattan_distance_to(other) == 1
+    }
+
+    /// Get direction to another position (if adjacent)
+    pub fn direction_to(&self, other: &Position) -> Option<Direction> {
+        if !self.is_adjacent_to(other) {
+            return None;
+        }
+
+        match (other.x - self.x, other.y - self.y) {
+            (0, 1) => Some(Direction::North),
+            (0, -1) => Some(Direction::South),
+            (1, 0) => Some(Direction::East),
+            (-1, 0) => Some(Direction::West),
+            _ => None,
+        }
+    }
+
+    /// Move in a specific direction
+    pub fn move_in_direction(&self, direction: Direction) -> Position {
+        match direction {
+            Direction::North => Position::new(self.x, self.y + 1),
+            Direction::South => Position::new(self.x, self.y - 1),
+            Direction::East => Position::new(self.x + 1, self.y),
+            Direction::West => Position::new(self.x - 1, self.y),
+        }
+    }
+}
+
+/// Four cardinal directions for movement
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Direction {
+    North,
+    South,
+    East,
+    West,
+}
+
+impl Direction {
+    /// Get all 4 directions
+    pub fn all() -> [Direction; 4] {
+        [
+            Direction::North,
+            Direction::South,
+            Direction::East,
+            Direction::West,
+        ]
+    }
+
+    /// Get opposite direction
+    pub fn opposite(&self) -> Direction {
+        match self {
+            Direction::North => Direction::South,
+            Direction::South => Direction::North,
+            Direction::East => Direction::West,
+            Direction::West => Direction::East,
+        }
+    }
 }
 
 /// Civilization component containing core data
-#[derive(Component, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Civilization {
     pub id: CivId,
     pub name: String,
@@ -35,17 +115,27 @@ pub struct Civilization {
     pub military: Military,
 }
 
+// Manual Component implementation
+impl Component for Civilization {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
 /// AI personality traits that drive decision making
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CivPersonality {
-    pub land_hunger: f32,      // 0.0 - 1.0, desire to expand territory
-    pub industry_focus: f32,   // 0.0 - 1.0, focus on economic development
-    pub tech_focus: f32,       // 0.0 - 1.0, investment in research
-    pub interventionism: f32,  // 0.0 - 1.0, willingness to interfere abroad
-    pub risk_tolerance: f32,   // 0.0 - 1.0, willingness to take risks
-    pub honor_treaties: f32,   // 0.0 - 1.0, diplomatic reliability
-    pub militarism: f32,       // 0.0 - 1.0, focus on military strength
-    pub isolationism: f32,     // 0.0 - 1.0, preference for isolation
+    pub land_hunger: f32,     // 0.0 - 1.0, desire to expand territory
+    pub industry_focus: f32,  // 0.0 - 1.0, focus on economic development
+    pub tech_focus: f32,      // 0.0 - 1.0, investment in research
+    pub interventionism: f32, // 0.0 - 1.0, willingness to interfere abroad
+    pub risk_tolerance: f32,  // 0.0 - 1.0, willingness to take risks
+    pub honor_treaties: f32,  // 0.0 - 1.0, diplomatic reliability
+    pub militarism: f32,      // 0.0 - 1.0, focus on military strength
+    pub isolationism: f32,    // 0.0 - 1.0, preference for isolation
+}
+
+// Manual Component implementation
+impl Component for CivPersonality {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl Default for CivPersonality {
@@ -64,7 +154,7 @@ impl Default for CivPersonality {
 }
 
 /// Technology research state
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Technologies {
     pub known: HashMap<String, bool>,
     pub research_points: f32,
@@ -82,13 +172,18 @@ impl Default for Technologies {
 }
 
 /// Economic state of a civilization
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Economy {
     pub gold: f32,
     pub income: f32,
     pub expenses: f32,
     pub production: f32,
     pub trade_routes: Vec<TradeRoute>,
+}
+
+// Manual Component implementation
+impl Component for Economy {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl Default for Economy {
@@ -104,7 +199,7 @@ impl Default for Economy {
 }
 
 /// Trade route between cities/regions
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct TradeRoute {
     pub from: Position,
     pub to: Position,
@@ -112,8 +207,13 @@ pub struct TradeRoute {
     pub security: f32,
 }
 
+// Manual Component implementation
+impl Component for TradeRoute {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
 /// Military forces and capabilities
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Military {
     pub units: Vec<MilitaryUnit>,
     pub total_strength: f32,
@@ -131,7 +231,7 @@ impl Default for Military {
 }
 
 /// Individual military unit
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct MilitaryUnit {
     pub id: u32,
     pub unit_type: UnitType,
@@ -141,7 +241,12 @@ pub struct MilitaryUnit {
     pub experience: f32,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+// Manual Component implementation
+impl Component for MilitaryUnit {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum UnitType {
     Infantry,
     Cavalry,
@@ -151,7 +256,7 @@ pub enum UnitType {
 }
 
 /// City component
-#[derive(Component, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct City {
     pub name: String,
     pub owner: CivId,
@@ -161,14 +266,24 @@ pub struct City {
     pub buildings: Vec<Building>,
 }
 
+// Manual Component implementation
+impl Component for City {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
 /// Building in a city
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Building {
     pub building_type: BuildingType,
     pub level: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Manual Component implementation
+impl Component for Building {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
+#[derive(Debug, Clone)]
 pub enum BuildingType {
     Granary,
     Barracks,
@@ -180,14 +295,19 @@ pub enum BuildingType {
 }
 
 /// Territory control component
-#[derive(Component, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Territory {
     pub owner: CivId,
     pub control_strength: f32,
     pub terrain_type: TerrainType,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Manual Component implementation
+impl Component for Territory {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
+#[derive(Debug, Clone)]
 pub enum TerrainType {
     Plains,
     Hills,
@@ -200,7 +320,7 @@ pub enum TerrainType {
 }
 
 /// Diplomatic relationship component
-#[derive(Component, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct DiplomaticRelation {
     pub civ_a: CivId,
     pub civ_b: CivId,
@@ -209,7 +329,12 @@ pub struct DiplomaticRelation {
     pub trade_agreement: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Manual Component implementation
+impl Component for DiplomaticRelation {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
+#[derive(Debug, Clone)]
 pub enum Treaty {
     NonAggression { turns_remaining: u32 },
     Alliance { turns_remaining: u32 },
@@ -218,23 +343,39 @@ pub enum Treaty {
 }
 
 /// Movement order for units
-#[derive(Component, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct MovementOrder {
+    pub unit_entity: bevy_ecs::entity::Entity,
     pub target: Position,
     pub path: Vec<Position>,
     pub path_index: usize,
 }
 
+// Manual Component implementation
+impl Component for MovementOrder {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
 /// Turn marker for entities that should act this turn
-#[derive(Component, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct ActiveThisTurn;
 
+// Manual Component implementation
+impl Component for ActiveThisTurn {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
 /// AI decision component
-#[derive(Component, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct AIDecision {
     pub decision_type: DecisionType,
     pub priority: f32,
     pub target: Option<Position>,
+}
+
+// Manual Component implementation
+impl Component for AIDecision {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 #[derive(Debug, Clone)]
@@ -249,10 +390,52 @@ pub enum DecisionType {
 }
 
 /// Data structure for serialization
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CivilizationData {
     pub civilization: Civilization,
     pub cities: Vec<City>,
     pub territories: Vec<(Position, Territory)>,
     pub diplomatic_relations: Vec<DiplomaticRelation>,
+}
+
+/// AI actions that can be taken by civilizations (GOAP-based)
+#[derive(Debug, Clone)]
+pub enum AIAction {
+    Expand {
+        target_position: Position,
+        priority: f32,
+    },
+    Research {
+        technology: String,
+        priority: f32,
+    },
+    BuildUnit {
+        unit_type: UnitType,
+        position: Position,
+        priority: f32,
+    },
+    BuildBuilding {
+        building_type: BuildingType,
+        position: Position,
+        priority: f32,
+    },
+    Trade {
+        partner: CivId,
+        resource: crate::GameResource,
+        priority: f32,
+    },
+    Attack {
+        target: CivId,
+        target_position: Position,
+        priority: f32,
+    },
+    Diplomacy {
+        target: CivId,
+        action: crate::diplomacy::DiplomaticAction,
+        priority: f32,
+    },
+    Defend {
+        position: Position,
+        priority: f32,
+    },
 }

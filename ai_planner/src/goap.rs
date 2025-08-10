@@ -1,4 +1,4 @@
-use core_sim::{CivId, GameState, Position};
+use core_sim::{CivId, GameState, Position, UnitType, BuildingType, GameResource as Resource};
 use crate::{AIAction, StrategicGoal};
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -364,7 +364,7 @@ impl GOAPAction {
             }
             GOAPActionType::BuildMilitary => {
                 Some(AIAction::BuildUnit {
-                    unit_type: core_sim::UnitType::Infantry,
+                    unit_type: UnitType::Infantry,
                     position: capital,
                     priority: 1.0 - self.cost / 10.0,
                 })
@@ -375,7 +375,7 @@ impl GOAPAction {
                     if other_civ.civilization.id != civ_id {
                         return Some(AIAction::Trade {
                             partner: other_civ.civilization.id,
-                            resource: core_sim::Resource::Gold,
+                            resource: Resource::Gold,
                             priority: 1.0 - self.cost / 10.0,
                         });
                     }
@@ -384,7 +384,7 @@ impl GOAPAction {
             }
             GOAPActionType::BuildEconomic => {
                 Some(AIAction::BuildBuilding {
-                    building_type: core_sim::BuildingType::Market,
+                    building_type: BuildingType::Market,
                     position: capital,
                     priority: 1.0 - self.cost / 10.0,
                 })

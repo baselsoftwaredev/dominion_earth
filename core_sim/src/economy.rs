@@ -1,4 +1,4 @@
-use crate::{CivId, Position, Economy, Resource, GlobalEconomy, TradeRoute, Building, BuildingType, City};
+use crate::{CivId, Position, Economy, GameResource, GlobalEconomy, TradeRoute, Building, BuildingType, City};
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
@@ -34,8 +34,8 @@ impl EconomicSystem {
         buildings: &bevy_ecs::system::Query<(&Building, &Position)>,
     ) {
         let mut base_production = HashMap::new();
-        base_production.insert(Resource::Gold, 10.0);
-        base_production.insert(Resource::Wheat, 5.0);
+        base_production.insert(GameResource::Gold, 10.0);
+        base_production.insert(GameResource::Wheat, 5.0);
 
         // Add production from cities
         for (city, _position) in cities.iter() {
@@ -82,7 +82,7 @@ impl EconomicSystem {
 
     /// Update civilization treasury
     fn update_treasury(economy: &mut Economy) {
-        let income = economy.resource_production.get(&Resource::Gold).unwrap_or(&0.0);
+        let income = economy.resource_production.get(&GameResource::Gold).unwrap_or(&0.0);
         let net_income = income - economy.maintenance_costs;
         economy.treasury = (economy.treasury + net_income).max(0.0);
     }
@@ -115,40 +115,40 @@ impl EconomicSystem {
         }
     }
 
-    fn get_base_resource_price(resource: &Resource) -> f32 {
+    fn get_base_resource_price(resource: &GameResource) -> f32 {
         match resource {
-            Resource::Iron => 12.0,
-            Resource::Gold => 50.0,
-            Resource::Horses => 20.0,
-            Resource::Wheat => 5.0,
-            Resource::Fish => 3.0,
-            Resource::Stone => 8.0,
-            Resource::Wood => 6.0,
-            Resource::Spices => 25.0,
+            GameResource::Iron => 12.0,
+            GameResource::Gold => 50.0,
+            GameResource::Horses => 20.0,
+            GameResource::Wheat => 5.0,
+            GameResource::Fish => 3.0,
+            GameResource::Stone => 8.0,
+            GameResource::Wood => 6.0,
+            GameResource::Spices => 25.0,
         }
     }
 
     /// Get building production yields
-    fn get_building_production(building_type: &BuildingType) -> HashMap<Resource, f32> {
+    fn get_building_production(building_type: &BuildingType) -> HashMap<GameResource, f32> {
         let mut production = HashMap::new();
         
         match building_type {
             BuildingType::Granary => {
-                production.insert(Resource::Wheat, 2.0);
+                production.insert(GameResource::Wheat, 2.0);
             }
             BuildingType::Market => {
-                production.insert(Resource::Gold, 3.0);
+                production.insert(GameResource::Gold, 3.0);
             }
             BuildingType::Workshop => {
-                production.insert(Resource::Wood, 1.5);
-                production.insert(Resource::Stone, 1.0);
+                production.insert(GameResource::Wood, 1.5);
+                production.insert(GameResource::Stone, 1.0);
             }
             BuildingType::Library => {
-                production.insert(Resource::Gold, 1.0);
+                production.insert(GameResource::Gold, 1.0);
             }
             BuildingType::Barracks => {}
             BuildingType::Temple => {
-                production.insert(Resource::Gold, 1.5);
+                production.insert(GameResource::Gold, 1.5);
             }
             BuildingType::Walls => {}
         }
@@ -185,16 +185,16 @@ impl EconomicSystem {
     }
 
     /// Calculate strategic resource availability
-    pub fn get_strategic_resources(economy: &Economy) -> Vec<Resource> {
+    pub fn get_strategic_resources(economy: &Economy) -> Vec<GameResource> {
         let strategic_resources = [
-            Resource::Iron,
-            Resource::Gold,
-            Resource::Horses,
-            Resource::Wheat,
-            Resource::Fish,
-            Resource::Stone,
-            Resource::Wood,
-            Resource::Spices,
+            GameResource::Iron,
+            GameResource::Gold,
+            GameResource::Horses,
+            GameResource::Wheat,
+            GameResource::Fish,
+            GameResource::Stone,
+            GameResource::Wood,
+            GameResource::Spices,
         ];
 
         strategic_resources
@@ -259,34 +259,34 @@ impl EconomicSystem {
             treasury: economy.treasury,
             total_production: economy.total_production,
             maintenance_costs: economy.maintenance_costs,
-            net_income: economy.resource_production.get(&Resource::Gold).unwrap_or(&0.0) - economy.maintenance_costs,
+            net_income: economy.resource_production.get(&GameResource::Gold).unwrap_or(&0.0) - economy.maintenance_costs,
             resource_production: economy.resource_production.clone(),
         }
     }
 }
 
 /// Economic report for UI display
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct EconomicReport {
     pub treasury: f32,
     pub total_production: f32,
     pub maintenance_costs: f32,
     pub net_income: f32,
-    pub resource_production: HashMap<Resource, f32>,
+    pub resource_production: HashMap<GameResource, f32>,
 }
 
 /// Market prices for UI
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct MarketPrices {
-    pub resource_prices: HashMap<Resource, f32>,
+    pub resource_prices: HashMap<GameResource, f32>,
     pub trade_goods: Vec<TradeGood>,
 }
 
 /// Tradeable goods
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct TradeGood {
     pub name: String,
-    pub resource_type: Resource,
+    pub resource_type: GameResource,
     pub base_price: f32,
     pub current_price: f32,
     pub availability: f32,

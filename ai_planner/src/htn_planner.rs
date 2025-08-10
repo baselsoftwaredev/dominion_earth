@@ -1,4 +1,4 @@
-use core_sim::{CivId, GameState, Position};
+use core_sim::{CivId, GameState, Position, UnitType, BuildingType};
 use crate::{AIAction, HTNTask};
 use std::collections::HashMap;
 
@@ -126,7 +126,7 @@ impl HTNPlanner {
         match action_type {
             PrimitiveActionType::BuildArmy => {
                 Some(AIAction::BuildUnit {
-                    unit_type: core_sim::UnitType::Infantry,
+                    unit_type: UnitType::Infantry,
                     position: capital,
                     priority: 0.8,
                 })
@@ -158,7 +158,7 @@ impl HTNPlanner {
                     if other_civ.civilization.id != civ_id {
                         return Some(AIAction::Trade {
                             partner: other_civ.civilization.id,
-                            resource: core_sim::Resource::Gold,
+                            resource: Resource::Gold,
                             priority: 0.5,
                         });
                     }
@@ -167,7 +167,7 @@ impl HTNPlanner {
             }
             PrimitiveActionType::BuildInfrastructure => {
                 Some(AIAction::BuildBuilding {
-                    building_type: core_sim::BuildingType::Workshop,
+                    building_type: BuildingType::Workshop,
                     position: capital,
                     priority: 0.6,
                 })

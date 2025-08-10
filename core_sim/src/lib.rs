@@ -1,45 +1,55 @@
+use std::collections::HashMap;
+
 pub mod components;
+pub mod influence_map;
+pub mod pathfinding;
 pub mod resources;
 pub mod systems;
 pub mod world_gen;
-pub mod influence_map;
-pub mod pathfinding;
-pub mod economy;
-pub mod combat;
-pub mod diplomacy;
-pub mod serialization;
+// Temporarily disabled due to proc macro version issues
+// pub mod economy;
+// pub mod combat;
+// pub mod diplomacy;
+// pub mod serialization;
 
 pub use components::*;
-pub use resources::*;
+// Import specific items from resources to avoid Resource trait conflict
+pub use resources::{
+    DiplomaticEvent,
+    DiplomaticState,
+    GlobalEconomy,
+    Resource as GameResource, // Rename to avoid conflict with bevy_ecs::Resource
+    WorldMap,
+};
 
-use bevy_ecs::prelude::*;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-
-/// Core game state that can be serialized/deserialized
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Game state representing the current state of the simulation
+#[derive(Debug, Clone)]
 pub struct GameState {
     pub turn: u32,
     pub civilizations: HashMap<CivId, CivilizationData>,
-    pub world_map: WorldMap,
-    pub global_economy: GlobalEconomy,
-    pub diplomatic_state: DiplomaticState,
+    pub current_player: Option<CivId>,
 }
+
+// Manual Resource implementation
+impl bevy_ecs::system::Resource for GameState {}
 
 impl Default for GameState {
     fn default() -> Self {
         Self {
             turn: 1,
             civilizations: HashMap::new(),
-            world_map: WorldMap::default(),
-            global_economy: GlobalEconomy::default(),
-            diplomatic_state: DiplomaticState::default(),
+            current_player: None,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CivId(pub u32);
+
+// Manual Component implementation
+impl bevy_ecs::component::Component for CivId {
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
 
 impl From<u32> for CivId {
     fn from(id: u32) -> Self {
@@ -48,16 +58,13 @@ impl From<u32> for CivId {
 }
 
 /// Core simulation error types
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug)]
 pub enum SimError {
-    #[error("Civilization not found: {0:?}")]
     CivNotFound(CivId),
-    #[error("Invalid position: {x}, {y}")]
     InvalidPosition { x: i32, y: i32 },
-    #[error("Serialization error: {0}")]
-    Serialization(#[from] ron::Error),
-    #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
+    Serialization(ron::Error),
+    JsonSerialization(serde_json::Error),
+    Io(std::io::Error),
 }
 
 pub type SimResult<T> = Result<T, SimError>;

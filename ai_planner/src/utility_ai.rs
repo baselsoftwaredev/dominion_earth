@@ -1,4 +1,4 @@
-use core_sim::{CivId, CivilizationData, GameState, Position, CivPersonality};
+use core_sim::{CivId, CivilizationData, GameState, Position, CivPersonality, UnitType, BuildingType, GameResource as Resource};
 use crate::{AIAction, StrategicGoal};
 use std::collections::HashMap;
 use rand::Rng;
@@ -161,9 +161,9 @@ impl UtilityAI {
                     
                     // Choose unit type based on what we need
                     let unit_type = if civ_data.civilization.military.units.len() < 2 {
-                        core_sim::UnitType::Infantry
+                        UnitType::Infantry
                     } else {
-                        core_sim::UnitType::Archer
+                        UnitType::Archer
                     };
                     
                     Some(AIAction::BuildUnit {
@@ -195,11 +195,11 @@ impl UtilityAI {
                     
                     // Choose building type based on current needs
                     let building_type = if civ_data.cities.iter().any(|city| {
-                        city.buildings.iter().any(|b| matches!(b.building_type, core_sim::BuildingType::Market))
+                        city.buildings.iter().any(|b| matches!(b.building_type, BuildingType::Market))
                     }) {
-                        core_sim::BuildingType::Workshop
+                        BuildingType::Workshop
                     } else {
-                        core_sim::BuildingType::Market
+                        BuildingType::Market
                     };
                     
                     Some(AIAction::BuildBuilding {
@@ -253,7 +253,7 @@ impl UtilityAI {
                     if let Some(partner) = best_partner {
                         Some(AIAction::Trade {
                             partner,
-                            resource: core_sim::Resource::Gold, // Simplified for now
+                            resource: Resource::Gold, // Simplified for now
                             priority: utility,
                         })
                     } else {

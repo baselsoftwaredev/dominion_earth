@@ -1,6 +1,5 @@
 use crate::{CivId, Position, MilitaryUnit, UnitType};
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use rand::Rng;
 
 /// Combat resolution system
@@ -187,7 +186,7 @@ impl CombatSystem {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CombatResult {
     pub winner: CombatWinner,
     pub rounds: u32,
@@ -196,20 +195,20 @@ pub struct CombatResult {
     pub defender_final_strength: f32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum CombatWinner {
     Attacker,
     Defender,
     Draw,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct CombatCasualties {
     pub attacker_losses: HashMap<UnitType, u32>,
     pub defender_losses: HashMap<UnitType, u32>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub enum SiegeResult {
     Captured {
         turns_to_capture: u32,

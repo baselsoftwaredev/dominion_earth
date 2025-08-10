@@ -3,7 +3,7 @@ pub mod goap;
 pub mod htn_planner;
 pub mod ai_coordinator;
 
-use core_sim::{CivId, CivPersonality, Position, GameState};
+use core_sim::{CivId, CivPersonality, Position, GameState, AIAction, UnitType, BuildingType, GameResource as Resource};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -147,48 +147,6 @@ impl AICoordinator {
     pub fn clear_cache(&mut self) {
         self.decision_cache.clear();
     }
-}
-
-/// AI actions that can be taken by civilizations
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum AIAction {
-    Expand {
-        target_position: Position,
-        priority: f32,
-    },
-    Research {
-        technology: String,
-        priority: f32,
-    },
-    BuildUnit {
-        unit_type: core_sim::UnitType,
-        position: Position,
-        priority: f32,
-    },
-    BuildBuilding {
-        building_type: core_sim::BuildingType,
-        position: Position,
-        priority: f32,
-    },
-    Trade {
-        partner: CivId,
-        resource: core_sim::Resource,
-        priority: f32,
-    },
-    Attack {
-        target: CivId,
-        target_position: Position,
-        priority: f32,
-    },
-    Diplomacy {
-        target: CivId,
-        action: core_sim::diplomacy::DiplomaticAction,
-        priority: f32,
-    },
-    Defend {
-        position: Position,
-        priority: f32,
-    },
 }
 
 /// Strategic goals for GOAP planning

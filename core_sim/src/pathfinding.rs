@@ -1,4 +1,4 @@
-use crate::{Position, WorldMap, MapTile};
+use crate::{Position, WorldMap, resources::MapTile};
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::cmp::Ordering;
 

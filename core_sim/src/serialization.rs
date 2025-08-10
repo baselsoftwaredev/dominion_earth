@@ -126,7 +126,7 @@ impl GameSerializer {
 }
 
 /// Compact representation for quick saves/autosaves
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct CompactGameState {
     pub turn: u32,
     pub civ_count: u32,
@@ -152,7 +152,7 @@ impl EcsSerializer {
         let mut game_state = GameState::default();
         
         // Extract current turn
-        if let Some(current_turn) = world.get_resource::<crate::CurrentTurn>() {
+        if let Some(current_turn) = world.get_resource::<crate::resources::CurrentTurn>() {
             game_state.turn = current_turn.0;
         }
         
@@ -218,7 +218,7 @@ impl EcsSerializer {
         world.clear_entities();
         
         // Insert resources
-        world.insert_resource(crate::CurrentTurn(game_state.turn));
+        world.insert_resource(crate::resources::CurrentTurn(game_state.turn));
         world.insert_resource(game_state.world_map.clone());
         world.insert_resource(game_state.global_economy.clone());
         world.insert_resource(game_state.diplomatic_state.clone());

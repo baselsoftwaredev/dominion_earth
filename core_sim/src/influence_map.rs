@@ -10,6 +10,9 @@ pub struct InfluenceMap {
     pub layers: HashMap<InfluenceType, Vec<Vec<f32>>>,
 }
 
+// Manual Resource implementation
+impl bevy_ecs::system::Resource for InfluenceMap {}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InfluenceType {
     Military(CivId),
