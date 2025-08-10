@@ -32,12 +32,12 @@ pub fn spawn_world_tiles(
     world_map: Res<WorldMap>,
     tile_assets: Res<TileAssets>,
 ) {
-    let tile_size = 32.0; // Larger tiles for better visibility with sprites
-    let map_offset = Vec2::new(-1600.0, -800.0); // Adjust for larger tiles
+    let tile_size = 64.0; // Match your 64x64 tile images
+    let map_offset = Vec2::new(-3200.0, -1600.0); // Adjusted for 64px tiles
 
-    // Spawn tile sprites (sample every 4th tile to avoid too many sprites)
-    for x in (0..world_map.width).step_by(4) {
-        for y in (0..world_map.height).step_by(4) {
+    // Spawn tile sprites (render every tile for no gaps)
+    for x in 0..world_map.width {
+        for y in 0..world_map.height {
             let world_pos = Position::new(x as i32, y as i32);
             if let Some(tile) = world_map.get_tile(world_pos) {
                 let screen_pos = map_offset + Vec2::new(x as f32 * tile_size, y as f32 * tile_size);
@@ -81,8 +81,8 @@ pub fn render_world_overlays(
     let _camera_pos = camera_transform.translation.truncate();
 
     // Define rendering parameters
-    let tile_size = 32.0; // Match the sprite tile size
-    let map_offset = Vec2::new(-1600.0, -800.0); // Match the sprite offset
+    let tile_size = 64.0; // Match your 64x64 tile images
+    let map_offset = Vec2::new(-3200.0, -1600.0); // Adjusted for 64px tiles
     for (civilization, position) in civs.iter() {
         let screen_pos =
             map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
