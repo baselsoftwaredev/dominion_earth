@@ -15,6 +15,16 @@ pub struct WorldTile {
     pub terrain_type: TerrainType,
 }
 
+#[derive(Component)]
+pub struct UnitSprite {
+    pub unit_entity: Entity,
+}
+
+#[derive(Component)]
+pub struct CapitalSprite {
+    pub civ_id: CivId,
+}
+
 /// Load tile assets
 pub fn setup_tile_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     let tile_assets = TileAssets {
@@ -92,16 +102,82 @@ fn get_civ_color(civ_id: &CivId) -> Color {
     Color::srgb(r + m, g + m, b + m)
 }
 
+/// System to spawn unit sprites once when units are created
+pub fn spawn_unit_sprites(
+    mut commands: Commands,
+    units: Query<(Entity, &MilitaryUnit, &Position), Without<UnitSprite>>,
+    unit_assets: Res<crate::unit_assets::UnitAssets>,
+) {
+    let tile_size = 64.0;
+    let map_offset = Vec2::new(-3200.0, -1600.0);
+
+    for (unit_entity, unit, position) in units.iter() {
+        let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
+        
+        match unit.unit_type {
+            UnitType::Infantry => {
+                let sprite_entity = commands.spawn((
+                    Sprite::from_image(unit_assets.ancient_infantry.clone()),
+                    Transform::from_translation(screen_pos.extend(15.0))
+                        .with_scale(Vec3::splat(1.0)),
+                )).id();
+                
+                // Add UnitSprite component to the unit entity to track its sprite
+                commands.entity(unit_entity).insert(UnitSprite { unit_entity: sprite_entity });
+            }
+            _ => {
+                // For non-Infantry units, we'll still use gizmos for now
+            }
+        }
+    }
+}
+
+/// System to update unit sprite positions when units move
+pub fn update_unit_sprites(
+    units: Query<(&MilitaryUnit, &Position, &UnitSprite), Changed<Position>>,
+    mut sprites: Query<&mut Transform, With<Sprite>>,
+) {
+    let tile_size = 64.0;
+    let map_offset = Vec2::new(-3200.0, -1600.0);
+
+    for (_unit, position, unit_sprite) in units.iter() {
+        if let Ok(mut transform) = sprites.get_mut(unit_sprite.unit_entity) {
+            let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
+            transform.translation = screen_pos.extend(15.0);
+        }
+    }
+}
+
+/// System to spawn capital sprites once
+pub fn spawn_capital_sprites(
+    mut commands: Commands,
+    civs: Query<(Entity, &Civilization, &Position), Without<CapitalSprite>>,
+    tile_assets: Res<TileAssets>,
+) {
+    let tile_size = 64.0;
+    let map_offset = Vec2::new(-3200.0, -1600.0);
+
+    for (civ_entity, civilization, position) in civs.iter() {
+        let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
+        
+        let sprite_entity = commands.spawn((
+            Sprite::from_image(tile_assets.capital_ancient.clone()),
+            Transform::from_translation(screen_pos.extend(10.0))
+                .with_scale(Vec3::splat(1.0)),
+            CapitalSprite { civ_id: civilization.id },
+        )).id();
+        
+        commands.entity(civ_entity).insert(CapitalSprite { civ_id: civilization.id });
+    }
+}
+
 /// Simple 2D rendering system for civilizations and units (keeping this for overlays)
 pub fn render_world_overlays(
-    mut commands: Commands,
     mut gizmos: Gizmos,
     world_map: Res<WorldMap>,
-    tile_assets: Res<TileAssets>,
     civs: Query<(&Civilization, &Position)>,
     cities: Query<(&City, &Position)>,
     units: Query<(&MilitaryUnit, &Position)>,
-    unit_assets: Res<crate::unit_assets::UnitAssets>,
     camera: Query<&Transform, With<Camera>>,
 ) {
     // Get camera position for world-to-screen calculations
@@ -117,13 +193,6 @@ pub fn render_world_overlays(
         let screen_pos =
             map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
 
-        // Spawn a sprite for the capital city tile art
-        commands.spawn((
-            Sprite::from_image(tile_assets.capital_ancient.clone()),
-            Transform::from_translation(screen_pos.extend(10.0)) // Z=10 to render above terrain
-                .with_scale(Vec3::splat(1.0)),
-        ));
-
         // Draw a colored circle around the capital for this civilization
         let civ_color = get_civ_color(&civilization.id);
         gizmos.circle_2d(screen_pos, tile_size * 0.8, civ_color);
@@ -136,11 +205,8 @@ pub fn render_world_overlays(
 
         // City population indicator (circle to match capitals)
         let pop_size = (city.population as f32 / 5000.0).clamp(0.5, 2.0);
-        gizmos.circle_2d(
-            screen_pos,
-            tile_size * pop_size,
-            Color::srgb(1.0, 1.0, 0.0),
-        ); // Yellow circle for cities
+        gizmos.circle_2d(screen_pos, tile_size * pop_size, Color::srgb(1.0, 1.0, 0.0));
+        // Yellow circle for cities
     }
 
     // Render military units
@@ -150,19 +216,15 @@ pub fn render_world_overlays(
 
         match unit.unit_type {
             UnitType::Infantry => {
-                commands.spawn((
-                    Sprite::from_image(unit_assets.ancient_infantry.clone()),
-                    Transform::from_translation(screen_pos.extend(15.0)) // Z=15 above cities
-                        .with_scale(Vec3::splat(1.0)),
-                ));
+                // Infantry units are handled by sprite system, skip gizmo rendering
             }
             // For other unit types, keep diamond/circle for now
             _ => {
                 let unit_color = match unit.unit_type {
-                    UnitType::Cavalry => Color::srgb(0.5, 0.0, 0.5),  // Purple
-                    UnitType::Archer => Color::srgb(1.0, 0.27, 0.0),  // Orange Red
+                    UnitType::Cavalry => Color::srgb(0.5, 0.0, 0.5), // Purple
+                    UnitType::Archer => Color::srgb(1.0, 0.27, 0.0), // Orange Red
                     UnitType::Siege => Color::srgb(0.33, 0.33, 0.33), // Dark Gray
-                    UnitType::Naval => Color::srgb(0.0, 0.0, 0.5),    // Navy
+                    UnitType::Naval => Color::srgb(0.0, 0.0, 0.5),   // Navy
                     _ => Color::WHITE,
                 };
                 let diamond_size = tile_size * 0.8;

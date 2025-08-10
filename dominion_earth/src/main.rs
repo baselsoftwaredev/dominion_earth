@@ -40,7 +40,7 @@ fn main() {
                 (
                     setup_camera,
                     rendering::setup_tile_assets,
-                    unit_assets::setup_unit_assets, // <-- add this
+                    unit_assets::setup_unit_assets,
                     game::setup_game,
                     rendering::spawn_world_tiles.after(game::setup_game),
                 ),
@@ -52,6 +52,9 @@ fn main() {
                     input::handle_mouse_input,
                     game::game_update_system,
                     core_sim::systems::move_units_on_land_each_turn,
+                    rendering::spawn_unit_sprites,
+                    rendering::update_unit_sprites,
+                    rendering::spawn_capital_sprites,
                     ui::ui_system,
                     rendering::render_world_overlays,
                 ),

@@ -333,23 +333,23 @@ pub fn spawn_civilizations_system(
     }
 }
 
-/// System to move all military units on land (Plains) to a random adjacent land tile each turn
+/// System to move all military units on land to a random adjacent land tile each turn
 pub fn move_units_on_land_each_turn(
     mut units: Query<(&mut Position, &MilitaryUnit)>,
     world_map: Res<WorldMap>,
     mut rng: ResMut<GameRng>,
 ) {
     for (mut pos, _unit) in units.iter_mut() {
-        // Only move if on a Plains tile
+        // Only move if on a land tile (not Ocean)
         if let Some(tile) = world_map.get_tile(*pos) {
-            if matches!(tile.terrain, crate::TerrainType::Plains) {
+            if !matches!(tile.terrain, crate::TerrainType::Ocean) {
                 // Get all adjacent positions
                 let adj = pos.adjacent_positions();
-                // Filter to valid land (Plains) tiles
+                // Filter to valid land (non-Ocean) tiles
                 let mut valid_moves = vec![];
                 for p in adj.iter() {
                     if let Some(adj_tile) = world_map.get_tile(*p) {
-                        if matches!(adj_tile.terrain, crate::TerrainType::Plains) {
+                        if !matches!(adj_tile.terrain, crate::TerrainType::Ocean) {
                             valid_moves.push(*p);
                         }
                     }
