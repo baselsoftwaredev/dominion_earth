@@ -3,7 +3,8 @@ use core_sim::*;
 
 #[derive(Resource)]
 pub struct TileAssets {
-    pub green_land: Handle<Image>,
+    pub plains: Handle<Image>,
+    pub ocean: Handle<Image>,
     // Add more tile types as you create them
 }
 
@@ -16,8 +17,9 @@ pub struct WorldTile {
 /// Load tile assets
 pub fn setup_tile_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
     let tile_assets = TileAssets {
-        green_land: asset_server.load("tiles/land/green_land_tile.png"),
-        // Add more tiles here as you create them
+        plains: asset_server.load("tiles/land/plains_tile.png"),
+        ocean: asset_server.load("tiles/land/ocean_tile.png"), // Temporary: use plains until you add ocean_tile.png
+                                                                // Add more tiles here as you create them
     };
     commands.insert_resource(tile_assets);
 }
@@ -40,11 +42,11 @@ pub fn spawn_world_tiles(
 
                 // Choose texture based on terrain type
                 let texture = match tile.terrain {
-                    TerrainType::Plains | TerrainType::Hills | TerrainType::Forest => {
-                        tile_assets.green_land.clone()
-                    }
-                    // Use green_land as placeholder for all other types for now
-                    _ => tile_assets.green_land.clone(),
+                    TerrainType::Plains => tile_assets.plains.clone(),
+                    TerrainType::Hills | TerrainType::Forest => tile_assets.plains.clone(), // Use plains as placeholder
+                    TerrainType::Ocean | TerrainType::Coast => tile_assets.ocean.clone(),
+                    // Use plains as fallback for other types (Mountains, Desert, River)
+                    _ => tile_assets.plains.clone(),
                 };
 
                 commands.spawn((
