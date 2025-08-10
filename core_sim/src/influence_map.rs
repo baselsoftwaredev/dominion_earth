@@ -1,6 +1,6 @@
-use crate::{Position, WorldMap, CivId};
-use std::collections::HashMap;
+use crate::{CivId, Position, WorldMap};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Influence map for strategic AI decision making
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,7 +39,11 @@ impl InfluenceMap {
 
     pub fn get_influence(&self, influence_type: &InfluenceType, pos: Position) -> f32 {
         if let Some(layer) = self.layers.get(influence_type) {
-            if pos.x >= 0 && pos.y >= 0 && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
+            if pos.x >= 0
+                && pos.y >= 0
+                && (pos.x as u32) < self.width
+                && (pos.y as u32) < self.height
+            {
                 return layer[pos.x as usize][pos.y as usize];
             }
         }
@@ -48,7 +52,11 @@ impl InfluenceMap {
 
     pub fn set_influence(&mut self, influence_type: &InfluenceType, pos: Position, value: f32) {
         if let Some(layer) = self.layers.get_mut(influence_type) {
-            if pos.x >= 0 && pos.y >= 0 && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
+            if pos.x >= 0
+                && pos.y >= 0
+                && (pos.x as u32) < self.width
+                && (pos.y as u32) < self.height
+            {
                 layer[pos.x as usize][pos.y as usize] = value;
             }
         }
@@ -56,7 +64,11 @@ impl InfluenceMap {
 
     pub fn add_influence(&mut self, influence_type: &InfluenceType, pos: Position, value: f32) {
         if let Some(layer) = self.layers.get_mut(influence_type) {
-            if pos.x >= 0 && pos.y >= 0 && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
+            if pos.x >= 0
+                && pos.y >= 0
+                && (pos.x as u32) < self.width
+                && (pos.y as u32) < self.height
+            {
                 layer[pos.x as usize][pos.y as usize] += value;
             }
         }
@@ -72,14 +84,20 @@ impl InfluenceMap {
         }
     }
 
-    pub fn project_influence(&mut self, influence_type: &InfluenceType, center: Position, strength: f32, max_distance: f32) {
+    pub fn project_influence(
+        &mut self,
+        influence_type: &InfluenceType,
+        center: Position,
+        strength: f32,
+        max_distance: f32,
+    ) {
         let max_dist_i = max_distance as i32;
-        
+
         for dx in -max_dist_i..=max_dist_i {
             for dy in -max_dist_i..=max_dist_i {
                 let pos = Position::new(center.x + dx, center.y + dy);
                 let distance = center.distance_to(&pos);
-                
+
                 if distance <= max_distance && distance > 0.0 {
                     let influence_value = strength * (1.0 - distance / max_distance).max(0.0);
                     self.add_influence(influence_type, pos, influence_value);
@@ -93,20 +111,24 @@ impl InfluenceMap {
 
         for &civ in civs {
             let mut total_influence = 0.0;
-            
+
             // Combine military, economic, and cultural influence
             total_influence += self.get_influence(&InfluenceType::Military(civ), pos) * 0.4;
             total_influence += self.get_influence(&InfluenceType::Economic(civ), pos) * 0.3;
             total_influence += self.get_influence(&InfluenceType::Cultural(civ), pos) * 0.2;
             total_influence += self.get_influence(&InfluenceType::Control(civ), pos) * 0.1;
-            
+
             combined.insert(civ, total_influence);
         }
 
         combined
     }
 
-    pub fn find_strategic_positions(&self, influence_type: &InfluenceType, threshold: f32) -> Vec<Position> {
+    pub fn find_strategic_positions(
+        &self,
+        influence_type: &InfluenceType,
+        threshold: f32,
+    ) -> Vec<Position> {
         let mut positions = Vec::new();
 
         if let Some(layer) = self.layers.get(influence_type) {

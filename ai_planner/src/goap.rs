@@ -6,14 +6,14 @@ use std::collections::{HashMap, HashSet, VecDeque};
 #[derive(Debug, Clone)]
 pub struct GOAPPlanner {
     actions: Vec<GOAPAction>,
-    max_planning_depth: usize,
+    _max_planning_depth: usize, // Reserved for future depth limiting
 }
 
 impl GOAPPlanner {
     pub fn new() -> Self {
         Self {
             actions: Self::create_goap_actions(),
-            max_planning_depth: 10,
+            _max_planning_depth: 10,
         }
     }
 

@@ -11,3 +11,5 @@ ai_planner = { path = "../ai_planner" }
 serde = { workspace = true }
 ron = { workspace = true }
 anyhow = { workspace = true }
+rand = { workspace = true }
+rand_pcg = { workspace = true }

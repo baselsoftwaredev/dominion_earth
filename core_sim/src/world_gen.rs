@@ -1,4 +1,6 @@
-use crate::{Position, WorldMap, TerrainType, resources::MapTile, resources::Resource as GameResource};
+use crate::{
+    resources::MapTile, resources::Resource as GameResource, Position, TerrainType, WorldMap,
+};
 use rand::Rng;
 
 /// Generate a basic Earth-like world map
@@ -96,12 +98,12 @@ fn add_rivers(map: &mut WorldMap, rng: &mut impl Rng) {
 
             // Move river towards coast
             let neighbors = map.neighbors(current);
-            if let Some(next) = neighbors.into_iter().find(|&pos| {
+            if let Some(_next) = neighbors.into_iter().find(|&pos| {
                 map.get_tile(pos)
                     .map(|t| matches!(t.terrain, TerrainType::Coast | TerrainType::Ocean))
                     .unwrap_or(false)
             }) {
-                current = next;
+                // Found coast/ocean - river terminates here
                 break;
             } else if let Some(next) = map.neighbors(current).into_iter().next() {
                 current = next;
@@ -127,21 +129,31 @@ fn place_resources(map: &mut WorldMap, rng: &mut impl Rng) {
             if tile.resource.is_none() && !matches!(tile.terrain, TerrainType::Ocean) {
                 tile.resource = Some(match tile.terrain {
                     TerrainType::Mountains => {
-                        if rng.gen_bool(0.5) { GameResource::Iron } else { GameResource::Stone }
-                    }
-                    TerrainType::Hills => {
-                        match rng.gen_range(0..3) {
-                            0 => GameResource::Iron,
-                            1 => GameResource::Gold,
-                            _ => GameResource::Stone,
+                        if rng.gen_bool(0.5) {
+                            GameResource::Iron
+                        } else {
+                            GameResource::Stone
                         }
                     }
+                    TerrainType::Hills => match rng.gen_range(0..3) {
+                        0 => GameResource::Iron,
+                        1 => GameResource::Gold,
+                        _ => GameResource::Stone,
+                    },
                     TerrainType::Plains => {
-                        if rng.gen_bool(0.7) { GameResource::Wheat } else { GameResource::Horses }
+                        if rng.gen_bool(0.7) {
+                            GameResource::Wheat
+                        } else {
+                            GameResource::Horses
+                        }
                     }
                     TerrainType::Forest => GameResource::Wood,
                     TerrainType::Desert => {
-                        if rng.gen_bool(0.3) { GameResource::Gold } else { GameResource::Spices }
+                        if rng.gen_bool(0.3) {
+                            GameResource::Gold
+                        } else {
+                            GameResource::Spices
+                        }
                     }
                     TerrainType::Coast => GameResource::Fish,
                     TerrainType::River => GameResource::Fish,
@@ -157,44 +169,108 @@ fn place_resources(map: &mut WorldMap, rng: &mut impl Rng) {
 pub fn get_starting_positions() -> Vec<(String, Position, [f32; 3])> {
     vec![
         ("Egypt".to_string(), Position::new(52, 25), [1.0, 0.8, 0.0]),
-        ("Babylon".to_string(), Position::new(55, 23), [0.6, 0.4, 0.8]),
+        (
+            "Babylon".to_string(),
+            Position::new(55, 23),
+            [0.6, 0.4, 0.8],
+        ),
         ("Greece".to_string(), Position::new(50, 20), [0.0, 0.5, 1.0]),
         ("Rome".to_string(), Position::new(48, 19), [0.8, 0.2, 0.2]),
         ("Persia".to_string(), Position::new(58, 22), [0.5, 0.0, 0.5]),
         ("India".to_string(), Position::new(65, 25), [1.0, 0.5, 0.0]),
         ("China".to_string(), Position::new(75, 22), [1.0, 0.0, 0.0]),
         ("Japan".to_string(), Position::new(82, 20), [1.0, 1.0, 1.0]),
-        ("Vikings".to_string(), Position::new(48, 12), [0.0, 0.8, 1.0]),
-        ("England".to_string(), Position::new(45, 15), [0.0, 0.3, 0.6]),
+        (
+            "Vikings".to_string(),
+            Position::new(48, 12),
+            [0.0, 0.8, 1.0],
+        ),
+        (
+            "England".to_string(),
+            Position::new(45, 15),
+            [0.0, 0.3, 0.6],
+        ),
         ("France".to_string(), Position::new(46, 17), [0.0, 0.0, 1.0]),
-        ("Germany".to_string(), Position::new(48, 16), [0.3, 0.3, 0.3]),
+        (
+            "Germany".to_string(),
+            Position::new(48, 16),
+            [0.3, 0.3, 0.3],
+        ),
         ("Russia".to_string(), Position::new(58, 14), [0.0, 0.5, 0.0]),
-        ("Mongolia".to_string(), Position::new(70, 16), [0.6, 0.3, 0.0]),
+        (
+            "Mongolia".to_string(),
+            Position::new(70, 16),
+            [0.6, 0.3, 0.0],
+        ),
         ("Aztecs".to_string(), Position::new(20, 24), [0.8, 0.8, 0.0]),
         ("Incas".to_string(), Position::new(25, 35), [0.5, 0.8, 0.3]),
         ("Maya".to_string(), Position::new(18, 26), [0.0, 0.8, 0.0]),
-        ("Iroquois".to_string(), Position::new(30, 18), [0.4, 0.2, 0.0]),
+        (
+            "Iroquois".to_string(),
+            Position::new(30, 18),
+            [0.4, 0.2, 0.0],
+        ),
         ("Mali".to_string(), Position::new(45, 30), [0.8, 0.5, 0.0]),
-        ("Ethiopia".to_string(), Position::new(54, 32), [0.6, 0.8, 0.2]),
+        (
+            "Ethiopia".to_string(),
+            Position::new(54, 32),
+            [0.6, 0.8, 0.2],
+        ),
         ("Zulu".to_string(), Position::new(52, 42), [0.2, 0.0, 0.0]),
         ("Arabs".to_string(), Position::new(56, 26), [0.0, 0.6, 0.0]),
-        ("Ottomans".to_string(), Position::new(52, 20), [0.8, 0.0, 0.0]),
+        (
+            "Ottomans".to_string(),
+            Position::new(52, 20),
+            [0.8, 0.0, 0.0],
+        ),
         ("Korea".to_string(), Position::new(80, 19), [0.8, 0.8, 0.8]),
         ("Siam".to_string(), Position::new(72, 28), [1.0, 0.0, 0.5]),
         ("Khmer".to_string(), Position::new(73, 29), [0.5, 0.0, 0.5]),
-        ("Indonesia".to_string(), Position::new(76, 33), [0.0, 0.5, 0.0]),
-        ("Australia".to_string(), Position::new(85, 42), [0.0, 0.0, 0.5]),
-        ("Polynesia".to_string(), Position::new(95, 35), [0.0, 0.8, 0.8]),
-        ("Portugal".to_string(), Position::new(43, 19), [0.0, 0.5, 0.0]),
+        (
+            "Indonesia".to_string(),
+            Position::new(76, 33),
+            [0.0, 0.5, 0.0],
+        ),
+        (
+            "Australia".to_string(),
+            Position::new(85, 42),
+            [0.0, 0.0, 0.5],
+        ),
+        (
+            "Polynesia".to_string(),
+            Position::new(95, 35),
+            [0.0, 0.8, 0.8],
+        ),
+        (
+            "Portugal".to_string(),
+            Position::new(43, 19),
+            [0.0, 0.5, 0.0],
+        ),
         ("Spain".to_string(), Position::new(44, 20), [0.8, 0.8, 0.0]),
-        ("Netherlands".to_string(), Position::new(47, 15), [1.0, 0.5, 0.0]),
+        (
+            "Netherlands".to_string(),
+            Position::new(47, 15),
+            [1.0, 0.5, 0.0],
+        ),
         ("Poland".to_string(), Position::new(50, 15), [1.0, 1.0, 1.0]),
         ("Sweden".to_string(), Position::new(49, 11), [0.0, 0.3, 0.8]),
         ("Brazil".to_string(), Position::new(28, 38), [0.0, 1.0, 0.0]),
-        ("Argentina".to_string(), Position::new(26, 45), [0.5, 0.8, 1.0]),
+        (
+            "Argentina".to_string(),
+            Position::new(26, 45),
+            [0.5, 0.8, 1.0],
+        ),
         ("Canada".to_string(), Position::new(28, 10), [1.0, 0.0, 0.0]),
-        ("America".to_string(), Position::new(25, 20), [0.0, 0.0, 1.0]),
+        (
+            "America".to_string(),
+            Position::new(25, 20),
+            [0.0, 0.0, 1.0],
+        ),
         ("Mexico".to_string(), Position::new(22, 24), [0.0, 0.5, 0.3]),
-        ("Morocco".to_string(), Position::new(44, 24), [0.8, 0.0, 0.0]),
+        (
+            "Morocco".to_string(),
+            Position::new(44, 24),
+            [0.8, 0.0, 0.0],
+        ),
     ]
 }
