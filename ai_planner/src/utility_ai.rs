@@ -1,10 +1,8 @@
-use core_sim::{CivId, CivilizationData, GameState, Position, CivPersonality, UnitType, BuildingType, GameResource as Resource};
-use crate::{AIAction, StrategicGoal};
-use std::collections::HashMap;
-use rand::Rng;
+use core_sim::{CivId, CivilizationData, GameState, Position, UnitType, BuildingType, GameResource as Resource};
+use crate::AIAction;
 
 /// Utility-based AI for immediate decision making
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct UtilityAI {
     utility_functions: Vec<UtilityFunction>,
 }
@@ -62,33 +60,21 @@ impl UtilityAI {
         vec![
             UtilityFunction::new(
                 "expand_territory",
-                Box::new(|_civ_id, civ_data, game_state| {
+                Box::new(|_civ_id, civ_data, _game_state| {
                     let personality = &civ_data.civilization.personality;
                     let land_hunger = personality.land_hunger;
                     
+                    // TODO: Replace with actual world_map integration
                     // Check if there are available adjacent territories
-                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
-                    let available_tiles = game_state.world_map.neighbors(capital)
-                        .into_iter()
-                        .filter(|pos| {
-                            game_state.world_map.get_tile(*pos)
-                                .map(|tile| tile.owner.is_none())
-                                .unwrap_or(false)
-                        })
-                        .count();
+                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
+                    let available_tiles = 4; // Stub value
                     
                     land_hunger * (available_tiles as f32 / 8.0).min(1.0)
                 }),
-                Box::new(|civ_id, civ_data, game_state, utility| {
-                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
-                    let available_positions: Vec<_> = game_state.world_map.neighbors(capital)
-                        .into_iter()
-                        .filter(|pos| {
-                            game_state.world_map.get_tile(*pos)
-                                .map(|tile| tile.owner.is_none() && !matches!(tile.terrain, core_sim::TerrainType::Ocean))
-                                .unwrap_or(false)
-                        })
-                        .collect();
+                Box::new(|_civ_id, civ_data, _game_state, utility| {
+                    // TODO: Replace with actual world_map integration
+                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
+                    let available_positions = vec![Position::new(50, 26)]; // Stub value
                     
                     if let Some(&target) = available_positions.first() {
                         Some(AIAction::Expand {
@@ -222,7 +208,7 @@ impl UtilityAI {
                     
                     // Check for potential trade partners
                     let potential_partners = game_state.civilizations.values()
-                        .filter(|other_civ| other_civ.civilization.id != *civ_id)
+                        .filter(|other_civ| other_civ.civilization.id != civ_id)
                         .count();
                     
                     if potential_partners > 0 {
@@ -239,7 +225,7 @@ impl UtilityAI {
                     let mut best_distance = f32::INFINITY;
                     
                     for other_civ in game_state.civilizations.values() {
-                        if other_civ.civilization.id != *civ_id {
+                        if other_civ.civilization.id != civ_id {
                             if let Some(other_capital) = other_civ.civilization.capital {
                                 let distance = capital.distance_to(&other_capital);
                                 if distance < best_distance && distance < 30.0 {
@@ -272,7 +258,6 @@ impl Default for UtilityAI {
 }
 
 /// Individual utility function that evaluates a specific action type
-#[derive(Clone)]
 pub struct UtilityFunction {
     pub name: String,
     pub evaluator: Box<dyn Fn(CivId, &CivilizationData, &GameState) -> f32 + Send + Sync>,

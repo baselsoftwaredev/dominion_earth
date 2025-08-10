@@ -1,5 +1,5 @@
 use crate::{Position, WorldMap, CivId};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 /// Influence map for strategic AI decision making

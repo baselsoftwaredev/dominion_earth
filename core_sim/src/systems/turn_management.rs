@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::*;
-use crate::{GameState, CivId, SimError};
+use crate::{GameState, CivId};
 
 /// System for managing turn progression
 pub struct TurnManagementSystem;
@@ -17,7 +17,7 @@ impl TurnManagementSystem {
 
     /// Check if turn should advance
     pub fn should_advance_turn(
-        game_state: Res<GameState>,
+        _game_state: Res<GameState>,
     ) -> bool {
         // In this simple implementation, advance every update
         // In a real game, this would check if all civilizations have finished their turns
@@ -26,10 +26,10 @@ impl TurnManagementSystem {
 
     /// Initialize turn for all civilizations
     pub fn initialize_turn(
-        mut civs: Query<&mut CivId>,
+        civs: Query<&CivId>,
         game_state: Res<GameState>,
     ) {
-        for mut civ_id in civs.iter_mut() {
+        for civ_id in civs.iter() {
             // Reset turn-based state for each civilization
             tracing::debug!("Initializing turn {} for civ {:?}", game_state.turn, civ_id);
         }

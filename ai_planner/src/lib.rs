@@ -3,12 +3,11 @@ pub mod goap;
 pub mod htn_planner;
 pub mod ai_coordinator;
 
-use core_sim::{CivId, CivPersonality, Position, GameState, AIAction, UnitType, BuildingType, GameResource as Resource};
-use serde::{Deserialize, Serialize};
+use core_sim::{CivId, CivPersonality, GameState, AIAction};
 use std::collections::HashMap;
 
 /// Main AI coordinator that combines different AI approaches
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AICoordinator {
     pub utility_ai: utility_ai::UtilityAI,
     pub goap_planner: goap::GOAPPlanner,

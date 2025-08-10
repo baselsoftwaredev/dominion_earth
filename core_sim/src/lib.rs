@@ -1,5 +1,5 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use serde::{Serialize, Deserialize};
 
 pub mod components;
 pub mod influence_map;

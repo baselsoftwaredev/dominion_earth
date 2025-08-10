@@ -1,5 +1,4 @@
-use bevy_ecs::prelude::*;
-use crate::{Position, Territory, CivId, WorldMap, TerrainType, resources::MapTile, resources::Resource as GameResource};
+use crate::{Position, WorldMap, TerrainType, resources::MapTile, resources::Resource as GameResource};
 use rand::Rng;
 
 /// Generate a basic Earth-like world map

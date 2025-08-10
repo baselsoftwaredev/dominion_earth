@@ -1,4 +1,4 @@
-use core_sim::{CivId, GameState, Position, UnitType, BuildingType, GameResource as Resource};
+use core_sim::{CivId, GameState, Position, UnitType, BuildingType, DiplomaticAction, GameResource as Resource};
 use crate::{AIAction, StrategicGoal};
 use std::collections::{HashMap, HashSet, VecDeque};
 
@@ -157,7 +157,7 @@ impl GOAPPlanner {
     fn is_goal_satisfied(&self, current_state: &WorldState, goal_state: &WorldState) -> bool {
         for (key, &target_value) in &goal_state.values {
             let current_value = current_state.get(key).unwrap_or(0.0);
-            if current_value < target_value {
+            if current_value < target_value as f32 {
                 return false;
             }
         }
@@ -266,7 +266,7 @@ impl Default for GOAPPlanner {
 }
 
 /// World state representation for GOAP planning
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorldState {
     values: HashMap<String, i32>, // Using i32 for hash compatibility
 }
@@ -289,6 +289,19 @@ impl WorldState {
     pub fn add(&mut self, key: &str, delta: f32) {
         let current = self.get(key).unwrap_or(0.0);
         self.set(key, current + delta);
+    }
+}
+
+impl std::hash::Hash for WorldState {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Sort keys for consistent hashing
+        let mut sorted_keys: Vec<_> = self.values.keys().collect();
+        sorted_keys.sort();
+        
+        for key in sorted_keys {
+            key.hash(state);
+            self.values[key].hash(state);
+        }
     }
 }
 
@@ -343,18 +356,14 @@ impl GOAPAction {
         match self.action_type {
             GOAPActionType::Expand => {
                 // Find suitable expansion target
-                let neighbors = game_state.world_map.neighbors(capital);
-                for neighbor in neighbors {
-                    if let Some(tile) = game_state.world_map.get_tile(neighbor) {
-                        if tile.owner.is_none() && !matches!(tile.terrain, core_sim::TerrainType::Ocean) {
-                            return Some(AIAction::Expand {
-                                target_position: neighbor,
-                                priority: 1.0 - self.cost / 10.0,
-                            });
-                        }
-                    }
-                }
-                None
+                // TODO: Add world_map back to GameState
+                // let neighbors = game_state.world_map.neighbors(capital);
+                // For now, use a simple adjacent position
+                let target_position = Position::new(capital.x + 1, capital.y);
+                Some(AIAction::Expand {
+                    target_position,
+                    priority: 1.0 - self.cost / 10.0,
+                })
             }
             GOAPActionType::Research => {
                 Some(AIAction::Research {
@@ -395,7 +404,7 @@ impl GOAPAction {
                     if other_civ.civilization.id != civ_id {
                         return Some(AIAction::Diplomacy {
                             target: other_civ.civilization.id,
-                            action: core_sim::diplomacy::DiplomaticAction::ProposeTradePact,
+                            action: DiplomaticAction::ProposeTradePact,
                             priority: 1.0 - self.cost / 10.0,
                         });
                     }

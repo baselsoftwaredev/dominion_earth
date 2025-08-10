@@ -23,6 +23,7 @@ This is a turn-based, 4-directional tile-based grand strategy game built with Ru
 - Pathfinding uses Manhattan distance heuristic for optimal 4-directional paths
 
 **CRITICAL:** Update `WorldMap::neighbors()` to use 4-directional only:
+
 ```rust
 // WRONG (8-directional - current implementation)
 let directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
@@ -44,6 +45,7 @@ impl Component for YourComponent {
 ```
 
 **Key Components:**
+
 - `Position`: World coordinates with 4-directional movement methods
 - `Direction`: Cardinal directions enum (North/South/East/West only)
 - `Civilization`: Core civ data with embedded `CivPersonality` (8 traits: land_hunger, industry_focus, etc.)
@@ -85,30 +87,22 @@ Systems live in `core_sim/src/systems/` as individual files, coordinated through
 **Implementation:** AI decisions flow through `AICoordinator::make_decision()` → `AIDecisionSystem::execute_ai_decision()`
 
 **GOAP Integration:** `AIAction` enum moved from ai_planner to core_sim to resolve circular dependencies. AI actions include:
+
 - `Expand`, `Research`, `BuildUnit`, `BuildBuilding`, `Trade`, `Attack`, `Diplomacy`, `Defend`
 - Each action has priority scoring and position targeting for spatial decision-making
 
 ## Critical Build Context
 
-**Current State:** Project has mixed build status:
 
-- ✅ **core_sim crate**: Builds successfully with warnings only
-- ❌ **ai_planner crate**: Multiple build errors requiring fixes
-- ❌ **dominion_earth crate**: Depends on ai_planner fixes
+**AI Agent Build Reporting Requirement:**
+On every run, the AI agent must check and update the current state of build errors and warnings for all crates. If there are any errors or warnings, they should be summarized and reflected in this section of the instructions. This ensures the instructions always reflect the latest build status and help guide further development and debugging.
 
-**Core Issues Identified:**
-
-1. **Manual Component trait implementations** for all ECS components (no `#[derive(Component)]`)
-2. **Proc macro metadata version 10 incompatibility** with current Rust toolchain  
-3. **Import path management** for `Resource` vs `GameResource` conflicts
-4. **4-directional movement system** requires `WorldMap::neighbors()` update (✅ FIXED)
-5. **AI planner architectural mismatches** - missing fields in GameState, outdated module references
-6. **Missing serde implementations** for serialization/deserialization (✅ PARTIALLY FIXED)
+**Core State:**
 
 **Build Commands:**
 
 ```bash
-cargo check -p core_sim  # ✅ Builds successfully  
+cargo check -p core_sim  # ✅ Builds successfully
 cargo check -p ai_planner # ❌ Multiple errors requiring fixes
 cargo build --release    # ❌ Blocked by ai_planner issues
 cargo run --release -- --headless --turns 200  # ❌ Blocked by build issues
@@ -132,7 +126,7 @@ pub struct GameState {
     // pub diplomatic_state: DiplomaticState,
 }
 
-// 3. Fix ai_planner module references 
+// 3. Fix ai_planner module references
 use core_sim::{DiplomaticAction, GameResource as Resource};
 // instead of core_sim::diplomacy::DiplomaticAction
 ```
@@ -142,7 +136,7 @@ use core_sim::{DiplomaticAction, GameResource as Resource};
 - `core_sim/src/lib.rs`: Main exports and GameState definition with SimError enum
 - `core_sim/src/components.rs`: All ECS components with manual Component implementations and 4-directional movement
 - `core_sim/src/systems.rs`: System coordination and main game loop
-- `core_sim/src/pathfinding.rs`: A* pathfinding with Manhattan distance heuristic for 4-directional movement
+- `core_sim/src/pathfinding.rs`: A\* pathfinding with Manhattan distance heuristic for 4-directional movement
 - `core_sim/src/resources.rs`: WorldMap with neighbors() method (needs 4-directional fix)
 - `ai_planner/src/ai_coordinator.rs`: AI decision-making entry point
 - `assets/data/civilizations.ron`: Civilization definitions and personalities
@@ -172,7 +166,6 @@ use core_sim::{DiplomaticAction, GameResource as Resource};
 1. **AI Planner Integration**: ai_planner expects GameState fields not yet implemented:
    - `game_state.world_map` - needs to be added as Resource or field
    - `game_state.diplomatic_state` - diplomatic system needs implementation
-   
 2. **Component Architecture**: Manual Component implementations work but create maintenance overhead
 
 3. **Serde Integration**: Mix of manual and derived implementations needs standardization
@@ -182,7 +175,7 @@ use core_sim::{DiplomaticAction, GameResource as Resource};
 ## Development Priority Order
 
 1. ✅ **Core ECS Foundation** - Components, basic simulation
-2. ✅ **4-Directional Movement** - Tile-based movement system  
+2. ✅ **4-Directional Movement** - Tile-based movement system
 3. ✅ **Manual Component Traits** - Work around proc macro issues
 4. 🔄 **AI Planner Fixes** - Update to match current GameState
 5. ❌ **Full Diplomatic System** - Implement missing diplomatic features

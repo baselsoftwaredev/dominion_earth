@@ -1,6 +1,6 @@
 use crate::CivId;
 use bevy_ecs::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Position component for entities on the world map
@@ -359,9 +359,19 @@ impl<'de> Deserialize<'de> for TerrainType {
             "Coast" => Ok(TerrainType::Coast),
             "Ocean" => Ok(TerrainType::Ocean),
             "River" => Ok(TerrainType::River),
-            _ => Err(serde::de::Error::unknown_variant(&s, &[
-                "Plains", "Hills", "Mountains", "Forest", "Desert", "Coast", "Ocean", "River"
-            ])),
+            _ => Err(serde::de::Error::unknown_variant(
+                &s,
+                &[
+                    "Plains",
+                    "Hills",
+                    "Mountains",
+                    "Forest",
+                    "Desert",
+                    "Coast",
+                    "Ocean",
+                    "River",
+                ],
+            )),
         }
     }
 }

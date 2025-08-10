@@ -1,12 +1,11 @@
 use bevy_ecs::prelude::*;
 use crate::{
-    Civilization, Position, City, Territory, DiplomaticRelation, MovementOrder,
+    Civilization, Position, City, Territory, MovementOrder,
     CivId, WorldMap, AIDecision, ActiveThisTurn,
     MilitaryUnit, CivPersonality,
     resources::{CurrentTurn, GameRng}, 
     influence_map::{InfluenceMap, InfluenceType},
 };
-use std::collections::HashMap;
 use rand::Rng;
 
 /// Core systems for game simulation
@@ -284,7 +283,7 @@ pub fn spawn_civilizations_system(
         };
         
         // Spawn civilization entity
-        let civ_entity = commands.spawn((
+        let _civ_entity = commands.spawn((
             civilization,
             position,
             ActiveThisTurn,
