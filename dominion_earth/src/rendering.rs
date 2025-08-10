@@ -101,6 +101,7 @@ pub fn render_world_overlays(
     civs: Query<(&Civilization, &Position)>,
     cities: Query<(&City, &Position)>,
     units: Query<(&MilitaryUnit, &Position)>,
+    unit_assets: Res<crate::unit_assets::UnitAssets>,
     camera: Query<&Transform, With<Camera>>,
 ) {
     // Get camera position for world-to-screen calculations
@@ -147,31 +148,38 @@ pub fn render_world_overlays(
         let screen_pos =
             map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
 
-        let unit_color = match unit.unit_type {
-            UnitType::Infantry => Color::srgb(0.5, 0.0, 0.0), // Maroon
-            UnitType::Cavalry => Color::srgb(0.5, 0.0, 0.5),  // Purple
-            UnitType::Archer => Color::srgb(1.0, 0.27, 0.0),  // Orange Red
-            UnitType::Siege => Color::srgb(0.33, 0.33, 0.33), // Dark Gray
-            UnitType::Naval => Color::srgb(0.0, 0.0, 0.5),    // Navy
-        };
-
-        // Draw unit as a small diamond
-        let diamond_size = tile_size * 0.8;
-        let diamond_points = [
-            screen_pos + Vec2::new(0.0, diamond_size),
-            screen_pos + Vec2::new(diamond_size, 0.0),
-            screen_pos + Vec2::new(0.0, -diamond_size),
-            screen_pos + Vec2::new(-diamond_size, 0.0),
-        ];
-
-        for i in 0..4 {
-            let next_i = (i + 1) % 4;
-            gizmos.line_2d(diamond_points[i], diamond_points[next_i], unit_color);
+        match unit.unit_type {
+            UnitType::Infantry => {
+                commands.spawn((
+                    Sprite::from_image(unit_assets.ancient_infantry.clone()),
+                    Transform::from_translation(screen_pos.extend(15.0)) // Z=15 above cities
+                        .with_scale(Vec3::splat(1.0)),
+                ));
+            }
+            // For other unit types, keep diamond/circle for now
+            _ => {
+                let unit_color = match unit.unit_type {
+                    UnitType::Cavalry => Color::srgb(0.5, 0.0, 0.5),  // Purple
+                    UnitType::Archer => Color::srgb(1.0, 0.27, 0.0),  // Orange Red
+                    UnitType::Siege => Color::srgb(0.33, 0.33, 0.33), // Dark Gray
+                    UnitType::Naval => Color::srgb(0.0, 0.0, 0.5),    // Navy
+                    _ => Color::WHITE,
+                };
+                let diamond_size = tile_size * 0.8;
+                let diamond_points = [
+                    screen_pos + Vec2::new(0.0, diamond_size),
+                    screen_pos + Vec2::new(diamond_size, 0.0),
+                    screen_pos + Vec2::new(0.0, -diamond_size),
+                    screen_pos + Vec2::new(-diamond_size, 0.0),
+                ];
+                for i in 0..4 {
+                    let next_i = (i + 1) % 4;
+                    gizmos.line_2d(diamond_points[i], diamond_points[next_i], unit_color);
+                }
+                let strength_radius = (unit.strength / 20.0).clamp(1.0, 5.0);
+                gizmos.circle_2d(screen_pos, strength_radius, unit_color);
+            }
         }
-
-        // Unit strength indicator
-        let strength_radius = (unit.strength / 20.0).clamp(1.0, 5.0);
-        gizmos.circle_2d(screen_pos, strength_radius, unit_color);
     }
 
     // Render grid lines (optional, for debugging)

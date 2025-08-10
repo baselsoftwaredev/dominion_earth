@@ -3,6 +3,7 @@ mod headless;
 mod input;
 mod rendering;
 mod ui;
+mod unit_assets;
 
 use bevy::prelude::*;
 use core_sim::{
@@ -39,6 +40,7 @@ fn main() {
                 (
                     setup_camera,
                     rendering::setup_tile_assets,
+                    unit_assets::setup_unit_assets, // <-- add this
                     game::setup_game,
                     rendering::spawn_world_tiles.after(game::setup_game),
                 ),
