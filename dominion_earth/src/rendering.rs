@@ -112,18 +112,23 @@ pub fn spawn_unit_sprites(
     let map_offset = Vec2::new(-3200.0, -1600.0);
 
     for (unit_entity, unit, position) in units.iter() {
-        let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
-        
+        let screen_pos =
+            map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
+
         match unit.unit_type {
             UnitType::Infantry => {
-                let sprite_entity = commands.spawn((
-                    Sprite::from_image(unit_assets.ancient_infantry.clone()),
-                    Transform::from_translation(screen_pos.extend(15.0))
-                        .with_scale(Vec3::splat(1.0)),
-                )).id();
-                
+                let sprite_entity = commands
+                    .spawn((
+                        Sprite::from_image(unit_assets.ancient_infantry.clone()),
+                        Transform::from_translation(screen_pos.extend(15.0))
+                            .with_scale(Vec3::splat(1.0)),
+                    ))
+                    .id();
+
                 // Add UnitSprite component to the unit entity to track its sprite
-                commands.entity(unit_entity).insert(UnitSprite { unit_entity: sprite_entity });
+                commands.entity(unit_entity).insert(UnitSprite {
+                    unit_entity: sprite_entity,
+                });
             }
             _ => {
                 // For non-Infantry units, we'll still use gizmos for now
@@ -142,7 +147,8 @@ pub fn update_unit_sprites(
 
     for (_unit, position, unit_sprite) in units.iter() {
         if let Ok(mut transform) = sprites.get_mut(unit_sprite.unit_entity) {
-            let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
+            let screen_pos = map_offset
+                + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
             transform.translation = screen_pos.extend(15.0);
         }
     }
@@ -158,16 +164,22 @@ pub fn spawn_capital_sprites(
     let map_offset = Vec2::new(-3200.0, -1600.0);
 
     for (civ_entity, civilization, position) in civs.iter() {
-        let screen_pos = map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
-        
-        let sprite_entity = commands.spawn((
-            Sprite::from_image(tile_assets.capital_ancient.clone()),
-            Transform::from_translation(screen_pos.extend(10.0))
-                .with_scale(Vec3::splat(1.0)),
-            CapitalSprite { civ_id: civilization.id },
-        )).id();
-        
-        commands.entity(civ_entity).insert(CapitalSprite { civ_id: civilization.id });
+        let screen_pos =
+            map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
+
+        let sprite_entity = commands
+            .spawn((
+                Sprite::from_image(tile_assets.capital_ancient.clone()),
+                Transform::from_translation(screen_pos.extend(10.0)).with_scale(Vec3::splat(1.0)),
+                CapitalSprite {
+                    civ_id: civilization.id,
+                },
+            ))
+            .id();
+
+        commands.entity(civ_entity).insert(CapitalSprite {
+            civ_id: civilization.id,
+        });
     }
 }
 

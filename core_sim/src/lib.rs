@@ -21,6 +21,11 @@ pub use resources::{
     GlobalEconomy,
     Resource as GameResource, // Rename to avoid conflict with bevy_ecs::Resource
     WorldMap,
+    CurrentTurn,
+    ActiveCivTurn,
+    TurnPhase,
+    GameConfig,
+    GameRng,
 };
 
 /// Game state representing the current state of the simulation

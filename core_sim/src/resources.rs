@@ -214,6 +214,31 @@ impl Default for CurrentTurn {
     }
 }
 
+/// Active civilization turn tracker
+#[derive(Resource, Debug, Clone, Serialize, Deserialize)]
+pub struct ActiveCivTurn {
+    pub current_civ_index: usize,
+    pub civs_per_turn: Vec<CivId>,
+    pub turn_phase: TurnPhase,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TurnPhase {
+    Planning,    // AI is making decisions
+    Execution,   // Actions are being executed
+    Complete,    // Turn is finished, ready to advance
+}
+
+impl Default for ActiveCivTurn {
+    fn default() -> Self {
+        Self {
+            current_civ_index: 0,
+            civs_per_turn: Vec::new(),
+            turn_phase: TurnPhase::Planning,
+        }
+    }
+}
+
 /// Game configuration
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct GameConfig {

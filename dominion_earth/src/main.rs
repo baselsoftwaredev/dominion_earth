@@ -8,7 +8,7 @@ mod unit_assets;
 use bevy::prelude::*;
 use core_sim::{
     influence_map::InfluenceMap,
-    resources::{CurrentTurn, GameConfig, GameRng, WorldMap},
+    resources::{ActiveCivTurn, CurrentTurn, GameConfig, GameRng, WorldMap},
 };
 
 fn main() {
@@ -30,6 +30,7 @@ fn main() {
             }))
             .add_plugins(bevy_egui::EguiPlugin)
             .init_resource::<CurrentTurn>()
+            .init_resource::<ActiveCivTurn>()
             .init_resource::<GameConfig>()
             .init_resource::<GameRng>()
             .init_resource::<WorldMap>()
@@ -51,7 +52,7 @@ fn main() {
                     input::handle_input,
                     input::handle_mouse_input,
                     game::game_update_system,
-                    core_sim::systems::move_units_on_land_each_turn,
+                    core_sim::systems::turn_based_system,
                     rendering::spawn_unit_sprites,
                     rendering::update_unit_sprites,
                     rendering::spawn_capital_sprites,

@@ -235,6 +235,7 @@ impl Default for Military {
 #[derive(Debug, Clone)]
 pub struct MilitaryUnit {
     pub id: u32,
+    pub owner: CivId,
     pub unit_type: UnitType,
     pub position: Position,
     pub strength: f32,

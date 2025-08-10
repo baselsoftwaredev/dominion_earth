@@ -1,6 +1,6 @@
 use crate::{
     influence_map::{InfluenceMap, InfluenceType},
-    resources::{CurrentTurn, GameRng},
+    resources::{CurrentTurn, GameRng, ActiveCivTurn, TurnPhase},
     AIDecision, ActiveThisTurn, City, CivId, CivPersonality, Civilization, MilitaryUnit,
     MovementOrder, Position, Territory, WorldMap,
 };
@@ -16,7 +16,98 @@ pub mod turn_management;
 // pub mod combat_resolution;
 // pub mod economic_update;
 
-/// System for advancing the game turn
+/// System for managing turn-based gameplay
+pub fn turn_based_system(
+    mut current_turn: ResMut<CurrentTurn>,
+    mut active_civ_turn: ResMut<ActiveCivTurn>,
+    mut commands: Commands,
+    civs: Query<(Entity, &Civilization), With<Civilization>>,
+    mut units: Query<(&mut Position, &mut MilitaryUnit)>,
+    world_map: Res<WorldMap>,
+    mut rng: ResMut<GameRng>,
+) {
+    // Initialize civilization list if empty
+    if active_civ_turn.civs_per_turn.is_empty() {
+        active_civ_turn.civs_per_turn = civs.iter().map(|(_, civ)| civ.id).collect();
+        println!("Initialized turn order with {} civilizations", active_civ_turn.civs_per_turn.len());
+    }
+
+    if active_civ_turn.civs_per_turn.is_empty() {
+        return; // No civilizations to process
+    }
+
+    let current_civ_id = active_civ_turn.civs_per_turn[active_civ_turn.current_civ_index];
+    
+    match active_civ_turn.turn_phase {
+        TurnPhase::Planning => {
+            // Remove all active markers first
+            for (entity, _) in civs.iter() {
+                commands.entity(entity).remove::<ActiveThisTurn>();
+            }
+            
+            // Mark only the current civilization as active
+            for (entity, civ) in civs.iter() {
+                if civ.id == current_civ_id {
+                    commands.entity(entity).insert(ActiveThisTurn);
+                    println!("Turn {}: {} ({:?}) is now active", current_turn.0, civ.name, civ.id);
+                    break;
+                }
+            }
+            
+            active_civ_turn.turn_phase = TurnPhase::Execution;
+        }
+        
+        TurnPhase::Execution => {
+            // Move units belonging to the current civilization
+            for (mut pos, mut unit) in units.iter_mut() {
+                // Use the actual owner field to check if this unit belongs to the current civilization
+                if unit.owner == current_civ_id {
+                    // Only move if on a land tile (not Ocean)
+                    if let Some(tile) = world_map.get_tile(*pos) {
+                        if !matches!(tile.terrain, crate::TerrainType::Ocean) {
+                            // Get all adjacent positions
+                            let adj = pos.adjacent_positions();
+                            // Filter to valid land (non-Ocean) tiles
+                            let mut valid_moves = vec![];
+                            for p in adj.iter() {
+                                if let Some(adj_tile) = world_map.get_tile(*p) {
+                                    if !matches!(adj_tile.terrain, crate::TerrainType::Ocean) {
+                                        valid_moves.push(*p);
+                                    }
+                                }
+                            }
+                            // Move to a random valid adjacent tile if possible
+                            if let Some(new_pos) = valid_moves.choose(&mut rng.0) {
+                                *pos = *new_pos;
+                                unit.position = *new_pos;
+                                println!("  Unit {} owned by Civ {} moved to ({}, {})", unit.id, unit.owner.0, new_pos.x, new_pos.y);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            active_civ_turn.turn_phase = TurnPhase::Complete;
+        }
+        
+        TurnPhase::Complete => {
+            // Advance to next civilization
+            active_civ_turn.current_civ_index += 1;
+            
+            if active_civ_turn.current_civ_index >= active_civ_turn.civs_per_turn.len() {
+                // All civilizations have had their turn, advance the game turn
+                active_civ_turn.current_civ_index = 0;
+                current_turn.0 += 1;
+                println!("=== Turn {} Complete ===", current_turn.0 - 1);
+                println!("=== Starting Turn {} ===", current_turn.0);
+            }
+            
+            active_civ_turn.turn_phase = TurnPhase::Planning;
+        }
+    }
+}
+
+/// System for advancing the game turn (legacy - replaced by turn_based_system)
 pub fn advance_turn(
     mut current_turn: ResMut<CurrentTurn>,
     mut query: Query<Entity, With<ActiveThisTurn>>,
@@ -327,38 +418,9 @@ pub fn spawn_civilizations_system(
             strength: 10.0,
             movement_remaining: 2,
             experience: 0.0,
+            owner: civ_id,
         };
 
         commands.spawn((initial_unit, position));
-    }
-}
-
-/// System to move all military units on land to a random adjacent land tile each turn
-pub fn move_units_on_land_each_turn(
-    mut units: Query<(&mut Position, &MilitaryUnit)>,
-    world_map: Res<WorldMap>,
-    mut rng: ResMut<GameRng>,
-) {
-    for (mut pos, _unit) in units.iter_mut() {
-        // Only move if on a land tile (not Ocean)
-        if let Some(tile) = world_map.get_tile(*pos) {
-            if !matches!(tile.terrain, crate::TerrainType::Ocean) {
-                // Get all adjacent positions
-                let adj = pos.adjacent_positions();
-                // Filter to valid land (non-Ocean) tiles
-                let mut valid_moves = vec![];
-                for p in adj.iter() {
-                    if let Some(adj_tile) = world_map.get_tile(*p) {
-                        if !matches!(adj_tile.terrain, crate::TerrainType::Ocean) {
-                            valid_moves.push(*p);
-                        }
-                    }
-                }
-                // Move to a random valid adjacent tile if possible
-                if let Some(new_pos) = valid_moves.choose(&mut rng.0) {
-                    *pos = *new_pos;
-                }
-            }
-        }
     }
 }

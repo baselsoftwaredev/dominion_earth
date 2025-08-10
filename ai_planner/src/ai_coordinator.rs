@@ -199,6 +199,7 @@ impl AICoordinatorSystem {
                 
                 let unit = core_sim::MilitaryUnit {
                     id: civ_data.civilization.military.units.len() as u32,
+                    owner: civ_id,
                     unit_type: unit_type.clone(),
                     position,
                     strength: 10.0,

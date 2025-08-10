@@ -128,6 +128,7 @@ fn initialize_headless_game() -> GameState {
 
         let _initial_unit = MilitaryUnit {
             id: i as u32,
+            owner: civ_id,
             unit_type: UnitType::Infantry,
             position,
             strength: 10.0,

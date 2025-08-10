@@ -118,6 +118,7 @@ fn spawn_initial_civilizations(
         // Spawn initial military unit
         let initial_unit = MilitaryUnit {
             id: i as u32,
+            owner: civ_id,
             unit_type: UnitType::Infantry,
             position,
             strength: 10.0,
