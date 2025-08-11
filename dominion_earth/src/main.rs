@@ -6,11 +6,11 @@ mod ui;
 mod unit_assets;
 
 use bevy::prelude::*;
+use clap::Parser;
 use core_sim::{
     influence_map::InfluenceMap,
     resources::{ActiveCivTurn, CurrentTurn, GameConfig, GameRng, WorldMap},
 };
-use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

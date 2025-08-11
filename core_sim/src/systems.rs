@@ -1,12 +1,12 @@
 use crate::{
     influence_map::{InfluenceMap, InfluenceType},
-    resources::{CurrentTurn, GameRng, ActiveCivTurn, TurnPhase},
+    resources::{ActiveCivTurn, CurrentTurn, GameRng, TurnPhase},
     AIDecision, ActiveThisTurn, City, CivId, CivPersonality, Civilization, MilitaryUnit,
     MovementOrder, Position, Territory, WorldMap,
 };
 use bevy_ecs::prelude::*;
-use rand::Rng;
 use rand::seq::SliceRandom;
+use rand::Rng;
 
 /// Core systems for game simulation
 pub mod turn_management;
@@ -34,7 +34,10 @@ pub fn turn_based_system(
     // Initialize civilization list if empty
     if active_civ_turn.civs_per_turn.is_empty() {
         active_civ_turn.civs_per_turn = civs.iter().map(|(_, civ)| civ.id).collect();
-        println!("Initialized turn order with {} civilizations", active_civ_turn.civs_per_turn.len());
+        println!(
+            "Initialized turn order with {} civilizations",
+            active_civ_turn.civs_per_turn.len()
+        );
     }
 
     if active_civ_turn.civs_per_turn.is_empty() {
@@ -42,26 +45,29 @@ pub fn turn_based_system(
     }
 
     let current_civ_id = active_civ_turn.civs_per_turn[active_civ_turn.current_civ_index];
-    
+
     match active_civ_turn.turn_phase {
         TurnPhase::Planning => {
             // Remove all active markers first
             for (entity, _) in civs.iter() {
                 commands.entity(entity).remove::<ActiveThisTurn>();
             }
-            
+
             // Mark only the current civilization as active
             for (entity, civ) in civs.iter() {
                 if civ.id == current_civ_id {
                     commands.entity(entity).insert(ActiveThisTurn);
-                    println!("Turn {}: {} ({:?}) is now active", current_turn.0, civ.name, civ.id);
+                    println!(
+                        "Turn {}: {} ({:?}) is now active",
+                        current_turn.0, civ.name, civ.id
+                    );
                     break;
                 }
             }
-            
+
             active_civ_turn.turn_phase = TurnPhase::Execution;
         }
-        
+
         TurnPhase::Execution => {
             // Move units belonging to the current civilization
             for (mut pos, mut unit) in units.iter_mut() {
@@ -85,20 +91,23 @@ pub fn turn_based_system(
                             if let Some(new_pos) = valid_moves.choose(&mut rng.0) {
                                 *pos = *new_pos;
                                 unit.position = *new_pos;
-                                println!("  Unit {} owned by Civ {} moved to ({}, {})", unit.id, unit.owner.0, new_pos.x, new_pos.y);
+                                println!(
+                                    "  Unit {} owned by Civ {} moved to ({}, {})",
+                                    unit.id, unit.owner.0, new_pos.x, new_pos.y
+                                );
                             }
                         }
                     }
                 }
             }
-            
+
             active_civ_turn.turn_phase = TurnPhase::Complete;
         }
-        
+
         TurnPhase::Complete => {
             // Advance to next civilization
             active_civ_turn.current_civ_index += 1;
-            
+
             if active_civ_turn.current_civ_index >= active_civ_turn.civs_per_turn.len() {
                 // All civilizations have had their turn, advance the game turn
                 active_civ_turn.current_civ_index = 0;
@@ -106,7 +115,7 @@ pub fn turn_based_system(
                 println!("=== Turn {} Complete ===", current_turn.0 - 1);
                 println!("=== Starting Turn {} ===", current_turn.0);
             }
-            
+
             active_civ_turn.turn_phase = TurnPhase::Planning;
         }
     }
