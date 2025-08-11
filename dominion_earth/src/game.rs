@@ -5,22 +5,26 @@ use rand::SeedableRng;
 
 /// Main game state resource
 #[derive(Resource)]
+
 pub struct GameState {
     pub ai_coordinator: AICoordinatorSystem,
     pub paused: bool,
     pub auto_advance: bool,
     pub simulation_speed: f32,
     pub turn_timer: Timer,
+    pub next_turn_requested: bool,
 }
 
-impl Default for GameState {
-    fn default() -> Self {
+
+impl GameState {
+    pub fn with_auto_advance(auto: bool) -> Self {
         Self {
             ai_coordinator: AICoordinatorSystem::new(),
             paused: false,
-            auto_advance: true,
+            auto_advance: auto,
             simulation_speed: 1.0,
             turn_timer: Timer::from_seconds(2.0, TimerMode::Repeating),
+            next_turn_requested: false,
         }
     }
 }
@@ -47,8 +51,6 @@ pub fn setup_game(
     // Spawn initial civilizations
     spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0);
 
-    // Initialize game state
-    commands.insert_resource(GameState::default());
 
     println!("Game world initialized with {} x {} map", world_map.width, world_map.height);
 }
@@ -137,7 +139,7 @@ pub fn game_update_system(
     mut game_state: ResMut<GameState>,
     mut current_turn: ResMut<CurrentTurn>,
     time: Res<Time>,
-    mut commands: Commands,
+    mut turn_advance: ResMut<core_sim::resources::TurnAdvanceRequest>,
 ) {
     if game_state.paused {
         return;
@@ -146,8 +148,16 @@ pub fn game_update_system(
     // Update turn timer
     game_state.turn_timer.tick(time.delta());
 
-    if game_state.auto_advance && game_state.turn_timer.just_finished() {
-        advance_turn(&mut current_turn, &mut game_state, &mut commands);
+    let should_advance = if game_state.auto_advance {
+        game_state.turn_timer.just_finished()
+    } else {
+        game_state.next_turn_requested
+    };
+
+    // Set the TurnAdvanceRequest resource for the ECS turn system
+    turn_advance.0 = should_advance;
+    if should_advance {
+        game_state.next_turn_requested = false;
     }
 }
 

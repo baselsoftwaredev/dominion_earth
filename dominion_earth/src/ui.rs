@@ -1,17 +1,75 @@
+// --- TerrainCounts resource and update system ---
+
+#[derive(Resource, Default, Clone)]
+pub struct TerrainCounts {
+    pub plains: usize,
+    pub hills: usize,
+    pub forest: usize,
+    pub ocean: usize,
+    pub coast: usize,
+    pub mountains: usize,
+    pub desert: usize,
+    pub river: usize,
+}
+
+/// System to update terrain counts when the world map changes
+pub fn update_terrain_counts(
+    world_map: Res<WorldMap>,
+    mut terrain_counts: ResMut<TerrainCounts>,
+) {
+    if !world_map.is_changed() {
+        return;
+    }
+    let mut plains = 0;
+    let mut hills = 0;
+    let mut forest = 0;
+    let mut ocean = 0;
+    let mut coast = 0;
+    let mut mountains = 0;
+    let mut desert = 0;
+    let mut river = 0;
+    for x in 0..world_map.width {
+        for y in 0..world_map.height {
+            if let Some(tile) = world_map.get_tile(Position::new(x as i32, y as i32)) {
+                match tile.terrain {
+                    TerrainType::Plains => plains += 1,
+                    TerrainType::Hills => hills += 1,
+                    TerrainType::Forest => forest += 1,
+                    TerrainType::Ocean => ocean += 1,
+                    TerrainType::Coast => coast += 1,
+                    TerrainType::Mountains => mountains += 1,
+                    TerrainType::Desert => desert += 1,
+                    TerrainType::River => river += 1,
+                }
+            }
+        }
+    }
+    *terrain_counts = TerrainCounts {
+        plains,
+        hills,
+        forest,
+        ocean,
+        coast,
+        mountains,
+        desert,
+        river,
+    };
+}
 use crate::game::GameState;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use core_sim::{
     resources::{CurrentTurn, WorldMap},
-    Civilization, Position,
+    Civilization, Position, TerrainType,
 };
 
 /// Main UI system using egui
 pub fn ui_system(
     mut contexts: EguiContexts,
     current_turn: Res<CurrentTurn>,
-    game_state: Res<GameState>,
+    mut game_state: ResMut<GameState>,
     world_map: Res<WorldMap>,
+    terrain_counts: Res<TerrainCounts>,
     civs: Query<&Civilization>,
 ) {
     let ctx = contexts.ctx_mut();
@@ -34,10 +92,11 @@ pub fn ui_system(
                     "Running"
                 }
             ));
-            ui.label(format!(
-                "Auto-advance: {}",
-                if game_state.auto_advance { "On" } else { "Off" }
-            ));
+    ui.label(format!(
+        "Auto-advance: {} (debug: {})",
+        if game_state.auto_advance { "On" } else { "Off" },
+        game_state.auto_advance
+    ));
             ui.separator();
 
             // Civilization list
@@ -50,8 +109,8 @@ pub fn ui_system(
                         ui.label(format!("Military: {:.0}", civ.military.total_strength));
                         ui.label(format!("Cities: {}", civ.id.0)); // Simplified
 
-                        // Personality traits (unique label per civ)
-                        ui.collapsing(format!("Personality ({})", civ.name), |ui| {
+                        // Personality traits (unique label per civ, use stable id)
+                        ui.collapsing(format!("Personality [{}]", civ.id.0), |ui| {
                             ui.label(format!("Land Hunger: {:.2}", civ.personality.land_hunger));
                             ui.label(format!("Militarism: {:.2}", civ.personality.militarism));
                             ui.label(format!("Tech Focus: {:.2}", civ.personality.tech_focus));
@@ -63,13 +122,19 @@ pub fn ui_system(
 
             ui.separator();
 
-            // Controls
-            ui.heading("Controls");
-            ui.label("Space: Advance turn");
-            ui.label("P: Pause/Resume");
-            ui.label("A: Toggle auto-advance");
-            ui.label("Mouse: Pan map");
-            ui.label("Scroll: Zoom");
+    // Controls
+    ui.heading("Controls");
+    if !game_state.auto_advance {
+        ui.label("Manual mode: Press Next Turn to advance.");
+        if ui.button("Next Turn").clicked() {
+            game_state.next_turn_requested = true;
+        }
+    }
+    ui.label("Space: Advance turn");
+    ui.label("P: Pause/Resume");
+    ui.label("A: Toggle auto-advance");
+    ui.label("Mouse: Pan map");
+    ui.label("Scroll: Zoom");
         });
 
     // Statistics panel
@@ -78,37 +143,21 @@ pub fn ui_system(
         .default_height(150.0)
         .show(ctx, |ui| {
             ui.heading("World Statistics");
-
             ui.horizontal(|ui| {
                 ui.group(|ui| {
                     ui.label("World Map");
                     ui.label(format!("Size: {} x {}", world_map.width, world_map.height));
-
-                    // Count territories by type
-                    let mut terrain_counts = std::collections::HashMap::new();
-                    for x in 0..world_map.width {
-                        for y in 0..world_map.height {
-                            if let Some(tile) =
-                                world_map.get_tile(Position::new(x as i32, y as i32))
-                            {
-                                *terrain_counts.entry(&tile.terrain).or_insert(0) += 1;
-                            }
-                        }
-                    }
-
-                    for (terrain, count) in terrain_counts {
-                        ui.label(format!("{:?}: {}", terrain, count));
-                    }
+                    ui.label(format!(
+                        "Plains: {}  Hills: {}  Forest: {}  Ocean: {}  Coast: {}  Mountains: {}  Desert: {}  River: {}",
+                        terrain_counts.plains, terrain_counts.hills, terrain_counts.forest, terrain_counts.ocean, terrain_counts.coast, terrain_counts.mountains, terrain_counts.desert, terrain_counts.river
+                    ));
                 });
-
                 ui.group(|ui| {
                     ui.label("Civilizations");
                     let civ_count = civs.iter().count();
                     ui.label(format!("Active: {}", civ_count));
-
                     let total_gold: f32 = civs.iter().map(|c| c.economy.gold).sum();
                     ui.label(format!("Total Gold: {:.0}", total_gold));
-
                     let total_military: f32 = civs.iter().map(|c| c.military.total_strength).sum();
                     ui.label(format!("Total Military: {:.0}", total_military));
                 });

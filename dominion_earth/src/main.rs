@@ -10,11 +10,24 @@ use core_sim::{
     influence_map::InfluenceMap,
     resources::{ActiveCivTurn, CurrentTurn, GameConfig, GameRng, WorldMap},
 };
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Run in headless mode (no graphics)
+    #[arg(long)]
+    headless: bool,
+
+    /// Enable auto-advance (AI turns run automatically)
+    #[arg(long, default_value_t = false)]
+    auto_advance: bool,
+}
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let cli = Cli::parse();
 
-    if args.len() > 1 && args[1] == "--headless" {
+    if cli.headless {
         // Run headless simulation for testing
         headless::run_headless_simulation();
     } else {
@@ -29,12 +42,14 @@ fn main() {
                 ..default()
             }))
             .add_plugins(bevy_egui::EguiPlugin)
+            .init_resource::<ui::TerrainCounts>()
             .init_resource::<CurrentTurn>()
             .init_resource::<ActiveCivTurn>()
             .init_resource::<GameConfig>()
             .init_resource::<GameRng>()
             .init_resource::<WorldMap>()
-            .init_resource::<game::GameState>() // Use our local GameState wrapper
+            .insert_resource(game::GameState::with_auto_advance(cli.auto_advance))
+            .init_resource::<core_sim::resources::TurnAdvanceRequest>()
             .init_resource::<InfluenceMap>()
             .add_systems(
                 Startup,
@@ -56,6 +71,7 @@ fn main() {
                     rendering::spawn_unit_sprites,
                     rendering::update_unit_sprites,
                     rendering::spawn_capital_sprites,
+                    ui::update_terrain_counts,
                     ui::ui_system,
                     rendering::render_world_overlays,
                 ),

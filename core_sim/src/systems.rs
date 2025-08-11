@@ -25,7 +25,12 @@ pub fn turn_based_system(
     mut units: Query<(&mut Position, &mut MilitaryUnit)>,
     world_map: Res<WorldMap>,
     mut rng: ResMut<GameRng>,
+    mut turn_advance: ResMut<crate::resources::TurnAdvanceRequest>,
 ) {
+    if !turn_advance.0 {
+        return;
+    }
+
     // Initialize civilization list if empty
     if active_civ_turn.civs_per_turn.is_empty() {
         active_civ_turn.civs_per_turn = civs.iter().map(|(_, civ)| civ.id).collect();
@@ -105,6 +110,9 @@ pub fn turn_based_system(
             active_civ_turn.turn_phase = TurnPhase::Planning;
         }
     }
+
+    // At the end of the function, reset the flag so the system only runs once per request
+    turn_advance.0 = false;
 }
 
 /// System for advancing the game turn (legacy - replaced by turn_based_system)

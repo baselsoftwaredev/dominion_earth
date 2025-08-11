@@ -287,3 +287,7 @@ impl Default for GameRng {
         Self(rand_pcg::Pcg64::seed_from_u64(42))
     }
 }
+
+/// Resource to request a turn advance (set by UI or timer)
+#[derive(Default, Resource)]
+pub struct TurnAdvanceRequest(pub bool);

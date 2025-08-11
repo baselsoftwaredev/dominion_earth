@@ -13,3 +13,4 @@ ron = { workspace = true }
 anyhow = { workspace = true }
 rand = { workspace = true }
 rand_pcg = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
