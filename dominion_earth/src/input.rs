@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_egui::EguiContexts;
 use crate::game::GameState;
 
 /// Handle keyboard input for game controls
@@ -72,14 +73,21 @@ pub fn handle_mouse_input(
     mut cursor_moved: EventReader<CursorMoved>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
     mut last_cursor_pos: Local<Option<Vec2>>,
+    mut egui_contexts: EguiContexts,
 ) {
-    // Handle mouse wheel zoom
-    for wheel_event in mouse_wheel.read() {
-        if let Ok(mut camera_transform) = camera_query.get_single_mut() {
-            let zoom_factor = 1.0 - wheel_event.y * 0.1;
-            camera_transform.scale *= zoom_factor;
-            camera_transform.scale = camera_transform.scale.clamp(Vec3::splat(0.1), Vec3::splat(5.0));
+    // Handle mouse wheel zoom only if mouse is NOT over egui UI
+    let ctx = egui_contexts.ctx_mut();
+    if !ctx.is_pointer_over_area() && !ctx.wants_pointer_input() {
+        for wheel_event in mouse_wheel.read() {
+            if let Ok(mut camera_transform) = camera_query.get_single_mut() {
+                let zoom_factor = 1.0 - wheel_event.y * 0.1;
+                camera_transform.scale *= zoom_factor;
+                camera_transform.scale = camera_transform.scale.clamp(Vec3::splat(0.1), Vec3::splat(5.0));
+            }
         }
+    } else {
+        // If mouse is over UI, just consume the events
+        mouse_wheel.clear();
     }
 
     // Handle mouse panning
