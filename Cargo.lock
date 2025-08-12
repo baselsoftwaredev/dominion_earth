@@ -608,6 +608,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_brp_extras"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "118898b9d601fb89b22b1823885a04f873020ea81b0b9229710b6be4a55b5ccb"
+dependencies = [
+ "bevy",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bevy_color"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2183,6 +2194,7 @@ dependencies = [
  "ai_planner",
  "anyhow",
  "bevy",
+ "bevy_brp_extras",
  "bevy_egui",
  "clap",
  "core_sim",

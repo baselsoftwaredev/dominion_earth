@@ -5,10 +5,8 @@ mod rendering;
 mod ui;
 mod unit_assets;
 
-use bevy::{
-    prelude::*,
-    remote::{http::RemoteHttpPlugin, RemotePlugin},
-};
+use bevy::prelude::*;
+use bevy_brp_extras::BrpExtrasPlugin;
 use clap::Parser;
 use core_sim::{
     influence_map::InfluenceMap,
@@ -58,12 +56,7 @@ fn main() {
         // Conditionally add remote protocol plugins
         if cli.enable_remote {
             println!("Enabling Bevy Remote Protocol on port {}", cli.remote_port);
-            app.add_plugins(RemotePlugin::default());
-            app.add_plugins(
-                RemoteHttpPlugin::default()
-                    .with_port(cli.remote_port)
-                    .with_address("0.0.0.0".parse::<std::net::IpAddr>().unwrap()),
-            );
+            app.add_plugins(BrpExtrasPlugin::with_port(cli.remote_port));
         }
 
         app.init_resource::<ui::TerrainCounts>()

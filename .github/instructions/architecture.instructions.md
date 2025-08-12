@@ -20,9 +20,23 @@ This is a turn-based, 4-directional tile-based grand strategy game built with Ru
 cargo check -p core_sim      # ✅ Builds successfully
 cargo check -p ai_planner    # ✅ Builds successfully
 cargo check                  # ✅ Builds successfully (with warnings)
+
+# Run with Bevy Remote Protocol for debugging
+cargo run -- --enable-remote  # Starts with BRP tools on port 15702
 ```
 
 **Build Status:** All crates now build successfully. Only minor warnings remain for unused variables and dead code.
+
+## BRP Tools Integration
+
+**Debugging & Development:** The project includes `bevy_brp_mcp` and `bevy_brp_extras` for powerful runtime inspection:
+
+- ✅ MCP server configured in `.vscode/mcp.json` for VS Code Copilot Chat
+- ✅ BRP tools available in agent mode for live debugging
+- ✅ Screenshot, keyboard input, and format discovery features enabled
+- ✅ Real-time entity monitoring and component manipulation
+
+**Start with BRP:** `cargo run -- --enable-remote` enables all debugging tools.
 
 ## Critical ECS Patterns
 
