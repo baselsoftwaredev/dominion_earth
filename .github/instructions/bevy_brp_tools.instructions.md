@@ -44,6 +44,42 @@ bevy = { version = "0.16", features = ["default", "bevy_remote", "png"] }
 bevy_brp_extras = { workspace = true }
 ```
 
+## CRITICAL: Two-Terminal Workflow
+
+**⚠️ MANDATORY FOR AI DEVELOPMENT: The user MUST run their application first before any AI agent can debug or add features. AI agents CANNOT perform BRP operations on applications that are not running.**
+
+**The Bevy Remote Protocol requires the game to be running BEFORE making any curl requests or MCP tool calls.**
+
+### Proper Setup Process:
+
+1. **Terminal 1 - Start the Game:**
+
+   ```bash
+   cargo run -- --enable-remote
+   ```
+
+   Wait for this message: `BRP extras enabled on http://localhost:15702`
+
+2. **Terminal 2 - Make BRP Calls:**
+
+   ```bash
+   # Test connection
+   curl -X POST http://localhost:15702/bevy/list \
+     -H "Content-Type: application/json" \
+     -d '{}' | jq '.result | keys | length'
+   ```
+
+3. **VS Code MCP Tools:**
+   Once the game is running, the MCP tools will automatically connect to port 15702.
+
+### Common Issues:
+
+- `Connection refused` = Game not running or BRP not enabled
+- `Timeout` = Game starting up, wait for the "BRP extras enabled" message
+- `JSON errors` = Game running but BRP not properly configured
+
+**🛑 AI LIMITATION: If the user has not started their application, AI agents cannot debug, inspect, or modify the game. Always request the user to run `cargo run -- --enable-remote` first.**
+
 ## Available Tools & Commands
 
 ### 1. Core BRP Operations
@@ -125,6 +161,55 @@ bevy_brp_extras = { workspace = true }
 ### 5. Key Code Discovery
 
 - `brp_extras_list_key_codes` - Get all available keyboard key codes for input operations
+
+## Quick Reference Commands
+
+### Launch Commands
+
+```bash
+# Start game with BRP enabled
+cargo run -- --enable-remote
+
+# Start with custom port
+cargo run -- --enable-remote --remote-port 8080
+
+# Start in auto-advance mode with BRP
+cargo run -- --enable-remote --auto-advance
+```
+
+### Essential curl Commands (JSON-RPC format)
+
+```bash
+# List all components (138 registered in Dominion Earth)
+curl -X POST http://localhost:15702/bevy/list \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "bevy/list"}' | jq '.result | length'
+
+# Query entities with Transform (5,021 entities in game world)
+curl -X POST http://localhost:15702/bevy/query \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "bevy/query", "params": {"data": {"components": ["bevy_transform::components::transform::Transform"]}}}' \
+  | jq '.result | length'
+
+# Take screenshot for debugging
+curl -X POST http://localhost:15702/brp_extras/screenshot \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "brp_extras/screenshot", "params": {"path": "/tmp/dominion_earth_debug.png"}}'
+
+# Discover component format
+curl -X POST http://localhost:15702/brp_extras/discover_format \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "brp_extras/discover_format", "params": {"types": ["bevy_transform::components::transform::Transform"]}}' \
+  | jq '.result'
+```
+
+### Key Dominion Earth Components
+
+- `core_sim::components::Civilization` - Civilization state and AI behavior
+- `bevy_transform::components::transform::Transform` - Entity positions
+- `core_sim::resources::CurrentTurn` - Turn progression counter
+- `core_sim::resources::GameConfig` - Game configuration settings
+- `core_sim::resources::WorldMap` - World state and terrain data
 
 ## Common Workflows
 
