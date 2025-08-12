@@ -73,8 +73,10 @@ pub fn ui_system(
 
     // Main game UI panel
     egui::SidePanel::left("game_panel")
-        .resizable(false)
+        .resizable(true) // Make the panel resizable
         .default_width(400.0)
+        .min_width(300.0)
+        .max_width(600.0)
         .show(ctx, |ui| {
             ui.heading("Dominion Earth");
             ui.separator();
@@ -98,24 +100,32 @@ pub fn ui_system(
 
             // Civilization list
             ui.heading("Civilizations");
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                for civ in civs.iter() {
-                    ui.group(|ui| {
-                        ui.label(&civ.name);
-                        ui.label(format!("Gold: {:.0}", civ.economy.gold));
-                        ui.label(format!("Military: {:.0}", civ.military.total_strength));
-                        ui.label(format!("Cities: {}", civ.id.0)); // Simplified
+            egui::ScrollArea::vertical()
+                .max_height(300.0) // Limit the height so controls section remains visible
+                .show(ui, |ui| {
+                    for civ in civs.iter() {
+                        ui.group(|ui| {
+                            ui.label(&civ.name);
+                            ui.label(format!("Gold: {:.0}", civ.economy.gold));
+                            ui.label(format!("Military: {:.0}", civ.military.total_strength));
+                            ui.label(format!("Cities: {}", civ.id.0)); // Simplified
 
-                        // Personality traits (unique label per civ, use stable id)
-                        ui.collapsing(format!("Personality [{}]", civ.id.0), |ui| {
-                            ui.label(format!("Land Hunger: {:.2}", civ.personality.land_hunger));
-                            ui.label(format!("Militarism: {:.2}", civ.personality.militarism));
-                            ui.label(format!("Tech Focus: {:.2}", civ.personality.tech_focus));
-                            ui.label(format!("Industry: {:.2}", civ.personality.industry_focus));
+                            // Personality traits (unique label per civ, use stable id)
+                            ui.collapsing(format!("Personality [{}]", civ.id.0), |ui| {
+                                ui.label(format!(
+                                    "Land Hunger: {:.2}",
+                                    civ.personality.land_hunger
+                                ));
+                                ui.label(format!("Militarism: {:.2}", civ.personality.militarism));
+                                ui.label(format!("Tech Focus: {:.2}", civ.personality.tech_focus));
+                                ui.label(format!(
+                                    "Industry: {:.2}",
+                                    civ.personality.industry_focus
+                                ));
+                            });
                         });
-                    });
-                }
-            });
+                    }
+                });
 
             ui.separator();
 
