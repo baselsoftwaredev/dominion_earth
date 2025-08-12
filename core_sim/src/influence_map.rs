@@ -11,7 +11,7 @@ pub struct InfluenceMap {
 }
 
 // Manual Resource implementation
-impl bevy_ecs::system::Resource for InfluenceMap {}
+impl bevy_ecs::resource::Resource for InfluenceMap {}
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InfluenceType {

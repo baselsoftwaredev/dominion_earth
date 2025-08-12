@@ -35,7 +35,7 @@ pub fn handle_input(
     }
 
     // Camera controls
-    if let Ok(mut camera_transform) = camera_query.get_single_mut() {
+    if let Ok(mut camera_transform) = camera_query.single_mut() {
         let mut movement = Vec3::ZERO;
         let camera_speed = 200.0 * time.delta_secs();
 
@@ -79,7 +79,7 @@ pub fn handle_mouse_input(
     let ctx = egui_contexts.ctx_mut();
     if !ctx.is_pointer_over_area() && !ctx.wants_pointer_input() {
         for wheel_event in mouse_wheel.read() {
-            if let Ok(mut camera_transform) = camera_query.get_single_mut() {
+            if let Ok(mut camera_transform) = camera_query.single_mut() {
                 let zoom_factor = 1.0 - wheel_event.y * 0.1;
                 camera_transform.scale *= zoom_factor;
                 camera_transform.scale = camera_transform.scale.clamp(Vec3::splat(0.1), Vec3::splat(5.0));
@@ -96,7 +96,7 @@ pub fn handle_mouse_input(
             if let Some(last_pos) = *last_cursor_pos {
                 let delta = cursor_event.position - last_pos;
                 
-                if let Ok(mut camera_transform) = camera_query.get_single_mut() {
+                if let Ok(mut camera_transform) = camera_query.single_mut() {
                     // Store scale to avoid borrow checker issue
                     let scale_x = camera_transform.scale.x;
                     // Invert delta to make panning feel natural

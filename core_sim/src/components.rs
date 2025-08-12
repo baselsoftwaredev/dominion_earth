@@ -2,6 +2,7 @@ use crate::CivId;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use bevy_ecs::component::Mutable;
 
 /// Position component for entities on the world map
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -12,6 +13,7 @@ pub struct Position {
 
 // Manual Component implementation to avoid proc macro issues
 impl Component for Position {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -118,6 +120,7 @@ pub struct Civilization {
 
 // Manual Component implementation
 impl Component for Civilization {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -136,6 +139,7 @@ pub struct CivPersonality {
 
 // Manual Component implementation
 impl Component for CivPersonality {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -184,6 +188,7 @@ pub struct Economy {
 
 // Manual Component implementation
 impl Component for Economy {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -210,6 +215,7 @@ pub struct TradeRoute {
 
 // Manual Component implementation
 impl Component for TradeRoute {
+    type Mutability = Mutable;    
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -245,6 +251,7 @@ pub struct MilitaryUnit {
 
 // Manual Component implementation
 impl Component for MilitaryUnit {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -270,6 +277,7 @@ pub struct City {
 
 // Manual Component implementation
 impl Component for City {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -282,6 +290,7 @@ pub struct Building {
 
 // Manual Component implementation
 impl Component for Building {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -306,6 +315,7 @@ pub struct Territory {
 
 // Manual Component implementation
 impl Component for Territory {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -323,6 +333,7 @@ pub enum TerrainType {
 
 // Manual Component implementation
 impl Component for TerrainType {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -389,6 +400,7 @@ pub struct DiplomaticRelation {
 
 // Manual Component implementation
 impl Component for DiplomaticRelation {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -422,6 +434,7 @@ pub struct MovementOrder {
 
 // Manual Component implementation
 impl Component for MovementOrder {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -431,6 +444,7 @@ pub struct ActiveThisTurn;
 
 // Manual Component implementation
 impl Component for ActiveThisTurn {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
@@ -444,6 +458,7 @@ pub struct AIDecision {
 
 // Manual Component implementation
 impl Component for AIDecision {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 

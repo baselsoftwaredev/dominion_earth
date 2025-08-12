@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_ecs = "0.15"
+bevy_ecs = { workspace = true }
 serde = { workspace = true }
 ron = { workspace = true }
 serde_json = { workspace = true }

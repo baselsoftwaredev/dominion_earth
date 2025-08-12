@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use bevy_ecs::component::Mutable;
 
 pub mod components;
 pub mod influence_map;
@@ -37,7 +38,7 @@ pub struct GameState {
 }
 
 // Manual Resource implementation
-impl bevy_ecs::system::Resource for GameState {}
+impl bevy_ecs::resource::Resource for GameState {}
 
 impl Default for GameState {
     fn default() -> Self {
@@ -54,6 +55,7 @@ pub struct CivId(pub u32);
 
 // Manual Component implementation
 impl bevy_ecs::component::Component for CivId {
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
