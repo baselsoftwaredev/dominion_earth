@@ -41,7 +41,7 @@ fn main() {
                 }),
                 ..default()
             }))
-            .add_plugins(bevy_egui::EguiPlugin)
+            .add_plugins(bevy_egui::EguiPlugin::default())
             .init_resource::<ui::TerrainCounts>()
             .init_resource::<CurrentTurn>()
             .init_resource::<ActiveCivTurn>()
