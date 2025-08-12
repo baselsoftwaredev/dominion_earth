@@ -8,7 +8,7 @@ resolver = "2"
 
 
 [workspace.dependencies]
-bevy = "0.16"
+bevy = { version = "0.16", features = ["bevy_remote"] }
 bevy_ecs = "0.16"
 serde = { version = "1.0", features = ["derive"] }
 ron = "0.8"

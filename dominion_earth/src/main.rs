@@ -5,7 +5,10 @@ mod rendering;
 mod ui;
 mod unit_assets;
 
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    remote::{http::RemoteHttpPlugin, RemotePlugin},
+};
 use clap::Parser;
 use core_sim::{
     influence_map::InfluenceMap,
@@ -22,6 +25,14 @@ struct Cli {
     /// Enable auto-advance (AI turns run automatically)
     #[arg(long, default_value_t = false)]
     auto_advance: bool,
+
+    /// Enable Bevy Remote Protocol for external tool access
+    #[arg(long, default_value_t = false)]
+    enable_remote: bool,
+
+    /// Remote protocol port (default: 15702)
+    #[arg(long, default_value_t = 15702)]
+    remote_port: u16,
 }
 
 fn main() {
@@ -32,17 +43,30 @@ fn main() {
         headless::run_headless_simulation();
     } else {
         // Run full Bevy application
-        App::new()
-            .add_plugins(DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Dominion Earth".to_string(),
-                    resolution: (1200.0, 800.0).into(),
-                    ..default()
-                }),
+        let mut app = App::new();
+
+        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Dominion Earth".to_string(),
+                resolution: (1200.0, 800.0).into(),
                 ..default()
-            }))
-            .add_plugins(bevy_egui::EguiPlugin::default())
-            .init_resource::<ui::TerrainCounts>()
+            }),
+            ..default()
+        }))
+        .add_plugins(bevy_egui::EguiPlugin::default());
+
+        // Conditionally add remote protocol plugins
+        if cli.enable_remote {
+            println!("Enabling Bevy Remote Protocol on port {}", cli.remote_port);
+            app.add_plugins(RemotePlugin::default());
+            app.add_plugins(
+                RemoteHttpPlugin::default()
+                    .with_port(cli.remote_port)
+                    .with_address("0.0.0.0".parse::<std::net::IpAddr>().unwrap()),
+            );
+        }
+
+        app.init_resource::<ui::TerrainCounts>()
             .init_resource::<CurrentTurn>()
             .init_resource::<ActiveCivTurn>()
             .init_resource::<GameConfig>()
@@ -75,8 +99,9 @@ fn main() {
                     rendering::render_world_overlays,
                 ),
             )
-            .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system)
-            .run();
+            .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
+
+        app.run();
     }
 }
 
