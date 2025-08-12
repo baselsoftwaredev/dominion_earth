@@ -193,7 +193,9 @@ pub fn render_world_overlays(
     camera: Query<&Transform, With<Camera>>,
 ) {
     // Get camera position for world-to-screen calculations
-    let camera_transform = camera.single();
+    let Ok(camera_transform) = camera.single() else {
+        return; // No camera found
+    };
     let _camera_pos = camera_transform.translation.truncate();
 
     // Define rendering parameters

@@ -13,10 +13,7 @@ pub struct TerrainCounts {
 }
 
 /// System to update terrain counts when the world map changes
-pub fn update_terrain_counts(
-    world_map: Res<WorldMap>,
-    mut terrain_counts: ResMut<TerrainCounts>,
-) {
+pub fn update_terrain_counts(world_map: Res<WorldMap>, mut terrain_counts: ResMut<TerrainCounts>) {
     if !world_map.is_changed() {
         return;
     }
@@ -71,8 +68,8 @@ pub fn ui_system(
     world_map: Res<WorldMap>,
     terrain_counts: Res<TerrainCounts>,
     civs: Query<&Civilization>,
-) {
-    let ctx = contexts.ctx_mut();
+) -> Result {
+    let ctx = contexts.ctx_mut()?;
 
     // Main game UI panel
     egui::SidePanel::left("game_panel")
@@ -92,11 +89,11 @@ pub fn ui_system(
                     "Running"
                 }
             ));
-    ui.label(format!(
-        "Auto-advance: {} (debug: {})",
-        if game_state.auto_advance { "On" } else { "Off" },
-        game_state.auto_advance
-    ));
+            ui.label(format!(
+                "Auto-advance: {} (debug: {})",
+                if game_state.auto_advance { "On" } else { "Off" },
+                game_state.auto_advance
+            ));
             ui.separator();
 
             // Civilization list
@@ -122,19 +119,19 @@ pub fn ui_system(
 
             ui.separator();
 
-    // Controls
-    ui.heading("Controls");
-    if !game_state.auto_advance {
-        ui.label("Manual mode: Press Next Turn to advance.");
-        if ui.button("Next Turn").clicked() {
-            game_state.next_turn_requested = true;
-        }
-    }
-    ui.label("Space: Advance turn");
-    ui.label("P: Pause/Resume");
-    ui.label("A: Toggle auto-advance");
-    ui.label("Mouse: Pan map");
-    ui.label("Scroll: Zoom");
+            // Controls
+            ui.heading("Controls");
+            if !game_state.auto_advance {
+                ui.label("Manual mode: Press Next Turn to advance.");
+                if ui.button("Next Turn").clicked() {
+                    game_state.next_turn_requested = true;
+                }
+            }
+            ui.label("Space: Advance turn");
+            ui.label("P: Pause/Resume");
+            ui.label("A: Toggle auto-advance");
+            ui.label("Mouse: Pan map");
+            ui.label("Scroll: Zoom");
         });
 
     // Statistics panel
@@ -204,4 +201,6 @@ pub fn ui_system(
                 }
             }
         });
+
+    Ok(())
 }

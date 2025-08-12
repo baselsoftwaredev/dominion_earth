@@ -72,10 +72,10 @@ fn main() {
                     rendering::update_unit_sprites,
                     rendering::spawn_capital_sprites,
                     ui::update_terrain_counts,
-                    ui::ui_system,
                     rendering::render_world_overlays,
                 ),
             )
+            .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system)
             .run();
     }
 }
