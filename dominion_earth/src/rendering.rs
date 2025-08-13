@@ -167,15 +167,14 @@ pub fn spawn_capital_sprites(
         let screen_pos =
             map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
 
-        // let sprite_entity = commands
-        //     .spawn((
-        //         Sprite::from_image(tile_assets.capital_ancient.clone()),
-        //         Transform::from_translation(screen_pos.extend(10.0)).with_scale(Vec3::splat(1.0)),
-        //         CapitalSprite {
-        //             civ_id: civilization.id,
-        //         },
-        //     ))
-        //     .id();
+        commands
+            .spawn((
+                Sprite::from_image(tile_assets.capital_ancient.clone()),
+                Transform::from_translation(screen_pos.extend(10.0)).with_scale(Vec3::splat(1.0)),
+                CapitalSprite {
+                    civ_id: civilization.id,
+                },
+            ));
 
         commands.entity(civ_entity).insert(CapitalSprite {
             civ_id: civilization.id,
