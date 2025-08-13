@@ -1,4 +1,9 @@
+#[derive(Resource, Clone)]
+pub struct TilemapIdResource(pub TilemapId);
 use bevy::prelude::*;
+// Camera2dBundle and SpriteBundle are in bevy::prelude in Bevy 0.16
+use crate::unit_assets;
+use bevy_ecs_tilemap::prelude::*;
 use core_sim::*;
 
 #[derive(Resource)]
@@ -36,44 +41,144 @@ pub fn setup_tile_assets(mut commands: Commands, asset_server: Res<AssetServer>)
     commands.insert_resource(tile_assets);
 }
 
-/// Spawn world tiles as sprite entities
-pub fn spawn_world_tiles(
+/// Setup isometric diamond tilemap using bevy_ecs_tilemap
+pub fn setup_tilemap(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     world_map: Res<WorldMap>,
-    tile_assets: Res<TileAssets>,
 ) {
-    let tile_size = 64.0; // Match your 64x64 tile images
-    let map_offset = Vec2::new(-3200.0, -1600.0); // Adjusted for 64px tiles
+    commands.spawn(Camera2d);
 
-    // Spawn tile sprites (render every tile for no gaps)
-    for x in 0..world_map.width {
-        for y in 0..world_map.height {
-            let world_pos = Position::new(x as i32, y as i32);
-            if let Some(tile) = world_map.get_tile(world_pos) {
-                let screen_pos = map_offset + Vec2::new(x as f32 * tile_size, y as f32 * tile_size);
+    // Load your tileset texture (should be a texture atlas for best results)
+    let texture_handle: Handle<Image> = asset_server.load("tiles/land/tileset.png");
+    let map_size = TilemapSize {
+        x: world_map.width,
+        y: world_map.height,
+    };
+    let mut tile_storage = TileStorage::empty(map_size);
 
-                // Choose texture based on terrain type
-                let texture = match tile.terrain {
-                    TerrainType::Plains => tile_assets.plains.clone(),
-                    TerrainType::Hills | TerrainType::Forest => tile_assets.plains.clone(), // Use plains as placeholder
-                    TerrainType::Ocean | TerrainType::Coast => tile_assets.ocean.clone(),
-                    // Use plains as fallback for other types (Mountains, Desert, River)
-                    _ => tile_assets.plains.clone(),
-                };
+    let tilemap_entity = commands.spawn_empty().id();
+    let tilemap_id = TilemapId(tilemap_entity);
 
-                commands.spawn((
-                    Sprite::from_image(texture),
-                    Transform::from_translation(screen_pos.extend(0.0))
-                        .with_scale(Vec3::splat(1.0)),
-                    WorldTile {
-                        grid_pos: world_pos,
-                        terrain_type: tile.terrain.clone(),
-                    },
-                ));
-            }
+    // Spawn all terrain tiles
+    for x in 0..map_size.x {
+        for y in 0..map_size.y {
+            let tile_pos = TilePos { x, y };
+            let tile = world_map.get_tile(Position::new(x as i32, y as i32));
+            let texture_index = match tile.map(|t| &t.terrain) {
+                Some(TerrainType::Plains) => 0,
+                Some(TerrainType::Hills) => 1,
+                Some(TerrainType::Forest) => 2,
+                Some(TerrainType::Ocean) => 3,
+                Some(TerrainType::Coast) => 4,
+                _ => 0,
+            };
+            commands.spawn(TileBundle {
+                position: tile_pos,
+                tilemap_id,
+                texture_index: TileTextureIndex(texture_index),
+                ..Default::default()
+            });
+            tile_storage.set(&tile_pos, tilemap_entity);
+        }
+    }
+
+    commands.entity(tilemap_entity).insert(TilemapBundle {
+        grid_size: TilemapGridSize { x: 64.0, y: 32.0 },
+        size: map_size,
+        storage: tile_storage,
+        texture: TilemapTexture::Single(texture_handle),
+        tile_size: TilemapTileSize { x: 64.0, y: 32.0 },
+        map_type: TilemapType::Isometric(IsoCoordSystem::Diamond),
+        ..Default::default()
+    });
+}
+
+/// Spawn a unit/capital/city as a child of the correct tile entity in the tilemap
+pub fn spawn_entity_on_tile(
+    mut commands: Commands,
+    tilemap_query: Query<&TileStorage>,
+    tilemap_id: TilemapId,
+    asset: Handle<Image>,
+    position: Position,
+    // z parameter removed, layering not used in Sprite::from_image
+) {
+    let tile_pos = TilePos {
+        x: position.x as u32,
+        y: position.y as u32,
+    };
+    if let Ok(tile_storage) = tilemap_query.get(tilemap_id.0) {
+        if let Some(tile_entity) = tile_storage.get(&tile_pos) {
+            commands.entity(tile_entity).with_children(|parent| {
+                parent.spawn(Sprite::from_image(asset));
+            });
         }
     }
 }
+
+/// System to spawn all world tiles using the new tilemap setup
+pub fn spawn_world_tiles(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    world_map: Res<WorldMap>,
+) {
+    setup_tilemap(commands, asset_server, world_map);
+}
+
+/// System to spawn all unit sprites on their respective tiles
+pub fn spawn_unit_sprites(
+    mut commands: Commands,
+    tilemap_query: Query<&TileStorage>,
+    tilemap_id: Res<TilemapIdResource>,
+    unit_assets: Res<unit_assets::UnitAssets>,
+    units: Query<(Entity, &Position), With<core_sim::components::MilitaryUnit>>,
+) {
+    for (_, position) in units.iter() {
+        spawn_entity_on_tile(
+            commands.reborrow(),
+            tilemap_query,
+            tilemap_id.0,
+            unit_assets.ancient_infantry.clone(),
+            *position,
+        );
+    }
+}
+
+/// System to spawn all capital sprites on their respective tiles
+pub fn spawn_capital_sprites(
+    mut commands: Commands,
+    tilemap_query: Query<&TileStorage>,
+    tilemap_id: Res<TilemapIdResource>,
+    tile_assets: Res<TileAssets>,
+    civs: Query<(Entity, &core_sim::components::Civilization)>,
+) {
+    for (_, civ) in civs.iter() {
+        if let Some(pos) = civ.capital {
+            spawn_entity_on_tile(
+                commands.reborrow(),
+                tilemap_query,
+                tilemap_id.0,
+                tile_assets.capital_ancient.clone(),
+                pos,
+            );
+        }
+    }
+}
+
+/// System to update unit sprites (stub for future logic)
+pub fn update_unit_sprites() {
+    // Implement logic to update unit sprites if needed
+}
+
+/// System to render overlays (stub for future logic)
+pub fn render_world_overlays() {
+    // Implement logic to render overlays if needed
+}
+
+// Example usage for units, capitals, cities:
+// spawn_entity_on_tile(commands, tilemap_query, tilemap_id, unit_assets.ancient_infantry.clone(), unit_position, 1.0);
+// spawn_entity_on_tile(commands, tilemap_query, tilemap_id, tile_assets.capital_ancient.clone(), capital_position, 2.0);
+// spawn_entity_on_tile(commands, tilemap_query, tilemap_id, city_asset, city_position, 3.0);
 
 /// Generate a unique color for each civilization based on their ID
 fn get_civ_color(civ_id: &CivId) -> Color {
@@ -90,188 +195,19 @@ fn get_civ_color(civ_id: &CivId) -> Color {
     let x = c * (1.0 - ((hue / 60.0) % 2.0 - 1.0).abs());
     let m = value - c;
 
-    let (r, g, b) = match hue as u32 / 60 {
-        0 => (c, x, 0.0),
-        1 => (x, c, 0.0),
-        2 => (0.0, c, x),
-        3 => (0.0, x, c),
-        4 => (x, 0.0, c),
-        _ => (c, 0.0, x),
+    let (r, g, b) = if hue < 60.0 {
+        (c, x, 0.0)
+    } else if hue < 120.0 {
+        (x, c, 0.0)
+    } else if hue < 180.0 {
+        (0.0, c, x)
+    } else if hue < 240.0 {
+        (0.0, x, c)
+    } else if hue < 300.0 {
+        (x, 0.0, c)
+    } else {
+        (c, 0.0, x)
     };
 
     Color::srgb(r + m, g + m, b + m)
-}
-
-/// System to spawn unit sprites once when units are created
-pub fn spawn_unit_sprites(
-    mut commands: Commands,
-    units: Query<(Entity, &MilitaryUnit, &Position), Without<UnitSprite>>,
-    unit_assets: Res<crate::unit_assets::UnitAssets>,
-) {
-    let tile_size = 64.0;
-    let map_offset = Vec2::new(-3200.0, -1600.0);
-
-    for (unit_entity, unit, position) in units.iter() {
-        let screen_pos =
-            map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
-
-        match unit.unit_type {
-            UnitType::Infantry => {
-                let sprite_entity = commands
-                    .spawn((
-                        Sprite::from_image(unit_assets.ancient_infantry.clone()),
-                        Transform::from_translation(screen_pos.extend(15.0))
-                            .with_scale(Vec3::splat(1.0)),
-                    ))
-                    .id();
-
-                // Add UnitSprite component to the unit entity to track its sprite
-                commands.entity(unit_entity).insert(UnitSprite {
-                    unit_entity: sprite_entity,
-                });
-            }
-            _ => {
-                // For non-Infantry units, we'll still use gizmos for now
-            }
-        }
-    }
-}
-
-/// System to update unit sprite positions when units move
-pub fn update_unit_sprites(
-    units: Query<(&MilitaryUnit, &Position, &UnitSprite), Changed<Position>>,
-    mut sprites: Query<&mut Transform, With<Sprite>>,
-) {
-    let tile_size = 64.0;
-    let map_offset = Vec2::new(-3200.0, -1600.0);
-
-    for (_unit, position, unit_sprite) in units.iter() {
-        if let Ok(mut transform) = sprites.get_mut(unit_sprite.unit_entity) {
-            let screen_pos = map_offset
-                + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
-            transform.translation = screen_pos.extend(15.0);
-        }
-    }
-}
-
-/// System to spawn capital sprites once
-pub fn spawn_capital_sprites(
-    mut commands: Commands,
-    civs: Query<(Entity, &Civilization, &Position), Without<CapitalSprite>>,
-    tile_assets: Res<TileAssets>,
-) {
-    let tile_size = 64.0;
-    let map_offset = Vec2::new(-3200.0, -1600.0);
-
-    for (civ_entity, civilization, position) in civs.iter() {
-        let screen_pos =
-            map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
-
-        commands
-            .spawn((
-                Sprite::from_image(tile_assets.capital_ancient.clone()),
-                Transform::from_translation(screen_pos.extend(10.0)).with_scale(Vec3::splat(1.0)),
-                CapitalSprite {
-                    civ_id: civilization.id,
-                },
-            ));
-
-        commands.entity(civ_entity).insert(CapitalSprite {
-            civ_id: civilization.id,
-        });
-    }
-}
-
-/// Simple 2D rendering system for civilizations and units (keeping this for overlays)
-pub fn render_world_overlays(
-    mut gizmos: Gizmos,
-    world_map: Res<WorldMap>,
-    civs: Query<(&Civilization, &Position)>,
-    cities: Query<(&City, &Position)>,
-    units: Query<(&MilitaryUnit, &Position)>,
-    camera: Query<&Transform, With<Camera>>,
-) {
-    // Get camera position for world-to-screen calculations
-    let Ok(camera_transform) = camera.single() else {
-        return; // No camera found
-    };
-    let _camera_pos = camera_transform.translation.truncate();
-
-    // Define rendering parameters
-    let tile_size = 64.0; // Match your 64x64 tile images
-    let map_offset = Vec2::new(-3200.0, -1600.0); // Adjusted for 64px tiles
-
-    // Render civilization capitals
-    for (civilization, position) in civs.iter() {
-        let screen_pos =
-            map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
-
-        // Draw a colored circle around the capital for this civilization
-        let civ_color = get_civ_color(&civilization.id);
-        gizmos.circle_2d(screen_pos, tile_size * 0.8, civ_color);
-    }
-
-    // Render cities
-    for (city, position) in cities.iter() {
-        let screen_pos =
-            map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
-
-        // City population indicator (circle to match capitals)
-        let pop_size = (city.population as f32 / 5000.0).clamp(0.5, 2.0);
-        gizmos.circle_2d(screen_pos, tile_size * pop_size, Color::srgb(1.0, 1.0, 0.0));
-        // Yellow circle for cities
-    }
-
-    // Render military units
-    for (unit, position) in units.iter() {
-        let screen_pos =
-            map_offset + Vec2::new(position.x as f32 * tile_size, position.y as f32 * tile_size);
-
-        match unit.unit_type {
-            UnitType::Infantry => {
-                // Infantry units are handled by sprite system, skip gizmo rendering
-            }
-            // For other unit types, keep diamond/circle for now
-            _ => {
-                let unit_color = match unit.unit_type {
-                    UnitType::Cavalry => Color::srgb(0.5, 0.0, 0.5), // Purple
-                    UnitType::Archer => Color::srgb(1.0, 0.27, 0.0), // Orange Red
-                    UnitType::Siege => Color::srgb(0.33, 0.33, 0.33), // Dark Gray
-                    UnitType::Naval => Color::srgb(0.0, 0.0, 0.5),   // Navy
-                    _ => Color::WHITE,
-                };
-                let diamond_size = tile_size * 0.8;
-                let diamond_points = [
-                    screen_pos + Vec2::new(0.0, diamond_size),
-                    screen_pos + Vec2::new(diamond_size, 0.0),
-                    screen_pos + Vec2::new(0.0, -diamond_size),
-                    screen_pos + Vec2::new(-diamond_size, 0.0),
-                ];
-                for i in 0..4 {
-                    let next_i = (i + 1) % 4;
-                    gizmos.line_2d(diamond_points[i], diamond_points[next_i], unit_color);
-                }
-                let strength_radius = (unit.strength / 20.0).clamp(1.0, 5.0);
-                gizmos.circle_2d(screen_pos, strength_radius, unit_color);
-            }
-        }
-    }
-
-    // Render grid lines (optional, for debugging)
-    if false {
-        // Set to true to show grid
-        for x in (0..world_map.width).step_by(10) {
-            let start = map_offset + Vec2::new(x as f32 * tile_size, 0.0);
-            let end =
-                map_offset + Vec2::new(x as f32 * tile_size, world_map.height as f32 * tile_size);
-            gizmos.line_2d(start, end, Color::srgba(1.0, 1.0, 1.0, 0.2));
-        }
-
-        for y in (0..world_map.height).step_by(5) {
-            let start = map_offset + Vec2::new(0.0, y as f32 * tile_size);
-            let end =
-                map_offset + Vec2::new(world_map.width as f32 * tile_size, y as f32 * tile_size);
-            gizmos.line_2d(start, end, Color::srgba(1.0, 1.0, 1.0, 0.2));
-        }
-    }
 }

@@ -3,7 +3,7 @@ mod headless;
 mod input;
 mod rendering;
 mod ui;
-mod unit_assets;
+pub mod unit_assets;
 
 use bevy::prelude::*;
 use bevy_brp_extras::BrpExtrasPlugin;
@@ -88,8 +88,8 @@ fn main() {
                     rendering::spawn_unit_sprites,
                     rendering::update_unit_sprites,
                     rendering::spawn_capital_sprites,
-                    ui::update_terrain_counts,
-                    rendering::render_world_overlays,
+                    // Removed: ui::update_terrain_counts,
+                    // Removed: rendering::render_world_overlays,
                 ),
             )
             .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
