@@ -98,11 +98,6 @@ This project has comprehensive instruction files to guide your development work.
 - **MCP Integration:** VS Code Copilot Chat agent mode with BRP tools
 - **Essential for:** Debugging issues, adding features, inspecting game state
 
-### `ui_development.instructions.md`
-
-- UI development patterns and guidelines
-- Component structure and best practices
-
 ## 🔧 BRP Tools Usage:
 
 **⚠️ MANDATORY:** Before using ANY BRP tools for debugging or development:
@@ -139,7 +134,6 @@ Carefully read the issue and think hard about a plan to solve it before coding.
 - **FIRST:** Read relevant instruction files in `.github/instructions/` for project context and patterns
 - **Architecture Tasks:** Read `architecture.instructions.md` for ECS patterns, component structure, build commands
 - **Debugging/BRP Tasks:** Read `bevy_brp_tools.instructions.md` for debugging tools and workflow requirements
-- **UI Tasks:** Read `ui_development.instructions.md` for UI patterns and guidelines
 - Explore relevant files and directories.
 - Search for key functions, classes, or variables related to the issue.
 - Read and understand relevant code snippets.
