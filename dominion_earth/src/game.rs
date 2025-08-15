@@ -41,7 +41,7 @@ pub fn setup_game(
     rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
 
     // Generate the world map
-    *world_map = world_gen::generate_earth_map(100, 50, &mut rng.0);
+    *world_map = world_gen::generate_island_map(100, 50, &mut rng.0);
 
     // Initialize influence map
     *influence_map = InfluenceMap::new(world_map.width, world_map.height);

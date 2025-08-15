@@ -3,6 +3,176 @@ use crate::{
 };
 use rand::Rng;
 
+/// Generate a randomized archipelago map with island clusters
+pub fn generate_island_map(width: u32, height: u32, rng: &mut impl Rng) -> WorldMap {
+    let mut map = WorldMap::new(width, height);
+    
+    // Start with all ocean
+    for x in 0..width {
+        for y in 0..height {
+            let pos = Position::new(x as i32, y as i32);
+            if let Some(tile) = map.get_tile_mut(pos) {
+                *tile = MapTile {
+                    terrain: TerrainType::Ocean,
+                    owner: None,
+                    city: None,
+                    resource: None,
+                    movement_cost: 3.0,
+                    defense_bonus: 0.0,
+                };
+            }
+        }
+    }
+    
+    // Generate 3-5 large islands with smaller satellite islands
+    let num_major_islands = rng.gen_range(3..=5);
+    
+    for _ in 0..num_major_islands {
+        generate_island_cluster(&mut map, width, height, rng);
+    }
+    
+    // Add scattered small islands
+    let num_small_islands = rng.gen_range(8..15);
+    for _ in 0..num_small_islands {
+        generate_small_island(&mut map, width, height, rng);
+    }
+    
+    // Smooth and refine the landmasses
+    smooth_coastlines(&mut map);
+    
+    // Place resources on land
+    place_resources(&mut map, rng);
+
+    map
+}
+
+fn generate_island_cluster(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
+    // Pick a random center for the main island
+    let center_x = rng.gen_range(width / 6..5 * width / 6);
+    let center_y = rng.gen_range(height / 6..5 * height / 6);
+    
+    // Generate main island
+    let main_radius = rng.gen_range(8..15);
+    generate_island_at(map, center_x, center_y, main_radius, rng);
+    
+    // Generate 2-4 satellite islands around the main one
+    let num_satellites = rng.gen_range(2..=4);
+    for _ in 0..num_satellites {
+        let angle = rng.gen::<f32>() * 2.0 * std::f32::consts::PI;
+        let distance = rng.gen_range(15..25) as f32;
+        
+        let sat_x = center_x as f32 + angle.cos() * distance;
+        let sat_y = center_y as f32 + angle.sin() * distance;
+        
+        if sat_x >= 0.0 && sat_x < width as f32 && sat_y >= 0.0 && sat_y < height as f32 {
+            let sat_radius = rng.gen_range(4..8);
+            generate_island_at(map, sat_x as u32, sat_y as u32, sat_radius, rng);
+        }
+    }
+}
+
+fn generate_small_island(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
+    let center_x = rng.gen_range(0..width);
+    let center_y = rng.gen_range(0..height);
+    let radius = rng.gen_range(2..5);
+    
+    generate_island_at(map, center_x, center_y, radius, rng);
+}
+
+fn generate_island_at(map: &mut WorldMap, center_x: u32, center_y: u32, radius: u32, rng: &mut impl Rng) {
+    let radius_f = radius as f32;
+    
+    for dx in -(radius as i32)..=(radius as i32) {
+        for dy in -(radius as i32)..=(radius as i32) {
+            let x = center_x as i32 + dx;
+            let y = center_y as i32 + dy;
+            
+            if x < 0 || x >= map.width as i32 || y < 0 || y >= map.height as i32 {
+                continue;
+            }
+            
+            let distance = ((dx * dx + dy * dy) as f32).sqrt();
+            let noise = rng.gen::<f32>() * 0.7 - 0.35; // Random variation
+            let adjusted_radius = radius_f + noise;
+            
+            if distance <= adjusted_radius {
+                let pos = Position::new(x, y);
+                if let Some(tile) = map.get_tile_mut(pos) {
+                    // Create varied terrain - mostly plains but some hills
+                    let terrain = if rng.gen::<f32>() < 0.8 {
+                        TerrainType::Plains
+                    } else {
+                        TerrainType::Hills
+                    };
+                    
+                    let (movement_cost, defense_bonus) = match terrain {
+                        TerrainType::Plains => (1.0, 0.0),
+                        TerrainType::Hills => (1.5, 0.25),
+                        _ => (1.0, 0.0),
+                    };
+                    
+                    *tile = MapTile {
+                        terrain,
+                        owner: None,
+                        city: None,
+                        resource: None,
+                        movement_cost,
+                        defense_bonus,
+                    };
+                }
+            }
+        }
+    }
+}
+
+fn smooth_coastlines(map: &mut WorldMap) {
+    let mut changes = Vec::new();
+    
+    // Convert isolated land tiles to ocean and isolated ocean tiles to coast
+    for x in 1..(map.width - 1) {
+        for y in 1..(map.height - 1) {
+            let pos = Position::new(x as i32, y as i32);
+            if let Some(tile) = map.get_tile(pos) {
+                let neighbors = map.neighbors(pos);
+                let land_neighbors = neighbors.iter()
+                    .filter_map(|&p| map.get_tile(p))
+                    .filter(|t| !matches!(t.terrain, TerrainType::Ocean))
+                    .count();
+                
+                match tile.terrain {
+                    TerrainType::Ocean => {
+                        // Convert ocean to coast if it has land neighbors
+                        if land_neighbors > 0 {
+                            changes.push((pos, TerrainType::Coast));
+                        }
+                    }
+                    _ => {
+                        // Convert isolated land to ocean
+                        if land_neighbors < 2 {
+                            changes.push((pos, TerrainType::Ocean));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Apply changes
+    for (pos, terrain) in changes {
+        if let Some(tile) = map.get_tile_mut(pos) {
+            let (movement_cost, defense_bonus) = match terrain {
+                TerrainType::Ocean => (3.0, 0.0),
+                TerrainType::Coast => (1.0, 0.0),
+                _ => (tile.movement_cost, tile.defense_bonus),
+            };
+            
+            tile.terrain = terrain;
+            tile.movement_cost = movement_cost;
+            tile.defense_bonus = defense_bonus;
+        }
+    }
+}
+
 /// Generate a basic Earth-like world map
 pub fn generate_earth_map(width: u32, height: u32, rng: &mut impl Rng) -> WorldMap {
     let mut map = WorldMap::new(width, height);

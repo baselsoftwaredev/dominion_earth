@@ -51,7 +51,8 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(bevy_egui::EguiPlugin::default());
+        .add_plugins(bevy_egui::EguiPlugin::default())
+        .add_plugins(bevy_ecs_tilemap::TilemapPlugin);
 
         // Conditionally add remote protocol plugins
         if cli.enable_remote {
@@ -76,6 +77,8 @@ fn main() {
                     unit_assets::setup_unit_assets,
                     game::setup_game,
                     rendering::spawn_world_tiles.after(game::setup_game),
+                    rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
+                    rendering::spawn_capital_sprites.after(rendering::spawn_world_tiles),
                 ),
             )
             .add_systems(
@@ -85,9 +88,7 @@ fn main() {
                     input::handle_mouse_input,
                     game::game_update_system,
                     core_sim::systems::turn_based_system,
-                    rendering::spawn_unit_sprites,
                     rendering::update_unit_sprites,
-                    rendering::spawn_capital_sprites,
                     // Removed: ui::update_terrain_counts,
                     // Removed: rendering::render_world_overlays,
                 ),
@@ -99,5 +100,7 @@ fn main() {
 }
 
 fn setup_camera(mut commands: Commands) {
-    commands.spawn(Camera2d);
+    commands
+        .spawn(Camera2d)
+        .insert(Transform::from_xyz(1600.0, 800.0, 0.0));
 }

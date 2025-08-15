@@ -83,7 +83,7 @@ fn initialize_headless_game() -> GameState {
     let mut rng = rand_pcg::Pcg64::seed_from_u64(42); // Deterministic seed
     
     // Generate world
-    let _world_map = world_gen::generate_earth_map(100, 50, &mut rng);
+    let _world_map = world_gen::generate_island_map(100, 50, &mut rng);
     
     // Create civilizations
     let starting_positions = world_gen::get_starting_positions();
