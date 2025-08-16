@@ -1,7 +1,7 @@
+use crate::{CivId, DiplomaticRelation, Position, TerrainType};
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::{CivId, Position, TerrainType, DiplomaticRelation};
 
 /// Global world map resource
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
@@ -49,16 +49,18 @@ impl WorldMap {
     pub fn neighbors(&self, pos: Position) -> Vec<Position> {
         // 4-directional movement only: North, South, East, West
         let directions = [
-            (0, 1),   // North
-            (0, -1),  // South
-            (1, 0),   // East
-            (-1, 0),  // West
+            (0, 1),  // North
+            (0, -1), // South
+            (1, 0),  // East
+            (-1, 0), // West
         ];
 
         directions
             .iter()
             .map(|(dx, dy)| Position::new(pos.x + dx, pos.y + dy))
-            .filter(|p| p.x >= 0 && p.y >= 0 && (p.x as u32) < self.width && (p.y as u32) < self.height)
+            .filter(|p| {
+                p.x >= 0 && p.y >= 0 && (p.x as u32) < self.width && (p.y as u32) < self.height
+            })
             .collect()
     }
 }
@@ -224,9 +226,9 @@ pub struct ActiveCivTurn {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TurnPhase {
-    Planning,    // AI is making decisions
-    Execution,   // Actions are being executed
-    Complete,    // Turn is finished, ready to advance
+    Planning,  // AI is making decisions
+    Execution, // Actions are being executed
+    Complete,  // Turn is finished, ready to advance
 }
 
 impl Default for ActiveCivTurn {
@@ -272,7 +274,7 @@ impl Default for GameConfig {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_else(|_| std::time::Duration::from_secs(42))
             .as_secs();
-            
+
         Self {
             max_turns: 500,
             turn_time_limit: None,
