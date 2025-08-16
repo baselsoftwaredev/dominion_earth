@@ -1,29 +1,5 @@
 ---
 description: Beast Mode 3.1
-tools:
-  [
-    "codebase",
-    "usages",
-    "vscodeAPI",
-    "think",
-    "problems",
-    "changes",
-    "testFailure",
-    "terminalSelection",
-    "terminalLastCommand",
-    "fetch",
-    "findTestFiles",
-    "searchResults",
-    "githubRepo",
-    "extensions",
-    "editFiles",
-    "runNotebooks",
-    "search",
-    "new",
-    "runCommands",
-    "runTasks",
-    "brp",
-  ]
 ---
 
 # Beast Mode 3.1
