@@ -11,8 +11,8 @@ pub struct TileAssets {
     pub ancient_infantry_index: usize,
 }
 
-use core_sim::tile_components::TileAssetProvider;
 use core_sim::components::TerrainType;
+use core_sim::tile_components::TileAssetProvider;
 
 impl TileAssetProvider for TileAssets {
     fn get_index_for_terrain(&self, terrain: &TerrainType) -> u32 {
