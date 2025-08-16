@@ -1,6 +1,6 @@
+use crate::unit_assets;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use crate::unit_assets;
 use core_sim::*;
 
 #[derive(Resource, Clone)]
@@ -50,36 +50,37 @@ pub fn setup_tilemap(
     // Load textures for terrain types
     let plains_texture: Handle<Image> = asset_server.load("tiles/land/plains_tile.png");
     let ocean_texture: Handle<Image> = asset_server.load("tiles/land/ocean_tile.png");
-    
+
     // Create texture array with both textures
     let textures = vec![plains_texture, ocean_texture];
-    
+
     let map_size = TilemapSize {
         x: world_map.width,
         y: world_map.height,
     };
-    
+
     // Create tilemap entity early - we need its ID for tile references
     let tilemap_entity = commands.spawn_empty().id();
     let tilemap_id = TilemapId(tilemap_entity);
-    
+
     // Store the tilemap ID as a resource for other systems to access
     commands.insert_resource(TilemapIdResource(tilemap_id));
-    
+
     // Create tile storage to track all tiles
     let mut tile_storage = TileStorage::empty(map_size);
-    
+
     // Spawn all terrain tiles
     for x in 0..map_size.x {
         for y in 0..map_size.y {
             let tile_pos = TilePos { x, y };
             let world_pos = Position::new(x as i32, y as i32);
-            
+
             // Get terrain type from world map
-            let terrain_type = world_map.get_tile(world_pos)
+            let terrain_type = world_map
+                .get_tile(world_pos)
                 .map(|t| &t.terrain)
                 .unwrap_or(&TerrainType::Ocean);
-                
+
             // Map terrain types to texture indices
             // 0 = plains, 1 = ocean
             let texture_index = match terrain_type {
@@ -92,7 +93,7 @@ pub fn setup_tilemap(
                 TerrainType::Ocean => 1,
                 TerrainType::River => 0,
             };
-            
+
             let tile_entity = commands
                 .spawn(TileBundle {
                     position: tile_pos,
@@ -105,17 +106,17 @@ pub fn setup_tilemap(
                     terrain_type: terrain_type.clone(),
                 })
                 .id();
-                
+
             tile_storage.set(&tile_pos, tile_entity);
         }
     }
-    
+
     // Configure tilemap for square rendering (can switch to isometric later)
     // Note: Using square tiles (64x64) for now, will create proper isometric tiles later
     let tile_size = TilemapTileSize { x: 64.0, y: 64.0 };
     let grid_size = TilemapGridSize { x: 64.0, y: 64.0 };
     let map_type = TilemapType::Square;
-    
+
     // Add the tilemap bundle to the tilemap entity
     commands.entity(tilemap_entity).insert(TilemapBundle {
         grid_size,
