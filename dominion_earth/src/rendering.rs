@@ -3,25 +3,10 @@ use bevy_ecs_tilemap::prelude::*;
 use core_sim::*;
 mod tile_assets;
 pub use tile_assets::{setup_tile_assets, TileAssets};
+pub use core_sim::tile_components::{WorldTile, TileNeighbors, UnitSprite, CapitalSprite};
 
 #[derive(Resource, Clone)]
 pub struct TilemapIdResource(pub TilemapId);
-
-#[derive(Component)]
-pub struct WorldTile {
-    pub grid_pos: Position,
-    pub terrain_type: TerrainType,
-}
-
-#[derive(Component)]
-pub struct UnitSprite {
-    pub unit_entity: Entity,
-}
-
-#[derive(Component)]
-pub struct CapitalSprite {
-    pub civ_id: CivId,
-}
 
 /// Setup isometric diamond tilemap using bevy_ecs_tilemap
 pub fn setup_tilemap(
@@ -44,7 +29,8 @@ pub fn setup_tilemap(
     // Create tile storage to track all tiles
     let mut tile_storage = TileStorage::empty(map_size);
 
-    // Spawn all terrain tiles
+    // First pass: spawn all tiles and store their entities in a 2D Vec
+    let mut tile_entities = vec![vec![Entity::PLACEHOLDER; map_size.y as usize]; map_size.x as usize];
     for x in 0..map_size.x {
         for y in 0..map_size.y {
             let tile_pos = TilePos { x, y };
@@ -56,8 +42,8 @@ pub fn setup_tilemap(
                 .map(|t| &t.terrain)
                 .unwrap_or(&TerrainType::Ocean);
 
-            // Map terrain types to texture indices from our sprite sheet
-            let texture_index = match terrain_type {
+            // Default texture index
+            let mut texture_index = match terrain_type {
                 TerrainType::Plains => tile_assets.plains_index as u32,
                 TerrainType::Hills => tile_assets.plains_index as u32, // Use plains for now
                 TerrainType::Mountains => tile_assets.plains_index as u32, // Use plains for now
@@ -67,6 +53,23 @@ pub fn setup_tilemap(
                 TerrainType::Ocean => tile_assets.ocean_index as u32,
                 TerrainType::River => tile_assets.plains_index as u32, // Use plains for now
             };
+
+            // Coast detection (South-facing coast, index 8)
+            if !matches!(terrain_type, TerrainType::Ocean | TerrainType::Coast) {
+                let south = Position::new(x as i32, y as i32 + 1);
+                let left = Position::new(x as i32 - 1, y as i32);
+                let right = Position::new(x as i32 + 1, y as i32);
+                let north = Position::new(x as i32, y as i32 - 1);
+
+                let south_is_ocean = world_map.get_tile(south).map_or(false, |t| matches!(t.terrain, TerrainType::Ocean));
+                let left_is_ocean = world_map.get_tile(left).map_or(false, |t| matches!(t.terrain, TerrainType::Ocean));
+                let right_is_ocean = world_map.get_tile(right).map_or(false, |t| matches!(t.terrain, TerrainType::Ocean));
+                let north_is_land = world_map.get_tile(north).map_or(false, |t| !matches!(t.terrain, TerrainType::Ocean | TerrainType::Coast));
+
+                if south_is_ocean && left_is_ocean && right_is_ocean && north_is_land {
+                    texture_index = 8; // Coast tile index
+                }
+            }
 
             let tile_entity = commands
                 .spawn(TileBundle {
@@ -81,7 +84,25 @@ pub fn setup_tilemap(
                 })
                 .id();
 
+            tile_entities[x as usize][y as usize] = tile_entity;
             tile_storage.set(&tile_pos, tile_entity);
+        }
+    }
+
+    // Second pass: add TileNeighbors component to each tile
+    for x in 0..map_size.x {
+        for y in 0..map_size.y {
+            let tile_entity = tile_entities[x as usize][y as usize];
+            let north = if y > 0 { Some(tile_entities[x as usize][(y - 1) as usize]) } else { None };
+            let south = if (y + 1) < map_size.y { Some(tile_entities[x as usize][(y + 1) as usize]) } else { None };
+            let east = if (x + 1) < map_size.x { Some(tile_entities[(x + 1) as usize][y as usize]) } else { None };
+            let west = if x > 0 { Some(tile_entities[(x - 1) as usize][y as usize]) } else { None };
+            commands.entity(tile_entity).insert(TileNeighbors {
+                north,
+                south,
+                east,
+                west,
+            });
         }
     }
 
