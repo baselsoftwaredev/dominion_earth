@@ -1,4 +1,3 @@
-use crate::unit_assets;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::*;
@@ -8,10 +7,13 @@ pub struct TilemapIdResource(pub TilemapId);
 
 #[derive(Resource)]
 pub struct TileAssets {
-    pub plains: Handle<Image>,
-    pub ocean: Handle<Image>,
-    pub capital_ancient: Handle<Image>,
-    // Add more tile types as you create them
+    pub sprite_sheet: Handle<Image>,
+    pub texture_atlas_layout: Handle<TextureAtlasLayout>,
+    // Sprite indices for different tile types
+    pub plains_index: usize,
+    pub ocean_index: usize,
+    pub capital_ancient_index: usize,
+    pub ancient_infantry_index: usize,
 }
 
 #[derive(Component)]
@@ -31,12 +33,28 @@ pub struct CapitalSprite {
 }
 
 /// Load tile assets
-pub fn setup_tile_assets(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn setup_tile_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    // Load the sprite sheet
+    let sprite_sheet = asset_server.load("tiles/sprite-sheet.png");
+
+    // Create texture atlas layout
+    // Assuming the sprite sheet has a grid layout - adjust these values based on your actual sprite sheet
+    // For now, assuming 4x4 grid with 64x64 pixel tiles
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(64, 64), 4, 4, None, None);
+    let texture_atlas_layout = texture_atlas_layouts.add(layout);
+
     let tile_assets = TileAssets {
-        plains: asset_server.load("tiles/land/plains_tile.png"),
-        ocean: asset_server.load("tiles/land/ocean_tile.png"),
-        capital_ancient: asset_server.load("tiles/settlement/capital_ancient_age.png"),
-        // Add more tiles here as you create them
+        sprite_sheet,
+        texture_atlas_layout,
+        // Define sprite indices - adjust these based on your actual sprite sheet layout
+        plains_index: 0,           // First sprite in the sheet
+        ocean_index: 16,            // Second sprite in the sheet
+        capital_ancient_index: 2,  // Third sprite in the sheet
+        ancient_infantry_index: 3, // Fourth sprite in the sheet
     };
     commands.insert_resource(tile_assets);
 }
@@ -44,16 +62,9 @@ pub fn setup_tile_assets(mut commands: Commands, asset_server: Res<AssetServer>)
 /// Setup isometric diamond tilemap using bevy_ecs_tilemap
 pub fn setup_tilemap(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    tile_assets: Res<TileAssets>,
     world_map: Res<WorldMap>,
 ) {
-    // Load textures for terrain types
-    let plains_texture: Handle<Image> = asset_server.load("tiles/land/plains_tile.png");
-    let ocean_texture: Handle<Image> = asset_server.load("tiles/land/ocean_tile.png");
-
-    // Create texture array with both textures
-    let textures = vec![plains_texture, ocean_texture];
-
     let map_size = TilemapSize {
         x: world_map.width,
         y: world_map.height,
@@ -81,17 +92,16 @@ pub fn setup_tilemap(
                 .map(|t| &t.terrain)
                 .unwrap_or(&TerrainType::Ocean);
 
-            // Map terrain types to texture indices
-            // 0 = plains, 1 = ocean
+            // Map terrain types to texture indices from our sprite sheet
             let texture_index = match terrain_type {
-                TerrainType::Plains => 0,
-                TerrainType::Hills => 0,
-                TerrainType::Mountains => 0,
-                TerrainType::Forest => 0,
-                TerrainType::Desert => 0,
-                TerrainType::Coast => 0,
-                TerrainType::Ocean => 1,
-                TerrainType::River => 0,
+                TerrainType::Plains => tile_assets.plains_index as u32,
+                TerrainType::Hills => tile_assets.plains_index as u32, // Use plains for now
+                TerrainType::Mountains => tile_assets.plains_index as u32, // Use plains for now
+                TerrainType::Forest => tile_assets.plains_index as u32, // Use plains for now
+                TerrainType::Desert => tile_assets.plains_index as u32, // Use plains for now
+                TerrainType::Coast => tile_assets.plains_index as u32, // Use plains for now
+                TerrainType::Ocean => tile_assets.ocean_index as u32,
+                TerrainType::River => tile_assets.plains_index as u32, // Use plains for now
             };
 
             let tile_entity = commands
@@ -123,7 +133,7 @@ pub fn setup_tilemap(
         map_type,
         size: map_size,
         storage: tile_storage,
-        texture: TilemapTexture::Vector(textures),
+        texture: TilemapTexture::Single(tile_assets.sprite_sheet.clone()),
         tile_size,
         transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
         ..Default::default()
@@ -135,9 +145,9 @@ pub fn spawn_entity_on_tile(
     mut commands: Commands,
     tilemap_query: Query<&TileStorage>,
     tilemap_id: TilemapId,
-    asset: Handle<Image>,
+    tile_assets: &TileAssets,
+    sprite_index: usize,
     position: Position,
-    // z parameter removed, layering not used in Sprite::from_image
 ) {
     let tile_pos = TilePos {
         x: position.x as u32,
@@ -146,7 +156,16 @@ pub fn spawn_entity_on_tile(
     if let Ok(tile_storage) = tilemap_query.get(tilemap_id.0) {
         if let Some(tile_entity) = tile_storage.get(&tile_pos) {
             commands.entity(tile_entity).with_children(|parent| {
-                parent.spawn(Sprite::from_image(asset));
+                parent.spawn((
+                    Sprite::from_atlas_image(
+                        tile_assets.sprite_sheet.clone(),
+                        TextureAtlas {
+                            layout: tile_assets.texture_atlas_layout.clone(),
+                            index: sprite_index,
+                        },
+                    ),
+                    Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)), // Slightly above the tile
+                ));
             });
         }
     }
@@ -155,10 +174,10 @@ pub fn spawn_entity_on_tile(
 /// System to spawn all world tiles using the new tilemap setup
 pub fn spawn_world_tiles(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+    tile_assets: Res<TileAssets>,
     world_map: Res<WorldMap>,
 ) {
-    setup_tilemap(commands, asset_server, world_map);
+    setup_tilemap(commands, tile_assets, world_map);
 }
 
 /// System to spawn all unit sprites on their respective tiles
@@ -166,7 +185,7 @@ pub fn spawn_unit_sprites(
     mut commands: Commands,
     tilemap_query: Query<&TileStorage>,
     tilemap_id: Res<TilemapIdResource>,
-    unit_assets: Res<unit_assets::UnitAssets>,
+    tile_assets: Res<TileAssets>,
     units: Query<(Entity, &Position), With<core_sim::components::MilitaryUnit>>,
 ) {
     for (_, position) in units.iter() {
@@ -174,7 +193,8 @@ pub fn spawn_unit_sprites(
             commands.reborrow(),
             tilemap_query,
             tilemap_id.0,
-            unit_assets.ancient_infantry.clone(),
+            &tile_assets,
+            tile_assets.ancient_infantry_index,
             *position,
         );
     }
@@ -194,7 +214,8 @@ pub fn spawn_capital_sprites(
                 commands.reborrow(),
                 tilemap_query,
                 tilemap_id.0,
-                tile_assets.capital_ancient.clone(),
+                &tile_assets,
+                tile_assets.capital_ancient_index,
                 pos,
             );
         }

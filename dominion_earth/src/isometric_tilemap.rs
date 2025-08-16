@@ -61,7 +61,7 @@ pub fn setup_tilemap_system(
                     TileBundle {
                         position: tile_pos,
                         tilemap_id,
-                        texture_index: get_texture_index_for_terrain(terrain.clone()),
+                        texture_index: get_texture_index_for_terrain(terrain.clone(), &tile_assets),
                         ..Default::default()
                     },
                     TileTerrainType(terrain),
@@ -89,7 +89,7 @@ pub fn setup_tilemap_system(
         grid_size,
         size: map_size,
         storage: tile_storage,
-        texture: TilemapTexture::Single(tile_assets.plains.clone()),
+        texture: TilemapTexture::Single(tile_assets.sprite_sheet.clone()),
         tile_size,
         map_type,
         anchor: TilemapAnchor::Center,
@@ -107,16 +107,19 @@ pub fn setup_tilemap_system(
 }
 
 /// Convert terrain type to texture index for isometric tilemap
-pub fn get_texture_index_for_terrain(terrain: TerrainType) -> TileTextureIndex {
+pub fn get_texture_index_for_terrain(
+    terrain: TerrainType,
+    tile_assets: &crate::rendering::TileAssets,
+) -> TileTextureIndex {
     match terrain {
-        TerrainType::Plains => TileTextureIndex(0),
-        TerrainType::Hills => TileTextureIndex(1),
-        TerrainType::Mountains => TileTextureIndex(2),
-        TerrainType::Forest => TileTextureIndex(3),
-        TerrainType::Desert => TileTextureIndex(4),
-        TerrainType::Coast => TileTextureIndex(5),
-        TerrainType::Ocean => TileTextureIndex(6),
-        TerrainType::River => TileTextureIndex(7),
+        TerrainType::Plains => TileTextureIndex(tile_assets.plains_index as u32),
+        TerrainType::Hills => TileTextureIndex(tile_assets.plains_index as u32), // Use plains for now
+        TerrainType::Mountains => TileTextureIndex(tile_assets.plains_index as u32), // Use plains for now
+        TerrainType::Forest => TileTextureIndex(tile_assets.plains_index as u32), // Use plains for now
+        TerrainType::Desert => TileTextureIndex(tile_assets.plains_index as u32), // Use plains for now
+        TerrainType::Coast => TileTextureIndex(tile_assets.plains_index as u32), // Use plains for now
+        TerrainType::Ocean => TileTextureIndex(tile_assets.ocean_index as u32),
+        TerrainType::River => TileTextureIndex(tile_assets.plains_index as u32), // Use plains for now
     }
 }
 
@@ -127,13 +130,14 @@ pub fn update_tile_terrain(
     tilemap_entity: Entity,
     tile_storage_query: &Query<&TileStorage>,
     tile_texture_query: &mut Query<(&mut TileTextureIndex, &mut TileTerrainType)>,
+    tile_assets: &crate::rendering::TileAssets,
 ) {
     if let Ok(tile_storage) = tile_storage_query.get(tilemap_entity) {
         if let Some(tile_entity) = tile_storage.get(&tile_pos) {
             if let Ok((mut texture_index, mut terrain_type)) =
                 tile_texture_query.get_mut(tile_entity)
             {
-                texture_index.0 = get_texture_index_for_terrain(new_terrain.clone()).0;
+                texture_index.0 = get_texture_index_for_terrain(new_terrain.clone(), tile_assets).0;
                 terrain_type.0 = new_terrain;
             }
         }
@@ -146,6 +150,7 @@ pub fn sync_tiles_with_world_map(
     tilemap_entity: Res<IsometricTilemapEntity>,
     tile_storage_query: Query<&TileStorage>,
     mut tile_query: Query<(&mut TileTextureIndex, &mut TileTerrainType, &TilePos)>,
+    tile_assets: Res<crate::rendering::TileAssets>,
 ) {
     if !world_map.is_changed() {
         return;
@@ -160,7 +165,8 @@ pub fn sync_tiles_with_world_map(
                 let position = Position::new(x, y);
                 if let Some(map_tile) = world_map.get_tile(position) {
                     if terrain_type.0 != map_tile.terrain {
-                        texture_index.0 = get_texture_index_for_terrain(map_tile.terrain.clone()).0;
+                        texture_index.0 =
+                            get_texture_index_for_terrain(map_tile.terrain.clone(), &tile_assets).0;
                         terrain_type.0 = map_tile.terrain.clone();
                     }
                 }
