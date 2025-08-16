@@ -11,6 +11,26 @@ pub struct TileAssets {
     pub ancient_infantry_index: usize,
 }
 
+use core_sim::tile_components::TileAssetProvider;
+use core_sim::components::TerrainType;
+
+impl TileAssetProvider for TileAssets {
+    fn get_index_for_terrain(&self, terrain: &TerrainType) -> u32 {
+        match terrain {
+            TerrainType::Plains => self.plains_index as u32,
+            TerrainType::Ocean => self.ocean_index as u32,
+            // Add more terrain types as needed
+            _ => self.plains_index as u32,
+        }
+    }
+
+    fn get_coast_index(&self) -> u32 {
+        // You may want to add a dedicated coast_index field to TileAssets
+        // For now, fallback to ocean_index
+        self.ocean_index as u32
+    }
+}
+
 /// Load tile assets
 pub fn setup_tile_assets(
     mut commands: Commands,

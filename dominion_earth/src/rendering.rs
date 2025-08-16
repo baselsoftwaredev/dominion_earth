@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::*;
 mod tile_assets;
+pub use core_sim::tile_components::{CapitalSprite, TileNeighbors, UnitSprite, WorldTile};
 pub use tile_assets::{setup_tile_assets, TileAssets};
-pub use core_sim::tile_components::{WorldTile, TileNeighbors, UnitSprite, CapitalSprite};
 
 #[derive(Resource, Clone)]
 pub struct TilemapIdResource(pub TilemapId);
@@ -14,11 +14,6 @@ pub fn setup_tilemap(
     tile_assets: Res<TileAssets>,
     world_map: Res<WorldMap>,
 ) {
-    let map_size = TilemapSize {
-        x: world_map.width,
-        y: world_map.height,
-    };
-
     // Create tilemap entity early - we need its ID for tile references
     let tilemap_entity = commands.spawn_empty().id();
     let tilemap_id = TilemapId(tilemap_entity);
@@ -26,88 +21,15 @@ pub fn setup_tilemap(
     // Store the tilemap ID as a resource for other systems to access
     commands.insert_resource(TilemapIdResource(tilemap_id));
 
-    // Create tile storage to track all tiles
-    let mut tile_storage = TileStorage::empty(map_size);
-
-    // First pass: spawn all tiles and store their entities in a 2D Vec
-    let mut tile_entities = vec![vec![Entity::PLACEHOLDER; map_size.y as usize]; map_size.x as usize];
-    for x in 0..map_size.x {
-        for y in 0..map_size.y {
-            let tile_pos = TilePos { x, y };
-            let world_pos = Position::new(x as i32, y as i32);
-
-            // Get terrain type from world map
-            let terrain_type = world_map
-                .get_tile(world_pos)
-                .map(|t| &t.terrain)
-                .unwrap_or(&TerrainType::Ocean);
-
-            // Default texture index
-            let mut texture_index = match terrain_type {
-                TerrainType::Plains => tile_assets.plains_index as u32,
-                TerrainType::Hills => tile_assets.plains_index as u32, // Use plains for now
-                TerrainType::Mountains => tile_assets.plains_index as u32, // Use plains for now
-                TerrainType::Forest => tile_assets.plains_index as u32, // Use plains for now
-                TerrainType::Desert => tile_assets.plains_index as u32, // Use plains for now
-                TerrainType::Coast => tile_assets.plains_index as u32, // Use plains for now
-                TerrainType::Ocean => tile_assets.ocean_index as u32,
-                TerrainType::River => tile_assets.plains_index as u32, // Use plains for now
-            };
-
-            // Coast detection (South-facing coast, index 8)
-            if !matches!(terrain_type, TerrainType::Ocean | TerrainType::Coast) {
-                let south = Position::new(x as i32, y as i32 + 1);
-                let left = Position::new(x as i32 - 1, y as i32);
-                let right = Position::new(x as i32 + 1, y as i32);
-                let north = Position::new(x as i32, y as i32 - 1);
-
-                let south_is_ocean = world_map.get_tile(south).map_or(false, |t| matches!(t.terrain, TerrainType::Ocean));
-                let left_is_ocean = world_map.get_tile(left).map_or(false, |t| matches!(t.terrain, TerrainType::Ocean));
-                let right_is_ocean = world_map.get_tile(right).map_or(false, |t| matches!(t.terrain, TerrainType::Ocean));
-                let north_is_land = world_map.get_tile(north).map_or(false, |t| !matches!(t.terrain, TerrainType::Ocean | TerrainType::Coast));
-
-                if south_is_ocean && left_is_ocean && right_is_ocean && north_is_land {
-                    texture_index = 8; // Coast tile index
-                }
-            }
-
-            let tile_entity = commands
-                .spawn(TileBundle {
-                    position: tile_pos,
-                    tilemap_id,
-                    texture_index: TileTextureIndex(texture_index),
-                    ..Default::default()
-                })
-                .insert(WorldTile {
-                    grid_pos: world_pos,
-                    terrain_type: terrain_type.clone(),
-                })
-                .id();
-
-            tile_entities[x as usize][y as usize] = tile_entity;
-            tile_storage.set(&tile_pos, tile_entity);
-        }
-    }
-
-    // Second pass: add TileNeighbors component to each tile
-    for x in 0..map_size.x {
-        for y in 0..map_size.y {
-            let tile_entity = tile_entities[x as usize][y as usize];
-            let north = if y > 0 { Some(tile_entities[x as usize][(y - 1) as usize]) } else { None };
-            let south = if (y + 1) < map_size.y { Some(tile_entities[x as usize][(y + 1) as usize]) } else { None };
-            let east = if (x + 1) < map_size.x { Some(tile_entities[(x + 1) as usize][y as usize]) } else { None };
-            let west = if x > 0 { Some(tile_entities[(x - 1) as usize][y as usize]) } else { None };
-            commands.entity(tile_entity).insert(TileNeighbors {
-                north,
-                south,
-                east,
-                west,
-            });
-        }
-    }
+    // Use core_sim's setup_world_tiles to create tile entities and neighbors
+    let tile_storage = core_sim::tile_components::setup_world_tiles(
+        &mut commands,
+        tilemap_id,
+        &*tile_assets,
+        &*world_map,
+    );
 
     // Configure tilemap for square rendering (can switch to isometric later)
-    // Note: Using square tiles (64x64) for now, will create proper isometric tiles later
     let tile_size = TilemapTileSize { x: 64.0, y: 64.0 };
     let grid_size = TilemapGridSize { x: 64.0, y: 64.0 };
     let map_type = TilemapType::Square;
@@ -116,7 +38,10 @@ pub fn setup_tilemap(
     commands.entity(tilemap_entity).insert(TilemapBundle {
         grid_size,
         map_type,
-        size: map_size,
+        size: TilemapSize {
+            x: world_map.width,
+            y: world_map.height,
+        },
         storage: tile_storage,
         texture: TilemapTexture::Single(tile_assets.sprite_sheet.clone()),
         tile_size,

@@ -1,8 +1,8 @@
 use crate::CivId;
+use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use bevy_ecs::component::Mutable;
 
 /// Position component for entities on the world map
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -215,7 +215,7 @@ pub struct TradeRoute {
 
 // Manual Component implementation
 impl Component for TradeRoute {
-    type Mutability = Mutable;    
+    type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
