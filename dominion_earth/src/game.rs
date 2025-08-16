@@ -39,6 +39,7 @@ pub fn setup_game(
 ) {
     // Initialize the random number generator with configured seed
     rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
+    println!("Generating world with random seed: {}", game_config.random_seed);
 
     // Generate the world map
     *world_map = world_gen::generate_island_map(100, 50, &mut rng.0);

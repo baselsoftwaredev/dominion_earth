@@ -4,12 +4,12 @@ use rand::SeedableRng;
 use std::time::Instant;
 
 /// Run a headless simulation for performance testing and AI validation
-pub fn run_headless_simulation() {
+pub fn run_headless_simulation(seed: Option<u64>) {
     println!("Starting headless simulation...");
     let start_time = Instant::now();
 
     // Initialize game state
-    let mut game_state = initialize_headless_game();
+    let mut game_state = initialize_headless_game(seed);
     let mut ai_coordinator = AICoordinatorSystem::new();
     
     let target_turns = 200;
@@ -79,8 +79,20 @@ pub fn run_headless_simulation() {
     */
 }
 
-fn initialize_headless_game() -> GameState {
-    let mut rng = rand_pcg::Pcg64::seed_from_u64(42); // Deterministic seed
+fn initialize_headless_game(seed: Option<u64>) -> GameState {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let random_seed = seed.unwrap_or_else(|| {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_else(|_| std::time::Duration::from_secs(42))
+            .as_secs()
+    });
+    let mut rng = rand_pcg::Pcg64::seed_from_u64(random_seed);
+    
+    if seed.is_some() {
+        println!("Using custom random seed: {}", random_seed);
+    }
+    println!("Generating headless world with random seed: {}", random_seed);
     
     // Generate world
     let _world_map = world_gen::generate_island_map(100, 50, &mut rng);

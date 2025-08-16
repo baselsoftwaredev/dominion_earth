@@ -267,12 +267,18 @@ pub enum WorldSize {
 
 impl Default for GameConfig {
     fn default() -> Self {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let random_seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_else(|_| std::time::Duration::from_secs(42))
+            .as_secs();
+            
         Self {
             max_turns: 500,
             turn_time_limit: None,
             ai_difficulty: AIDifficulty::Normal,
             world_size: WorldSize::Medium,
-            random_seed: 42,
+            random_seed,
         }
     }
 }
@@ -284,7 +290,12 @@ pub struct GameRng(pub rand_pcg::Pcg64);
 impl Default for GameRng {
     fn default() -> Self {
         use rand::SeedableRng;
-        Self(rand_pcg::Pcg64::seed_from_u64(42))
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let random_seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_else(|_| std::time::Duration::from_secs(42))
+            .as_secs();
+        Self(rand_pcg::Pcg64::seed_from_u64(random_seed))
     }
 }
 

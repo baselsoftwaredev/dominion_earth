@@ -31,6 +31,10 @@ struct Cli {
     /// Remote protocol port (default: 15702)
     #[arg(long, default_value_t = 15702)]
     remote_port: u16,
+
+    /// Random seed for world generation (default: current timestamp)
+    #[arg(long)]
+    seed: Option<u64>,
 }
 
 fn main() {
@@ -38,7 +42,7 @@ fn main() {
 
     if cli.headless {
         // Run headless simulation for testing
-        headless::run_headless_simulation();
+        headless::run_headless_simulation(cli.seed);
     } else {
         // Run full Bevy application
         let mut app = App::new();
@@ -63,7 +67,14 @@ fn main() {
         app.init_resource::<ui::TerrainCounts>()
             .init_resource::<CurrentTurn>()
             .init_resource::<ActiveCivTurn>()
-            .init_resource::<GameConfig>()
+            .insert_resource({
+                let mut config = GameConfig::default();
+                if let Some(seed) = cli.seed {
+                    config.random_seed = seed;
+                    println!("Using custom random seed: {}", seed);
+                }
+                config
+            })
             .init_resource::<GameRng>()
             .init_resource::<WorldMap>()
             .insert_resource(game::GameState::with_auto_advance(cli.auto_advance))
