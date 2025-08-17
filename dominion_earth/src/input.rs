@@ -124,9 +124,13 @@ pub fn handle_mouse_input(
         if !ctx.is_pointer_over_area() && !ctx.wants_pointer_input() {
             for wheel_event in mouse_wheel.read() {
                 if let Ok(mut camera_transform) = camera_query.single_mut() {
-                    let zoom_factor = 1.0 - wheel_event.y * 0.1;
-                    camera_transform.scale *= zoom_factor;
-                    camera_transform.scale = camera_transform.scale.clamp(Vec3::splat(0.1), Vec3::splat(5.0));
+                    let zoom_step = 0.1;
+                    if wheel_event.y > 0.0 {
+                        camera_transform.scale *= 1.0 - zoom_step; // zoom out
+                    } else if wheel_event.y < 0.0 {
+                        camera_transform.scale *= 1.0 + zoom_step; // zoom in
+                    }
+                    camera_transform.scale = camera_transform.scale.clamp(Vec3::splat(0.5), Vec3::splat(3.0));
                 }
             }
         } else {
@@ -145,7 +149,7 @@ pub fn handle_mouse_input(
                     // Store scale to avoid borrow checker issue
                     let scale_x = camera_transform.scale.x;
                     // Invert delta to make panning feel natural
-                    camera_transform.translation -= Vec3::new(delta.x, delta.y, 0.0) * scale_x;
+                    camera_transform.translation += Vec3::new(-delta.x, delta.y, 0.0) * scale_x;
                 }
             }
             *last_cursor_pos = Some(cursor_event.position);
