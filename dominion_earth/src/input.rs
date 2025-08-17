@@ -19,8 +19,8 @@ pub fn select_tile_on_click(
                     // Convert screen to world coordinates
                     match camera.viewport_to_world_2d(camera_transform, cursor_pos) {
                         Ok(world_pos) => {
-                            let tile_x = (world_pos.x / 64.0).floor() as i32;
-                            let tile_y = (world_pos.y / 64.0).floor() as i32;
+                            let tile_x = (world_pos.x / 64.0).round() as i32;
+                            let tile_y = (world_pos.y / 64.0).round() as i32;
                             let pos = Position::new(tile_x, tile_y);
                             println!("Tile clicked: ({}, {})", tile_x, tile_y);
                             // Check if tile exists in world map
