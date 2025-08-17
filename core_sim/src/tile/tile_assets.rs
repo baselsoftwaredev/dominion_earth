@@ -1,6 +1,6 @@
-use bevy::prelude::*;
 use crate::components::TerrainType;
 use crate::tile::tile_components::TileAssetProvider;
+use bevy::prelude::*;
 
 #[derive(Resource)]
 pub struct TileAssets {
@@ -8,8 +8,13 @@ pub struct TileAssets {
     pub texture_atlas_layout: Handle<TextureAtlasLayout>,
     // Sprite indices for different tile types
     pub plains_index: usize,
-    pub ocean_index: usize,
+    pub hills_index: usize,
+    pub mountains_index: usize,
+    pub forest_index: usize,
+    pub desert_index: usize,
     pub coast_index: usize,
+    pub ocean_index: usize,
+    pub river_index: usize,
     pub capital_ancient_index: usize,
     pub ancient_infantry_index: usize,
 }
@@ -18,9 +23,13 @@ impl TileAssetProvider for TileAssets {
     fn get_index_for_terrain(&self, terrain: &TerrainType) -> u32 {
         match terrain {
             TerrainType::Plains => self.plains_index as u32,
+            TerrainType::Hills => self.hills_index as u32,
+            TerrainType::Mountains => self.mountains_index as u32,
+            TerrainType::Forest => self.forest_index as u32,
+            TerrainType::Desert => self.desert_index as u32,
+            TerrainType::Coast => self.coast_index as u32,
             TerrainType::Ocean => self.ocean_index as u32,
-            // Add more terrain types as needed
-            _ => self.plains_index as u32,
+            TerrainType::River => self.river_index as u32,
         }
     }
 
@@ -47,12 +56,17 @@ pub fn setup_tile_assets(
     let tile_assets = TileAssets {
         sprite_sheet,
         texture_atlas_layout,
-        // Define sprite indices - adjust these based on your actual sprite sheet layout
-        plains_index: 0,           // First sprite in the sheet
-        ocean_index: 16,           // Ocean sprite index (update as needed)
-        coast_index: 8,            // Coast sprite index (update as needed)
-        capital_ancient_index: 2,  // Third sprite in the sheet
-        ancient_infantry_index: 3, // Fourth sprite in the sheet
+        // TODO: Update these indices to match your sprite sheet!
+        plains_index: 0,           // Plains sprite index
+        hills_index: 0,            // Hills sprite index
+        mountains_index: 0,        // Mountains sprite index
+        forest_index: 0,           // Forest sprite index
+        desert_index: 0,           // Desert sprite index
+        coast_index: 8,            // Coast sprite index
+        ocean_index: 16,            // Ocean sprite index
+        river_index: 0,            // River sprite index
+        capital_ancient_index: 8,  // Capital sprite index
+        ancient_infantry_index: 9, // Infantry sprite index
     };
     commands.insert_resource(tile_assets);
 }

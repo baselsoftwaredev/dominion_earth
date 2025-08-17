@@ -88,7 +88,9 @@ fn main() {
                     core_sim::tile::tile_assets::setup_tile_assets,
                     unit_assets::setup_unit_assets,
                     game::setup_game,
-                    rendering::spawn_world_tiles.after(core_sim::tile::tile_assets::setup_tile_assets).after(game::setup_game),
+                    rendering::spawn_world_tiles
+                        .after(core_sim::tile::tile_assets::setup_tile_assets)
+                        .after(game::setup_game),
                     rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
                     rendering::spawn_capital_sprites.after(rendering::spawn_world_tiles),
                 ),
