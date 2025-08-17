@@ -73,6 +73,7 @@ pub fn ui_system(
     terrain_counts: Res<TerrainCounts>,
     civs: Query<&Civilization>,
     selected_tile: Res<SelectedTile>,
+    world_tile_query: Query<&core_sim::tile::tile_components::WorldTile>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
@@ -107,10 +108,16 @@ pub fn ui_system(
             ui.heading("Selected Tile Info");
             if let Some(pos) = selected_tile.position {
                 ui.label(format!("Position: ({}, {})", pos.x, pos.y));
-                if let Some(tile) = world_map.get_tile(pos) {
-                    ui.label(format!("Terrain: {:?}", tile.terrain));
-                    // Add more info as needed, e.g., units, owner, etc.
-                } else {
+                let mut found = false;
+                for world_tile in world_tile_query.iter() {
+                    if world_tile.grid_pos == pos {
+                        ui.label(format!("Terrain: {:?}", world_tile.terrain_type));
+                        ui.label(format!("Facing: {:?}", world_tile.default_view_point));
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
                     ui.label("No tile data found.");
                 }
             } else {

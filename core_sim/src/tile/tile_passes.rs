@@ -38,7 +38,7 @@ pub fn remove_internal_oceans_pass(
         }
     }
 }
-use crate::tile::tile_components::{TileAssetProvider, TileNeighbors, WorldTile};
+use crate::tile::tile_components::{TileAssetProvider, TileNeighbors, WorldTile, DefaultViewPoint};
 use crate::{Position, TerrainType};
 use bevy::prelude::{Commands, Entity};
 use bevy_ecs_tilemap::prelude::*;
@@ -78,6 +78,7 @@ pub fn spawn_world_tiles_pass(
                     WorldTile {
                         grid_pos: world_pos,
                         terrain_type: terrain_type.clone(),
+                        default_view_point: DefaultViewPoint::North,
                     },
                 ))
                 .id();
@@ -177,6 +178,7 @@ pub fn update_coast_tiles_pass(
                         .insert(WorldTile {
                             grid_pos: Position::new(x as i32, y as i32),
                             terrain_type: TerrainType::Coast,
+                            default_view_point: DefaultViewPoint::North,
                         });
                 }
             }

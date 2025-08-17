@@ -1,3 +1,14 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DefaultViewPoint {
+    North,
+    NorthEast,
+    East,
+    SouthEast,
+    South,
+    SouthWest,
+    West,
+    NorthWest,
+}
 /// System to update tile asset index when terrain changes
 pub fn update_tile_asset_on_terrain_change(
     mut events: EventReader<TileTerrainChanged>,
@@ -81,6 +92,7 @@ use bevy_ecs::prelude::*;
 pub struct WorldTile {
     pub grid_pos: Position,
     pub terrain_type: TerrainType,
+    pub default_view_point: DefaultViewPoint,
 }
 
 #[derive(Component, Clone)]
