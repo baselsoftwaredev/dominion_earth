@@ -1,8 +1,7 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::*;
-mod tile_assets;
-pub use tile_assets::{setup_tile_assets, TileAssets};
+use core_sim::tile::tile_assets::{TileAssets, setup_tile_assets};
 
 #[derive(Resource, Clone)]
 pub struct TilemapIdResource(pub TilemapId);

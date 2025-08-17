@@ -1,9 +1,32 @@
+/// System to update tile asset index when terrain changes
+pub fn update_tile_asset_on_terrain_change(
+    mut events: EventReader<TileTerrainChanged>,
+    mut query: Query<(&mut TileTextureIndex, &mut WorldTile)>,
+    tile_assets: Res<TileAssets>,
+) {
+    for event in events.read() {
+        if let Ok((mut texture_index, mut world_tile)) = query.get_mut(event.entity) {
+            let new_index = tile_assets.get_index_for_terrain(&event.new_terrain);
+            texture_index.0 = new_index;
+            world_tile.terrain_type = event.new_terrain.clone();
+        }
+    }
+}
+use bevy::prelude::*;
+
+/// Event emitted when a tile's terrain type changes
+#[derive(Debug, Clone, Event)]
+pub struct TileTerrainChanged {
+    pub entity: Entity,
+    pub new_terrain: TerrainType,
+}
 use crate::resources::WorldMap;
 use crate::tile::tile_passes::{
     assign_tile_neighbors_pass, spawn_world_tiles_pass, update_coast_tiles_pass,
 };
 use bevy::prelude::{Component, Entity};
 use bevy_ecs_tilemap::prelude::*;
+use crate::tile::tile_assets::TileAssets;
 
 /// System to setup world tiles, assign terrain, and link neighbors
 pub fn setup_world_tiles(
