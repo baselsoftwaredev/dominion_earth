@@ -65,6 +65,7 @@ fn main() {
         }
 
         app.init_resource::<ui::TerrainCounts>()
+            .init_resource::<ui::SelectedTile>()
             .init_resource::<CurrentTurn>()
             .init_resource::<ActiveCivTurn>()
             .insert_resource({
@@ -97,6 +98,7 @@ fn main() {
                 (
                     input::handle_input,
                     input::handle_mouse_input,
+                    input::select_tile_on_click,
                     game::game_update_system,
                     core_sim::systems::turn_based_system,
                     rendering::update_unit_sprites,

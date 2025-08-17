@@ -1,3 +1,47 @@
+use crate::ui::SelectedTile;
+use core_sim::components::Position;
+use bevy::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
+
+/// System to detect tile clicks and update SelectedTile resource
+pub fn select_tile_on_click(
+    mouse_button: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    mut selected_tile: ResMut<SelectedTile>,
+    world_map: Res<core_sim::resources::WorldMap>,
+) {
+    if mouse_button.just_pressed(MouseButton::Left) {
+        // Get cursor position in world coordinates
+        if let Ok(window) = windows.single() {
+            if let Some(cursor_pos) = window.cursor_position() {
+                if let Ok((camera, camera_transform)) = camera_query.single() {
+                    // Convert screen to world coordinates
+                    match camera.viewport_to_world_2d(camera_transform, cursor_pos) {
+                        Ok(world_pos) => {
+                            let tile_x = (world_pos.x / 64.0).floor() as i32;
+                            let tile_y = (world_pos.y / 64.0).floor() as i32;
+                            let pos = Position::new(tile_x, tile_y);
+                            println!("Tile clicked: ({}, {})", tile_x, tile_y);
+                            // Check if tile exists in world map
+                            if world_map.get_tile(pos).is_some() {
+                                println!("Tile exists in world map.");
+                                selected_tile.position = Some(pos);
+                            } else {
+                                println!("No tile data found at this position.");
+                                selected_tile.position = None;
+                            }
+                        }
+                        Err(_) => {
+                            println!("Failed to convert cursor position to world position.");
+                            selected_tile.position = None;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 use crate::game::GameState;

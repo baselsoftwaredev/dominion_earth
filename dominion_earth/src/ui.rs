@@ -1,3 +1,7 @@
+#[derive(Resource, Default, Clone)]
+pub struct SelectedTile {
+    pub position: Option<Position>,
+}
 // --- TerrainCounts resource and update system ---
 
 #[derive(Resource, Default, Clone)]
@@ -68,6 +72,7 @@ pub fn ui_system(
     world_map: Res<WorldMap>,
     terrain_counts: Res<TerrainCounts>,
     civs: Query<&Civilization>,
+    selected_tile: Res<SelectedTile>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
@@ -97,6 +102,20 @@ pub fn ui_system(
                 game_state.auto_advance
             ));
             ui.separator();
+
+            // Selected tile/entity info
+            ui.heading("Selected Tile Info");
+            if let Some(pos) = selected_tile.position {
+                ui.label(format!("Position: ({}, {})", pos.x, pos.y));
+                if let Some(tile) = world_map.get_tile(pos) {
+                    ui.label(format!("Terrain: {:?}", tile.terrain));
+                    // Add more info as needed, e.g., units, owner, etc.
+                } else {
+                    ui.label("No tile data found.");
+                }
+            } else {
+                ui.label("No tile selected.");
+            }
 
             // Civilization list
             ui.heading("Civilizations");
