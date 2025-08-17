@@ -170,10 +170,14 @@ pub fn update_coast_tiles_pass(
                     }
                 }
                 if is_adjacent_to_ocean {
-                    // Update the tile's texture index to coast
+                    // Update both the tile's texture index and terrain type to coast
                     commands
                         .entity(tile_entity)
-                        .insert(TileTextureIndex(tile_assets.get_coast_index()));
+                        .insert(TileTextureIndex(tile_assets.get_coast_index()))
+                        .insert(WorldTile {
+                            grid_pos: Position::new(x as i32, y as i32),
+                            terrain_type: TerrainType::Coast,
+                        });
                 }
             }
         }
