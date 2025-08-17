@@ -1,6 +1,6 @@
+use bevy_ecs::component::Mutable;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use bevy_ecs::component::Mutable;
 
 pub mod components;
 pub mod influence_map;
@@ -8,12 +8,14 @@ pub mod pathfinding;
 pub mod resources;
 pub mod systems;
 pub mod world_gen;
-pub mod tile_components;
+
 // Temporarily disabled due to proc macro version issues
 // pub mod economy;
 // pub mod combat;
 // pub mod diplomacy;
 // pub mod serialization;
+
+pub mod tile;
 
 pub use components::*;
 // Import specific items from resources to avoid Resource trait conflict

@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::*;
 mod tile_assets;
-pub use core_sim::tile_components::{CapitalSprite, TileNeighbors, UnitSprite, WorldTile};
 pub use tile_assets::{setup_tile_assets, TileAssets};
 
 #[derive(Resource, Clone)]
@@ -22,7 +21,7 @@ pub fn setup_tilemap(
     commands.insert_resource(TilemapIdResource(tilemap_id));
 
     // Use core_sim's setup_world_tiles to create tile entities and neighbors
-    let tile_storage = core_sim::tile_components::setup_world_tiles(
+    let tile_storage = core_sim::tile::tile_components::setup_world_tiles(
         &mut commands,
         tilemap_id,
         &*tile_assets,

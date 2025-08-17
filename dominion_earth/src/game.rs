@@ -45,9 +45,9 @@ pub fn setup_game(
     *world_map = world_gen::generate_island_map(100, 50, &mut rng.0);
 
     // Initialize influence map
-    *influence_map = InfluenceMap::new(world_map.width, world_map.height);
-    influence_map.add_layer(InfluenceType::Strategic);
-    influence_map.add_layer(InfluenceType::Threat);
+    // *influence_map = InfluenceMap::new(world_map.width, world_map.height);
+    // influence_map.add_layer(InfluenceType::Strategic);
+    // influence_map.add_layer(InfluenceType::Threat);
 
     // Spawn initial civilizations
     spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0);

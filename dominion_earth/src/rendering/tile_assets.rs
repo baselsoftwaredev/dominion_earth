@@ -7,12 +7,13 @@ pub struct TileAssets {
     // Sprite indices for different tile types
     pub plains_index: usize,
     pub ocean_index: usize,
+    pub coast_index: usize,
     pub capital_ancient_index: usize,
     pub ancient_infantry_index: usize,
 }
 
 use core_sim::components::TerrainType;
-use core_sim::tile_components::TileAssetProvider;
+use core_sim::tile::tile_components::TileAssetProvider;
 
 impl TileAssetProvider for TileAssets {
     fn get_index_for_terrain(&self, terrain: &TerrainType) -> u32 {
@@ -25,9 +26,7 @@ impl TileAssetProvider for TileAssets {
     }
 
     fn get_coast_index(&self) -> u32 {
-        // You may want to add a dedicated coast_index field to TileAssets
-        // For now, fallback to ocean_index
-        self.ocean_index as u32
+        self.coast_index as u32
     }
 }
 
@@ -52,6 +51,7 @@ pub fn setup_tile_assets(
         // Define sprite indices - adjust these based on your actual sprite sheet layout
         plains_index: 0,           // First sprite in the sheet
         ocean_index: 16,           // Ocean sprite index (update as needed)
+        coast_index: 8,            // Coast sprite index (update as needed)
         capital_ancient_index: 2,  // Third sprite in the sheet
         ancient_infantry_index: 3, // Fourth sprite in the sheet
     };
