@@ -134,6 +134,7 @@ pub fn update_coast_tiles_pass(
     tile_entities: &Vec<Vec<Entity>>,
     terrain_types: &mut Vec<Vec<TerrainType>>,
     map_size: &TilemapSize,
+    world_map: &mut crate::resources::WorldMap,
 ) {
     for x in 0..map_size.x {
         for y in 0..map_size.y {
@@ -262,6 +263,12 @@ pub fn update_coast_tiles_pass(
 
                     // IMPORTANT: Also update the terrain_types array to keep it synchronized with ECS
                     terrain_types[x as usize][y as usize] = TerrainType::Coast;
+                    
+                    // CRUCIAL: Also update the WorldMap resource to keep UI in sync
+                    let world_pos = Position::new(x as i32, y as i32);
+                    if let Some(map_tile) = world_map.get_tile_mut(world_pos) {
+                        map_tile.terrain = TerrainType::Coast;
+                    }
                 }
             }
         }

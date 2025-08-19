@@ -98,6 +98,8 @@ fn main() {
                         .after(game::setup_game),
                     rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
                     rendering::spawn_capital_sprites.after(rendering::spawn_world_tiles),
+                    // Add a final pass to ensure all coast viewpoints are correctly assigned
+                    rendering::finalize_coast_viewpoints.after(rendering::spawn_world_tiles),
                 ),
             )
             .add_systems(

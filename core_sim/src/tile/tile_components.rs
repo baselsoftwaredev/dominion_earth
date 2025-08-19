@@ -44,7 +44,7 @@ pub fn setup_world_tiles(
     commands: &mut Commands,
     tilemap_id: TilemapId,
     tile_assets: &impl TileAssetProvider,
-    world_map: &WorldMap,
+    world_map: &mut WorldMap,
 ) -> TileStorage {
     let map_size = TilemapSize {
         x: world_map.width,
@@ -75,6 +75,7 @@ pub fn setup_world_tiles(
         &tile_entities,
         &mut terrain_types,
         &map_size,
+        world_map,
     );
 
     tile_storage

@@ -1,16 +1,18 @@
 use core_sim::tile::tile_components::{WorldTile, DefaultViewPoint};
-/// System to rotate coast tile sprites based on their facing direction
+use core_sim::tile::tile_components::TileNeighbors;
+/// System to rotate coast tile sprites based on their facing direction toward land
 pub fn rotate_coast_tiles(
     mut query: Query<(&WorldTile, &mut Transform, &TileTextureIndex)>,
 ) {
     for (world_tile, mut transform, texture_index) in query.iter_mut() {
         // Only rotate coast tiles
         if world_tile.terrain_type == core_sim::TerrainType::Coast {
+            // Rotate sprite to face toward the land direction
             let angle = match world_tile.default_view_point {
-                DefaultViewPoint::North => 0.0,
-                DefaultViewPoint::East => -std::f32::consts::FRAC_PI_2,
-                DefaultViewPoint::South => std::f32::consts::PI,
-                DefaultViewPoint::West => std::f32::consts::FRAC_PI_2,
+                DefaultViewPoint::North => 0.0, // Facing toward land to the North
+                DefaultViewPoint::East => -std::f32::consts::FRAC_PI_2, // Facing toward land to the East
+                DefaultViewPoint::South => std::f32::consts::PI, // Facing toward land to the South
+                DefaultViewPoint::West => std::f32::consts::FRAC_PI_2, // Facing toward land to the West
                 DefaultViewPoint::NorthEast => -std::f32::consts::FRAC_PI_4,
                 DefaultViewPoint::SouthEast => -3.0 * std::f32::consts::FRAC_PI_4,
                 DefaultViewPoint::SouthWest => 3.0 * std::f32::consts::FRAC_PI_4,
@@ -32,7 +34,7 @@ pub struct TilemapIdResource(pub TilemapId);
 pub fn setup_tilemap(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
-    world_map: Res<WorldMap>,
+    mut world_map: ResMut<WorldMap>,
 ) {
     // Create tilemap entity early - we need its ID for tile references
     let tilemap_entity = commands.spawn_empty().id();
@@ -46,7 +48,7 @@ pub fn setup_tilemap(
         &mut commands,
         tilemap_id,
         &*tile_assets,
-        &*world_map,
+        &mut *world_map,
     );
 
     // Configure tilemap for square rendering (can switch to isometric later)
@@ -105,7 +107,7 @@ pub fn spawn_entity_on_tile(
 pub fn spawn_world_tiles(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
-    world_map: Res<WorldMap>,
+    mut world_map: ResMut<WorldMap>,
 ) {
     setup_tilemap(commands, tile_assets, world_map);
 }
@@ -197,4 +199,123 @@ fn get_civ_color(civ_id: &CivId) -> Color {
     };
 
     Color::srgb(r + m, g + m, b + m)
+}
+
+/// Final pass to ensure all coast viewpoints are correctly assigned after all setup is complete
+pub fn finalize_coast_viewpoints(
+    mut commands: Commands,
+    tile_query: Query<(Entity, &WorldTile, &TileNeighbors)>,
+    mut world_map: ResMut<core_sim::resources::WorldMap>,
+    debug_logging: Res<crate::ui::DebugLogging>,
+) {
+    if debug_logging.0 {
+        println!("=== FINALIZING COAST VIEWPOINTS ===");
+    }
+    
+    // Collect all coast tiles that need viewpoint updates
+    let mut updates = Vec::new();
+    
+    for (entity, world_tile, neighbors) in tile_query.iter() {
+        if world_tile.terrain_type == core_sim::TerrainType::Coast {
+            // Re-calculate viewpoint based on current neighbors
+            // Coast tiles should face toward the land (not toward ocean)
+            
+            // Check all neighbors to find land directions
+            let mut land_directions = Vec::new();
+            let mut neighbor_debug = Vec::new();
+            
+            if let Some(north_entity) = neighbors.north {
+                if let Ok((_, neighbor_tile, _)) = tile_query.get(north_entity) {
+                    neighbor_debug.push(format!("North: {:?}", neighbor_tile.terrain_type));
+                    if !matches!(neighbor_tile.terrain_type, core_sim::TerrainType::Ocean) {
+                        land_directions.push("North");
+                    }
+                }
+            } else {
+                neighbor_debug.push("North: OutOfBounds".to_string());
+            }
+            
+            if let Some(south_entity) = neighbors.south {
+                if let Ok((_, neighbor_tile, _)) = tile_query.get(south_entity) {
+                    neighbor_debug.push(format!("South: {:?}", neighbor_tile.terrain_type));
+                    if !matches!(neighbor_tile.terrain_type, core_sim::TerrainType::Ocean) {
+                        land_directions.push("South");
+                    }
+                }
+            } else {
+                neighbor_debug.push("South: OutOfBounds".to_string());
+            }
+            
+            if let Some(east_entity) = neighbors.east {
+                if let Ok((_, neighbor_tile, _)) = tile_query.get(east_entity) {
+                    neighbor_debug.push(format!("East: {:?}", neighbor_tile.terrain_type));
+                    if !matches!(neighbor_tile.terrain_type, core_sim::TerrainType::Ocean) {
+                        land_directions.push("East");
+                    }
+                }
+            } else {
+                neighbor_debug.push("East: OutOfBounds".to_string());
+            }
+            
+            if let Some(west_entity) = neighbors.west {
+                if let Ok((_, neighbor_tile, _)) = tile_query.get(west_entity) {
+                    neighbor_debug.push(format!("West: {:?}", neighbor_tile.terrain_type));
+                    if !matches!(neighbor_tile.terrain_type, core_sim::TerrainType::Ocean) {
+                        land_directions.push("West");
+                    }
+                }
+            } else {
+                neighbor_debug.push("West: OutOfBounds".to_string());
+            }
+            
+            // Assign viewpoint to face toward the primary land direction
+            let new_viewpoint = if land_directions.contains(&"South") {
+                DefaultViewPoint::South
+            } else if land_directions.contains(&"North") {
+                DefaultViewPoint::North  
+            } else if land_directions.contains(&"East") {
+                DefaultViewPoint::East
+            } else if land_directions.contains(&"West") {
+                DefaultViewPoint::West
+            } else {
+                // If no land neighbors (surrounded by ocean), default to North
+                DefaultViewPoint::North
+            };
+            
+            // Only schedule update if viewpoint has changed
+            if world_tile.default_view_point != new_viewpoint {
+                if debug_logging.0 {
+                    println!(
+                        "UPDATING coast tile at ({}, {}) viewpoint from {:?} to {:?}",
+                        world_tile.grid_pos.x,
+                        world_tile.grid_pos.y,
+                        world_tile.default_view_point,
+                        new_viewpoint
+                    );
+                    println!("  Neighbors: {}", neighbor_debug.join(", "));
+                    println!("  Land directions: {:?}", land_directions);
+                }
+                updates.push((entity, new_viewpoint, world_tile.grid_pos, world_tile.terrain_type.clone()));
+            }
+        }
+    }
+    
+    // Apply all updates
+    for (entity, new_viewpoint, grid_pos, terrain_type) in updates {
+        // Update ECS WorldTile entity
+        commands.entity(entity).insert(WorldTile {
+            grid_pos,
+            terrain_type: terrain_type.clone(),
+            default_view_point: new_viewpoint,
+        });
+        
+        // Also update the WorldMap resource to keep it synchronized
+        if let Some(map_tile) = world_map.get_tile_mut(grid_pos) {
+            map_tile.terrain = terrain_type;
+        }
+    }
+    
+    if debug_logging.0 {
+        println!("=== COAST VIEWPOINT FINALIZATION COMPLETE ===");
+    }
 }
