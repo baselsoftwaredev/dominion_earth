@@ -57,13 +57,13 @@ pub fn assign_tile_neighbors_pass(
     for x in 0..map_size.x {
         for y in 0..map_size.y {
             let tile_entity = tile_entities[x as usize][y as usize];
-            let north = if y > 0 {
-                Some(tile_entities[x as usize][(y - 1) as usize])
+            let north = if (y + 1) < map_size.y {
+                Some(tile_entities[x as usize][(y + 1) as usize])
             } else {
                 None
             };
-            let south = if (y + 1) < map_size.y {
-                Some(tile_entities[x as usize][(y + 1) as usize])
+            let south = if y > 0 {
+                Some(tile_entities[x as usize][(y - 1) as usize])
             } else {
                 None
             };
@@ -101,13 +101,13 @@ pub fn update_coast_tiles_pass(
             let terrain = &terrain_types[x as usize][y as usize];
             if !matches!(terrain, TerrainType::Ocean | TerrainType::Coast) {
                 let neighbors = [
-                    if y > 0 {
-                        Some((x as usize, (y - 1) as usize))
+                    if (y + 1) < map_size.y {
+                        Some((x as usize, (y + 1) as usize))
                     } else {
                         None
                     },
-                    if (y + 1) < map_size.y {
-                        Some((x as usize, (y + 1) as usize))
+                    if y > 0 {
+                        Some((x as usize, (y - 1) as usize))
                     } else {
                         None
                     },

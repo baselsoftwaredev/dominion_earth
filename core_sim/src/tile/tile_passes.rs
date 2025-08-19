@@ -10,12 +10,12 @@ pub fn remove_internal_oceans_pass(
             if original[x as usize][y as usize] == TerrainType::Ocean {
                 let mut land_neighbors = 0;
                 // Check north
-                if y > 0 && original[x as usize][(y - 1) as usize] != TerrainType::Ocean {
+                if (y + 1) < map_size.y && original[x as usize][(y + 1) as usize] != TerrainType::Ocean {
                     land_neighbors += 1;
                 }
                 // Check south
-                if (y + 1) < map_size.y
-                    && original[x as usize][(y + 1) as usize] != TerrainType::Ocean
+                if y > 0
+                    && original[x as usize][(y - 1) as usize] != TerrainType::Ocean
                 {
                     land_neighbors += 1;
                 }
@@ -97,13 +97,13 @@ pub fn assign_tile_neighbors_pass(
     for x in 0..map_size.x {
         for y in 0..map_size.y {
             let tile_entity = tile_entities[x as usize][y as usize];
-            let north = if y > 0 {
-                Some(tile_entities[x as usize][(y - 1) as usize])
+            let north = if (y + 1) < map_size.y {
+                Some(tile_entities[x as usize][(y + 1) as usize])
             } else {
                 None
             };
-            let south = if (y + 1) < map_size.y {
-                Some(tile_entities[x as usize][(y + 1) as usize])
+            let south = if y > 0 {
+                Some(tile_entities[x as usize][(y - 1) as usize])
             } else {
                 None
             };
@@ -142,13 +142,13 @@ pub fn update_coast_tiles_pass(
             let terrain = &terrain_types[x as usize][y as usize];
             if !matches!(terrain, TerrainType::Ocean | TerrainType::Coast) {
                 let neighbors = [
-                    if y > 0 {
-                        Some((x as usize, (y - 1) as usize))
+                    if (y + 1) < map_size.y {
+                        Some((x as usize, (y + 1) as usize))
                     } else {
                         None
                     },
-                    if (y + 1) < map_size.y {
-                        Some((x as usize, (y + 1) as usize))
+                    if y > 0 {
+                        Some((x as usize, (y - 1) as usize))
                     } else {
                         None
                     },
@@ -173,13 +173,13 @@ pub fn update_coast_tiles_pass(
                 }
                 if is_adjacent_to_ocean {
                     // Print all neighbors and their tile types for debugging
-                    let north_terrain = if y > 0 {
-                        format!("{:?}", terrain_types[x as usize][(y - 1) as usize])
+                    let north_terrain = if (y + 1) < map_size.y {
+                        format!("{:?}", terrain_types[x as usize][(y + 1) as usize])
                     } else {
                         "OutOfBounds".to_string()
                     };
-                    let south_terrain = if (y + 1) < map_size.y {
-                        format!("{:?}", terrain_types[x as usize][(y + 1) as usize])
+                    let south_terrain = if y > 0 {
+                        format!("{:?}", terrain_types[x as usize][(y - 1) as usize])
                     } else {
                         "OutOfBounds".to_string()
                     };

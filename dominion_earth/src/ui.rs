@@ -11,6 +11,11 @@ impl Default for DebugLogging {
         Self(false)
     }
 }
+
+#[derive(Resource, Default, Clone)]
+pub struct LastLoggedTile {
+    pub position: Option<Position>,
+}
 // --- TerrainCounts resource and update system ---
 
 #[derive(Resource, Default, Clone)]
@@ -82,27 +87,28 @@ pub fn ui_system(
     terrain_counts: Res<TerrainCounts>,
     civs: Query<&Civilization>,
     selected_tile: Res<SelectedTile>,
-    world_tile_query: Query<&core_sim::tile::tile_components::WorldTile>,
-) -> Result {
-    let ctx = contexts.ctx_mut()?;
+    mut last_logged_tile: ResMut<LastLoggedTile>,
+    world_tile_query: Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
+) {
+    if let Ok(ctx) = contexts.ctx_mut() {
+        // Render main game panel (left sidebar)
+        render_game_panel(
+            ctx,
+            &current_turn,
+            &mut game_state,
+            &selected_tile,
+            &mut last_logged_tile,
+            &world_tile_query,
+            &civs,
+            &world_map,
+        );
 
-    // Render main game panel (left sidebar)
-    render_game_panel(
-        ctx,
-        &current_turn,
-        &mut game_state,
-        &selected_tile,
-        &world_tile_query,
-        &civs,
-    );
+        // Render statistics panel (bottom)
+        render_statistics_panel(ctx, &world_map, &terrain_counts, &civs);
 
-    // Render statistics panel (bottom)
-    render_statistics_panel(ctx, &world_map, &terrain_counts, &civs);
-
-    // Render minimap window
-    render_minimap(ctx, &civs);
-
-    Ok(())
+        // Render minimap window
+        render_minimap(ctx, &civs);
+    }
 }
 
 /// Renders the main game information panel on the left side
@@ -111,8 +117,10 @@ fn render_game_panel(
     current_turn: &CurrentTurn,
     game_state: &mut GameState,
     selected_tile: &SelectedTile,
-    world_tile_query: &Query<&core_sim::tile::tile_components::WorldTile>,
+    last_logged_tile: &mut LastLoggedTile,
+    world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     civs: &Query<&Civilization>,
+    world_map: &WorldMap,
 ) {
     egui::SidePanel::left("game_panel")
         .resizable(true)
@@ -126,7 +134,7 @@ fn render_game_panel(
             render_turn_info(ui, current_turn, game_state);
             ui.separator();
 
-            render_selected_tile_info(ui, selected_tile, world_tile_query);
+            render_selected_tile_info(ui, selected_tile, last_logged_tile, world_tile_query, world_map);
 
             render_civilizations_list(ui, civs);
 
@@ -157,29 +165,135 @@ fn render_turn_info(ui: &mut egui::Ui, current_turn: &CurrentTurn, game_state: &
 fn render_selected_tile_info(
     ui: &mut egui::Ui,
     selected_tile: &SelectedTile,
-    world_tile_query: &Query<&core_sim::tile::tile_components::WorldTile>,
+    last_logged_tile: &mut LastLoggedTile,
+    world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
+    world_map: &WorldMap,
 ) {
     ui.heading("Selected Tile Info");
     
     if let Some(pos) = selected_tile.position {
         ui.label(format!("Position: ({}, {})", pos.x, pos.y));
         
-        let mut found = false;
-        for world_tile in world_tile_query.iter() {
+        // Check if this is a new tile selection (to prevent log spam)
+        let should_log = last_logged_tile.position != Some(pos);
+        if should_log {
+            last_logged_tile.position = Some(pos);
+        }
+        
+        // Show data from ECS WorldTile entities
+        let mut found_ecs = false;
+        let mut ecs_terrain = None;
+        let mut ecs_viewpoint = None;
+        let mut neighbors_info = Vec::new();
+        
+        for (world_tile, tile_neighbors) in world_tile_query.iter() {
             if world_tile.grid_pos == pos {
-                ui.label(format!("Terrain: {:?}", world_tile.terrain_type));
-                ui.label(format!("Facing: {:?}", world_tile.default_view_point));
-                found = true;
+                ecs_terrain = Some(world_tile.terrain_type.clone());
+                ecs_viewpoint = Some(world_tile.default_view_point.clone());
+                ui.label(format!("ECS Terrain: {:?}", world_tile.terrain_type));
+                ui.label(format!("ECS Facing: {:?}", world_tile.default_view_point));
+                
+                // Collect neighbor information
+                neighbors_info = collect_neighbor_info(tile_neighbors, world_tile_query);
+                
+                // Display neighbors in UI
+                ui.separator();
+                ui.label("Neighbors:");
+                for (direction, terrain) in &neighbors_info {
+                    ui.label(format!("  {}: {:?}", direction, terrain));
+                }
+                
+                found_ecs = true;
                 break;
             }
         }
         
-        if !found {
-            ui.label("No tile data found.");
+        if !found_ecs {
+            ui.label("No ECS tile data found.");
         }
+        
+        // Show data from WorldMap resource for comparison
+        let mut worldmap_terrain = None;
+        if let Some(world_map_tile) = world_map.get_tile(pos) {
+            worldmap_terrain = Some(world_map_tile.terrain.clone());
+            ui.label(format!("WorldMap Terrain: {:?}", world_map_tile.terrain));
+        } else {
+            ui.label("No WorldMap tile data found.");
+        }
+        
+        // Log comparison for debugging (only once per tile selection)
+        if found_ecs && should_log {
+            println!("=== UI DISPLAY: Tile ({}, {}) Data ===", pos.x, pos.y);
+            println!("UI DISPLAY - ECS Terrain: {:?}", ecs_terrain.as_ref().unwrap());
+            println!("UI DISPLAY - ECS Facing: {:?}", ecs_viewpoint.as_ref().unwrap());
+            
+            // Print neighbor terrain types
+            println!("UI DISPLAY - Neighbors:");
+            for (direction, terrain) in &neighbors_info {
+                println!("  {}: {:?}", direction, terrain);
+            }
+            
+            if let Some(ref wm_terrain) = worldmap_terrain {
+                println!("UI DISPLAY - WorldMap Terrain: {:?}", wm_terrain);
+                if ecs_terrain.as_ref().unwrap() != wm_terrain {
+                    println!("⚠️  TERRAIN MISMATCH: ECS={:?} vs WorldMap={:?}", ecs_terrain.as_ref().unwrap(), wm_terrain);
+                }
+            }
+            println!("=====================================");
+        }
+        
+        ui.separator();
     } else {
         ui.label("No tile selected.");
+        // Clear the last logged tile when no tile is selected
+        last_logged_tile.position = None;
     }
+}
+
+/// Helper function to collect neighbor terrain information
+fn collect_neighbor_info(
+    tile_neighbors: &core_sim::tile::tile_components::TileNeighbors,
+    world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
+) -> Vec<(String, String)> {
+    let mut neighbors = Vec::new();
+    
+    // Check North neighbor
+    if let Some(north_entity) = tile_neighbors.north {
+        if let Ok((north_tile, _)) = world_tile_query.get(north_entity) {
+            neighbors.push(("North".to_string(), format!("{:?}", north_tile.terrain_type)));
+        }
+    } else {
+        neighbors.push(("North".to_string(), "OutOfBounds".to_string()));
+    }
+    
+    // Check South neighbor
+    if let Some(south_entity) = tile_neighbors.south {
+        if let Ok((south_tile, _)) = world_tile_query.get(south_entity) {
+            neighbors.push(("South".to_string(), format!("{:?}", south_tile.terrain_type)));
+        }
+    } else {
+        neighbors.push(("South".to_string(), "OutOfBounds".to_string()));
+    }
+    
+    // Check East neighbor
+    if let Some(east_entity) = tile_neighbors.east {
+        if let Ok((east_tile, _)) = world_tile_query.get(east_entity) {
+            neighbors.push(("East".to_string(), format!("{:?}", east_tile.terrain_type)));
+        }
+    } else {
+        neighbors.push(("East".to_string(), "OutOfBounds".to_string()));
+    }
+    
+    // Check West neighbor
+    if let Some(west_entity) = tile_neighbors.west {
+        if let Ok((west_tile, _)) = world_tile_query.get(west_entity) {
+            neighbors.push(("West".to_string(), format!("{:?}", west_tile.terrain_type)));
+        }
+    } else {
+        neighbors.push(("West".to_string(), "OutOfBounds".to_string()));
+    }
+    
+    neighbors
 }
 
 /// Renders a scrollable list of all civilizations with their details

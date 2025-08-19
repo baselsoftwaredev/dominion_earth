@@ -84,6 +84,9 @@ fn main() {
             .init_resource::<WorldMap>()
             .insert_resource(game::GameState::with_auto_advance(cli.auto_advance))
             .insert_resource(ui::DebugLogging(cli.debug_logging))
+            .init_resource::<ui::SelectedTile>()
+            .init_resource::<ui::LastLoggedTile>()
+            .init_resource::<ui::TerrainCounts>()
             .init_resource::<core_sim::resources::TurnAdvanceRequest>()
             .init_resource::<InfluenceMap>()
             .add_systems(
