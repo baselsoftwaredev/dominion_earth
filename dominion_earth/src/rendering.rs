@@ -1,3 +1,25 @@
+use core_sim::tile::tile_components::{WorldTile, DefaultViewPoint};
+/// System to rotate coast tile sprites based on their facing direction
+pub fn rotate_coast_tiles(
+    mut query: Query<(&WorldTile, &mut Transform, &TileTextureIndex)>,
+) {
+    for (world_tile, mut transform, texture_index) in query.iter_mut() {
+        // Only rotate coast tiles
+        if world_tile.terrain_type == core_sim::TerrainType::Coast {
+            let angle = match world_tile.default_view_point {
+                DefaultViewPoint::North => 0.0,
+                DefaultViewPoint::East => -std::f32::consts::FRAC_PI_2,
+                DefaultViewPoint::South => std::f32::consts::PI,
+                DefaultViewPoint::West => std::f32::consts::FRAC_PI_2,
+                DefaultViewPoint::NorthEast => -std::f32::consts::FRAC_PI_4,
+                DefaultViewPoint::SouthEast => -3.0 * std::f32::consts::FRAC_PI_4,
+                DefaultViewPoint::SouthWest => 3.0 * std::f32::consts::FRAC_PI_4,
+                DefaultViewPoint::NorthWest => std::f32::consts::FRAC_PI_4,
+            };
+            transform.rotation = Quat::from_rotation_z(angle);
+        }
+    }
+}
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::tile::tile_assets::{setup_tile_assets, TileAssets};

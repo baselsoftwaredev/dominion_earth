@@ -92,7 +92,7 @@ pub fn update_coast_tiles_pass(
     commands: &mut Commands,
     tile_assets: &impl TileAssetProvider,
     tile_entities: &Vec<Vec<Entity>>,
-    terrain_types: &Vec<Vec<TerrainType>>,
+    terrain_types: &mut Vec<Vec<TerrainType>>,
     map_size: &TilemapSize,
 ) {
     for x in 0..map_size.x {

@@ -38,7 +38,7 @@ pub fn remove_internal_oceans_pass(
         }
     }
 }
-use crate::tile::tile_components::{TileAssetProvider, TileNeighbors, WorldTile, DefaultViewPoint};
+use crate::tile::tile_components::{DefaultViewPoint, TileAssetProvider, TileNeighbors, WorldTile};
 use crate::{Position, TerrainType};
 use bevy::prelude::{Commands, Entity};
 use bevy_ecs_tilemap::prelude::*;
@@ -132,7 +132,7 @@ pub fn update_coast_tiles_pass(
     commands: &mut Commands,
     tile_assets: &impl TileAssetProvider,
     tile_entities: &Vec<Vec<Entity>>,
-    terrain_types: &Vec<Vec<TerrainType>>,
+    terrain_types: &mut Vec<Vec<TerrainType>>,
     map_size: &TilemapSize,
 ) {
     for x in 0..map_size.x {
@@ -171,15 +171,97 @@ pub fn update_coast_tiles_pass(
                     }
                 }
                 if is_adjacent_to_ocean {
-                    // Update both the tile's texture index and terrain type to coast
+                    // Print all neighbors and their tile types for debugging
+                    let north_terrain = if y > 0 {
+                        format!("{:?}", terrain_types[x as usize][(y - 1) as usize])
+                    } else {
+                        "OutOfBounds".to_string()
+                    };
+                    let south_terrain = if (y + 1) < map_size.y {
+                        format!("{:?}", terrain_types[x as usize][(y + 1) as usize])
+                    } else {
+                        "OutOfBounds".to_string()
+                    };
+                    let east_terrain = if (x + 1) < map_size.x {
+                        format!("{:?}", terrain_types[(x + 1) as usize][y as usize])
+                    } else {
+                        "OutOfBounds".to_string()
+                    };
+                    let west_terrain = if x > 0 {
+                        format!("{:?}", terrain_types[(x - 1) as usize][y as usize])
+                    } else {
+                        "OutOfBounds".to_string()
+                    };
+
+                    println!(
+                        "Converting tile at ({}, {}) from {:?} to Coast. Neighbors - North: {}, South: {}, East: {}, West: {}",
+                        x, y, terrain, north_terrain, south_terrain, east_terrain, west_terrain
+                    );
+
+                    // Determine coast facing direction based on land neighbors
+                    let mut land_neighbors = vec![];
+                    // Check North neighbor (y-1) - if land, coast faces North
+                    if y > 0
+                        && !matches!(
+                            terrain_types[x as usize][(y - 1) as usize],
+                            TerrainType::Ocean | TerrainType::Coast
+                        )
+                    {
+                        land_neighbors.push(DefaultViewPoint::North);
+                    }
+                    // Check South neighbor (y+1) - if land, coast faces South
+                    if (y + 1) < map_size.y
+                        && !matches!(
+                            terrain_types[x as usize][(y + 1) as usize],
+                            TerrainType::Ocean | TerrainType::Coast
+                        )
+                    {
+                        land_neighbors.push(DefaultViewPoint::South);
+                    }
+                    // Check East neighbor (x+1) - if land, coast faces East
+                    if (x + 1) < map_size.x
+                        && !matches!(
+                            terrain_types[(x + 1) as usize][y as usize],
+                            TerrainType::Ocean | TerrainType::Coast
+                        )
+                    {
+                        land_neighbors.push(DefaultViewPoint::East);
+                    }
+                    // Check West neighbor (x-1) - if land, coast faces West
+                    if x > 0
+                        && !matches!(
+                            terrain_types[(x - 1) as usize][y as usize],
+                            TerrainType::Ocean | TerrainType::Coast
+                        )
+                    {
+                        land_neighbors.push(DefaultViewPoint::West);
+                    }
+
+                    let view_point = match land_neighbors.as_slice() {
+                        [dir] => *dir, // exactly one land neighbor
+                        dirs if dirs.contains(&DefaultViewPoint::South) => DefaultViewPoint::South,
+                        dirs if dirs.contains(&DefaultViewPoint::North) => DefaultViewPoint::North,
+                        dirs if dirs.contains(&DefaultViewPoint::East) => DefaultViewPoint::East,
+                        dirs if dirs.contains(&DefaultViewPoint::West) => DefaultViewPoint::West,
+                        _ => DefaultViewPoint::North,
+                    };
+                    println!(
+                        "Coast tile at ({}, {}) land_neighbors: {:?} -> view_point: {:?}",
+                        x, y, land_neighbors, view_point
+                    );
+
+                    // Update both the tile's texture index and terrain type to coast, with facing
                     commands
                         .entity(tile_entity)
                         .insert(TileTextureIndex(tile_assets.get_coast_index()))
                         .insert(WorldTile {
                             grid_pos: Position::new(x as i32, y as i32),
                             terrain_type: TerrainType::Coast,
-                            default_view_point: DefaultViewPoint::North,
+                            default_view_point: view_point,
                         });
+
+                    // IMPORTANT: Also update the terrain_types array to keep it synchronized with ECS
+                    terrain_types[x as usize][y as usize] = TerrainType::Coast;
                 }
             }
         }

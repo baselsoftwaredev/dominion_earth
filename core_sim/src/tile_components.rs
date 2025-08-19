@@ -37,7 +37,7 @@ pub fn setup_world_tiles(
         commands,
         tile_assets,
         &tile_entities,
-        &terrain_types,
+        &mut terrain_types,
         &map_size,
     );
 

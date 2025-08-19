@@ -35,6 +35,10 @@ struct Cli {
     /// Random seed for world generation (default: current timestamp)
     #[arg(long)]
     seed: Option<u64>,
+
+    /// Enable debug logging for coast generation and tile neighbors
+    #[arg(long, default_value_t = false)]
+    debug_logging: bool,
 }
 
 fn main() {
@@ -79,6 +83,7 @@ fn main() {
             .init_resource::<GameRng>()
             .init_resource::<WorldMap>()
             .insert_resource(game::GameState::with_auto_advance(cli.auto_advance))
+            .insert_resource(ui::DebugLogging(cli.debug_logging))
             .init_resource::<core_sim::resources::TurnAdvanceRequest>()
             .init_resource::<InfluenceMap>()
             .add_systems(
@@ -104,6 +109,7 @@ fn main() {
                     game::game_update_system,
                     core_sim::systems::turn_based_system,
                     rendering::update_unit_sprites,
+                    rendering::rotate_coast_tiles,
                     // Removed: ui::update_terrain_counts,
                     // Removed: rendering::render_world_overlays,
                 ),

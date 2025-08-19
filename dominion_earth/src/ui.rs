@@ -2,6 +2,15 @@
 pub struct SelectedTile {
     pub position: Option<Position>,
 }
+
+#[derive(Resource, Clone)]
+pub struct DebugLogging(pub bool);
+
+impl Default for DebugLogging {
+    fn default() -> Self {
+        Self(false)
+    }
+}
 // --- TerrainCounts resource and update system ---
 
 #[derive(Resource, Default, Clone)]
