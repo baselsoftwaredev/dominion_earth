@@ -1,8 +1,112 @@
 use crate::ui::{DebugLogging, SelectedTile};
 use bevy::prelude::*;
-use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::Position;
 use core_sim::tile::tile_components::{TileNeighbors, WorldTile};
+
+/// Convert cursor position to tile coordinates
+fn cursor_to_tile_position(
+    cursor_pos: Vec2,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+) -> Result<Position, &'static str> {
+    match camera.viewport_to_world_2d(camera_transform, cursor_pos) {
+        Ok(world_pos) => {
+            let tile_x = (world_pos.x / 64.0).round() as i32;
+            let tile_y = (world_pos.y / 64.0).round() as i32;
+            Ok(Position::new(tile_x, tile_y))
+        }
+        Err(_) => Err("Failed to convert cursor position to world position"),
+    }
+}
+
+/// Find the tile entity at the given position
+fn find_tile_entity<'a>(
+    position: Position,
+    tile_query: &'a Query<(Entity, &WorldTile, &TileNeighbors)>,
+) -> Option<(Entity, &'a WorldTile, &'a TileNeighbors)> {
+    tile_query
+        .iter()
+        .find(|(_, world_tile, _)| world_tile.grid_pos == position)
+}
+
+/// Display neighbor information for debugging
+fn display_neighbor_info(
+    world_tile: &WorldTile,
+    neighbors: &TileNeighbors,
+    tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
+) {
+    let pos = world_tile.grid_pos;
+    println!("=== Tile ({}, {}) Neighbors ===", pos.x, pos.y);
+    println!(
+        "Center tile: {:?} (viewpoint: {:?})",
+        world_tile.terrain_type, world_tile.default_view_point
+    );
+
+    // Show North neighbor
+    display_single_neighbor("North", neighbors.north, tile_query);
+
+    // Show South neighbor
+    display_single_neighbor("South", neighbors.south, tile_query);
+
+    // Show East neighbor
+    display_single_neighbor("East", neighbors.east, tile_query);
+
+    // Show West neighbor
+    display_single_neighbor("West", neighbors.west, tile_query);
+
+    println!("===============================");
+}
+
+/// Display information for a single neighbor
+fn display_single_neighbor(
+    direction: &str,
+    neighbor_entity: Option<Entity>,
+    tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
+) {
+    if let Some(entity) = neighbor_entity {
+        if let Ok((_, tile, _)) = tile_query.get(entity) {
+            println!(
+                "{}: {:?} at ({}, {}) (viewpoint: {:?})",
+                direction,
+                tile.terrain_type,
+                tile.grid_pos.x,
+                tile.grid_pos.y,
+                tile.default_view_point
+            );
+        }
+    } else {
+        println!("{}: OutOfBounds", direction);
+    }
+}
+
+/// Process tile selection and handle debug output
+fn process_tile_selection(
+    position: Position,
+    world_map: &core_sim::resources::WorldMap,
+    tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
+    selected_tile: &mut SelectedTile,
+    debug_logging: &DebugLogging,
+) {
+    // Check if tile exists in world map
+    if world_map.get_tile(position).is_some() {
+        if debug_logging.0 {
+            println!("Tile exists in world map.");
+        }
+        selected_tile.position = Some(position);
+
+        // Find the tile entity and show neighbor information
+        if let Some((_, world_tile, neighbors)) = find_tile_entity(position, tile_query) {
+            if debug_logging.0 {
+                display_neighbor_info(world_tile, neighbors, tile_query);
+            }
+        }
+    } else {
+        if debug_logging.0 {
+            println!("No tile data found at this position.");
+        }
+        selected_tile.position = None;
+    }
+}
 
 /// System to detect tile clicks and update SelectedTile resource
 pub fn select_tile_on_click(
@@ -14,134 +118,42 @@ pub fn select_tile_on_click(
     tile_query: Query<(Entity, &WorldTile, &TileNeighbors)>,
     debug_logging: Res<DebugLogging>,
 ) {
-    if mouse_button.just_pressed(MouseButton::Left) {
-        // Get cursor position in world coordinates
-        if let Ok(window) = windows.single() {
-            if let Some(cursor_pos) = window.cursor_position() {
-                if let Ok((camera, camera_transform)) = camera_query.single() {
-                    // Convert screen to world coordinates
-                    match camera.viewport_to_world_2d(camera_transform, cursor_pos) {
-                        Ok(world_pos) => {
-                            let tile_x = (world_pos.x / 64.0).round() as i32;
-                            let tile_y = (world_pos.y / 64.0).round() as i32;
-                            let pos = Position::new(tile_x, tile_y);
-                            println!("Tile clicked: ({}, {})", tile_x, tile_y);
+    if !mouse_button.just_pressed(MouseButton::Left) {
+        return;
+    }
 
-                            // Check if tile exists in world map
-                            if world_map.get_tile(pos).is_some() {
-                                if debug_logging.0 {
-                                    println!("Tile exists in world map.");
-                                }
-                                selected_tile.position = Some(pos);
+    let Ok(window) = windows.single() else {
+        return;
+    };
 
-                                // Find the tile entity and show neighbor information
-                                for (_entity, world_tile, neighbors) in tile_query.iter() {
-                                    if world_tile.grid_pos == pos {
-                                        if debug_logging.0 {
-                                            println!(
-                                                "=== Tile ({}, {}) Neighbors ===",
-                                                tile_x, tile_y
-                                            );
-                                            println!(
-                                                "Center tile: {:?} (viewpoint: {:?})",
-                                                world_tile.terrain_type,
-                                                world_tile.default_view_point
-                                            );
+    let Some(cursor_pos) = window.cursor_position() else {
+        return;
+    };
 
-                                            // Show North neighbor
-                                            if let Some(north_entity) = neighbors.north {
-                                                if let Ok((_, north_tile, _)) =
-                                                    tile_query.get(north_entity)
-                                                {
-                                                    println!(
-                                                        "North: {:?} at ({}, {}) (viewpoint: {:?})",
-                                                        north_tile.terrain_type,
-                                                        north_tile.grid_pos.x,
-                                                        north_tile.grid_pos.y,
-                                                        north_tile.default_view_point
-                                                    );
-                                                }
-                                            } else {
-                                                println!("North: OutOfBounds");
-                                            }
+    let Ok((camera, camera_transform)) = camera_query.single() else {
+        return;
+    };
 
-                                            // Show South neighbor
-                                            if let Some(south_entity) = neighbors.south {
-                                                if let Ok((_, south_tile, _)) =
-                                                    tile_query.get(south_entity)
-                                                {
-                                                    println!(
-                                                        "South: {:?} at ({}, {}) (viewpoint: {:?})",
-                                                        south_tile.terrain_type,
-                                                        south_tile.grid_pos.x,
-                                                        south_tile.grid_pos.y,
-                                                        south_tile.default_view_point
-                                                    );
-                                                }
-                                            } else {
-                                                println!("South: OutOfBounds");
-                                            }
-
-                                            // Show East neighbor
-                                            if let Some(east_entity) = neighbors.east {
-                                                if let Ok((_, east_tile, _)) =
-                                                    tile_query.get(east_entity)
-                                                {
-                                                    println!(
-                                                        "East: {:?} at ({}, {}) (viewpoint: {:?})",
-                                                        east_tile.terrain_type,
-                                                        east_tile.grid_pos.x,
-                                                        east_tile.grid_pos.y,
-                                                        east_tile.default_view_point
-                                                    );
-                                                }
-                                            } else {
-                                                println!("East: OutOfBounds");
-                                            }
-
-                                            // Show West neighbor
-                                            if let Some(west_entity) = neighbors.west {
-                                                if let Ok((_, west_tile, _)) =
-                                                    tile_query.get(west_entity)
-                                                {
-                                                    println!(
-                                                        "West: {:?} at ({}, {}) (viewpoint: {:?})",
-                                                        west_tile.terrain_type,
-                                                        west_tile.grid_pos.x,
-                                                        west_tile.grid_pos.y,
-                                                        west_tile.default_view_point
-                                                    );
-                                                }
-                                            } else {
-                                                println!("West: OutOfBounds");
-                                            }
-
-                                            println!("===============================");
-                                        }
-                                        break;
-                                    }
-                                }
-                            } else {
-                                if debug_logging.0 {
-                                    println!("No tile data found at this position.");
-                                }
-                                selected_tile.position = None;
-                            }
-                        }
-                        Err(_) => {
-                            if debug_logging.0 {
-                                println!("Failed to convert cursor position to world position.");
-                            }
-                            selected_tile.position = None;
-                        }
-                    }
-                }
+    match cursor_to_tile_position(cursor_pos, camera, camera_transform) {
+        Ok(position) => {
+            println!("Tile clicked: ({}, {})", position.x, position.y);
+            process_tile_selection(
+                position,
+                &world_map,
+                &tile_query,
+                &mut selected_tile,
+                &debug_logging,
+            );
+        }
+        Err(error_msg) => {
+            if debug_logging.0 {
+                println!("{}", error_msg);
             }
+            selected_tile.position = None;
         }
     }
 }
 use crate::game::GameState;
-use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 
 /// Handle keyboard input for game controls
