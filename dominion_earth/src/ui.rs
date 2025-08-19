@@ -73,7 +73,7 @@ use core_sim::{
     Civilization, Position, TerrainType,
 };
 
-/// Main UI system using egui
+/// Main UI system that orchestrates all UI components
 pub fn ui_system(
     mut contexts: EguiContexts,
     current_turn: Res<CurrentTurn>,
@@ -86,9 +86,36 @@ pub fn ui_system(
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
-    // Main game UI panel
+    // Render main game panel (left sidebar)
+    render_game_panel(
+        ctx,
+        &current_turn,
+        &mut game_state,
+        &selected_tile,
+        &world_tile_query,
+        &civs,
+    );
+
+    // Render statistics panel (bottom)
+    render_statistics_panel(ctx, &world_map, &terrain_counts, &civs);
+
+    // Render minimap window
+    render_minimap(ctx, &civs);
+
+    Ok(())
+}
+
+/// Renders the main game information panel on the left side
+fn render_game_panel(
+    ctx: &egui::Context,
+    current_turn: &CurrentTurn,
+    game_state: &mut GameState,
+    selected_tile: &SelectedTile,
+    world_tile_query: &Query<&core_sim::tile::tile_components::WorldTile>,
+    civs: &Query<&Civilization>,
+) {
     egui::SidePanel::left("game_panel")
-        .resizable(true) // Make the panel resizable
+        .resizable(true)
         .default_width(400.0)
         .min_width(300.0)
         .max_width(600.0)
@@ -96,117 +123,174 @@ pub fn ui_system(
             ui.heading("Dominion Earth");
             ui.separator();
 
-            // Turn information
-            ui.label(format!("Turn: {}", current_turn.0));
-            ui.label(format!(
-                "Status: {}",
-                if game_state.paused {
-                    "Paused"
-                } else {
-                    "Running"
-                }
-            ));
-            ui.label(format!(
-                "Auto-advance: {} (debug: {})",
-                if game_state.auto_advance { "On" } else { "Off" },
-                game_state.auto_advance
-            ));
+            render_turn_info(ui, current_turn, game_state);
             ui.separator();
 
-            // Selected tile/entity info
-            ui.heading("Selected Tile Info");
-            if let Some(pos) = selected_tile.position {
-                ui.label(format!("Position: ({}, {})", pos.x, pos.y));
-                let mut found = false;
-                for world_tile in world_tile_query.iter() {
-                    if world_tile.grid_pos == pos {
-                        ui.label(format!("Terrain: {:?}", world_tile.terrain_type));
-                        ui.label(format!("Facing: {:?}", world_tile.default_view_point));
-                        found = true;
-                        break;
-                    }
-                }
-                if !found {
-                    ui.label("No tile data found.");
-                }
-            } else {
-                ui.label("No tile selected.");
-            }
+            render_selected_tile_info(ui, selected_tile, world_tile_query);
 
-            // Civilization list
-            ui.heading("Civilizations");
-            egui::ScrollArea::vertical()
-                .max_height(300.0) // Limit the height so controls section remains visible
-                .show(ui, |ui| {
-                    for civ in civs.iter() {
-                        ui.group(|ui| {
-                            ui.label(&civ.name);
-                            ui.label(format!("Gold: {:.0}", civ.economy.gold));
-                            ui.label(format!("Military: {:.0}", civ.military.total_strength));
-                            ui.label(format!("Cities: {}", civ.id.0)); // Simplified
-
-                            // Personality traits (unique label per civ, use stable id)
-                            ui.collapsing(format!("Personality [{}]", civ.id.0), |ui| {
-                                ui.label(format!(
-                                    "Land Hunger: {:.2}",
-                                    civ.personality.land_hunger
-                                ));
-                                ui.label(format!("Militarism: {:.2}", civ.personality.militarism));
-                                ui.label(format!("Tech Focus: {:.2}", civ.personality.tech_focus));
-                                ui.label(format!(
-                                    "Industry: {:.2}",
-                                    civ.personality.industry_focus
-                                ));
-                            });
-                        });
-                    }
-                });
+            render_civilizations_list(ui, civs);
 
             ui.separator();
-
-            // Controls
-            ui.heading("Controls");
-            if !game_state.auto_advance {
-                ui.label("Manual mode: Press Next Turn to advance.");
-                if ui.button("Next Turn").clicked() {
-                    game_state.next_turn_requested = true;
-                }
-            }
-            ui.label("Space: Advance turn");
-            ui.label("P: Pause/Resume");
-            ui.label("A: Toggle auto-advance");
-            ui.label("Mouse: Pan map");
-            ui.label("Scroll: Zoom");
+            render_controls(ui, game_state);
         });
+}
 
-    // Statistics panel
+/// Displays current turn information and game status
+fn render_turn_info(ui: &mut egui::Ui, current_turn: &CurrentTurn, game_state: &GameState) {
+    ui.label(format!("Turn: {}", current_turn.0));
+    ui.label(format!(
+        "Status: {}",
+        if game_state.paused {
+            "Paused"
+        } else {
+            "Running"
+        }
+    ));
+    ui.label(format!(
+        "Auto-advance: {} (debug: {})",
+        if game_state.auto_advance { "On" } else { "Off" },
+        game_state.auto_advance
+    ));
+}
+
+/// Shows information about the currently selected tile
+fn render_selected_tile_info(
+    ui: &mut egui::Ui,
+    selected_tile: &SelectedTile,
+    world_tile_query: &Query<&core_sim::tile::tile_components::WorldTile>,
+) {
+    ui.heading("Selected Tile Info");
+    
+    if let Some(pos) = selected_tile.position {
+        ui.label(format!("Position: ({}, {})", pos.x, pos.y));
+        
+        let mut found = false;
+        for world_tile in world_tile_query.iter() {
+            if world_tile.grid_pos == pos {
+                ui.label(format!("Terrain: {:?}", world_tile.terrain_type));
+                ui.label(format!("Facing: {:?}", world_tile.default_view_point));
+                found = true;
+                break;
+            }
+        }
+        
+        if !found {
+            ui.label("No tile data found.");
+        }
+    } else {
+        ui.label("No tile selected.");
+    }
+}
+
+/// Renders a scrollable list of all civilizations with their details
+fn render_civilizations_list(ui: &mut egui::Ui, civs: &Query<&Civilization>) {
+    ui.heading("Civilizations");
+    
+    egui::ScrollArea::vertical()
+        .max_height(300.0) // Limit height so controls section remains visible
+        .show(ui, |ui| {
+            for civ in civs.iter() {
+                render_civilization_card(ui, civ);
+            }
+        });
+}
+
+/// Renders a single civilization's information card
+fn render_civilization_card(ui: &mut egui::Ui, civ: &Civilization) {
+    ui.group(|ui| {
+        ui.label(&civ.name);
+        ui.label(format!("Gold: {:.0}", civ.economy.gold));
+        ui.label(format!("Military: {:.0}", civ.military.total_strength));
+        ui.label(format!("Cities: {}", civ.id.0)); // Simplified
+
+        // Personality traits collapsible section
+        ui.collapsing(format!("Personality [{}]", civ.id.0), |ui| {
+            render_civilization_personality(ui, civ);
+        });
+    });
+}
+
+/// Shows detailed personality traits for a civilization
+fn render_civilization_personality(ui: &mut egui::Ui, civ: &Civilization) {
+    ui.label(format!("Land Hunger: {:.2}", civ.personality.land_hunger));
+    ui.label(format!("Militarism: {:.2}", civ.personality.militarism));
+    ui.label(format!("Tech Focus: {:.2}", civ.personality.tech_focus));
+    ui.label(format!("Industry: {:.2}", civ.personality.industry_focus));
+}
+
+/// Displays game controls and interaction help
+fn render_controls(ui: &mut egui::Ui, game_state: &mut GameState) {
+    ui.heading("Controls");
+    
+    if !game_state.auto_advance {
+        ui.label("Manual mode: Press Next Turn to advance.");
+        if ui.button("Next Turn").clicked() {
+            game_state.next_turn_requested = true;
+        }
+    }
+    
+    ui.label("Space: Advance turn");
+    ui.label("P: Pause/Resume");
+    ui.label("A: Toggle auto-advance");
+    ui.label("Mouse: Pan map");
+    ui.label("Scroll: Zoom");
+}
+
+/// Renders the bottom statistics panel with world and civilization data
+fn render_statistics_panel(
+    ctx: &egui::Context,
+    world_map: &WorldMap,
+    terrain_counts: &TerrainCounts,
+    civs: &Query<&Civilization>,
+) {
     egui::TopBottomPanel::bottom("stats_panel")
         .resizable(true)
         .default_height(150.0)
         .show(ctx, |ui| {
             ui.heading("World Statistics");
             ui.horizontal(|ui| {
-                ui.group(|ui| {
-                    ui.label("World Map");
-                    ui.label(format!("Size: {} x {}", world_map.width, world_map.height));
-                    ui.label(format!(
-                        "Plains: {}  Hills: {}  Forest: {}  Ocean: {}  Coast: {}  Mountains: {}  Desert: {}  River: {}",
-                        terrain_counts.plains, terrain_counts.hills, terrain_counts.forest, terrain_counts.ocean, terrain_counts.coast, terrain_counts.mountains, terrain_counts.desert, terrain_counts.river
-                    ));
-                });
-                ui.group(|ui| {
-                    ui.label("Civilizations");
-                    let civ_count = civs.iter().count();
-                    ui.label(format!("Active: {}", civ_count));
-                    let total_gold: f32 = civs.iter().map(|c| c.economy.gold).sum();
-                    ui.label(format!("Total Gold: {:.0}", total_gold));
-                    let total_military: f32 = civs.iter().map(|c| c.military.total_strength).sum();
-                    ui.label(format!("Total Military: {:.0}", total_military));
-                });
+                render_world_statistics(ui, world_map, terrain_counts);
+                render_civilization_statistics(ui, civs);
             });
         });
+}
 
-    // Minimap (placeholder)
+/// Shows world map size and terrain distribution statistics
+fn render_world_statistics(ui: &mut egui::Ui, world_map: &WorldMap, terrain_counts: &TerrainCounts) {
+    ui.group(|ui| {
+        ui.label("World Map");
+        ui.label(format!("Size: {} x {}", world_map.width, world_map.height));
+        ui.label(format!(
+            "Plains: {}  Hills: {}  Forest: {}  Ocean: {}  Coast: {}  Mountains: {}  Desert: {}  River: {}",
+            terrain_counts.plains, 
+            terrain_counts.hills, 
+            terrain_counts.forest, 
+            terrain_counts.ocean, 
+            terrain_counts.coast, 
+            terrain_counts.mountains, 
+            terrain_counts.desert, 
+            terrain_counts.river
+        ));
+    });
+}
+
+/// Shows aggregate civilization statistics
+fn render_civilization_statistics(ui: &mut egui::Ui, civs: &Query<&Civilization>) {
+    ui.group(|ui| {
+        ui.label("Civilizations");
+        let civ_count = civs.iter().count();
+        ui.label(format!("Active: {}", civ_count));
+        
+        let total_gold: f32 = civs.iter().map(|c| c.economy.gold).sum();
+        ui.label(format!("Total Gold: {:.0}", total_gold));
+        
+        let total_military: f32 = civs.iter().map(|c| c.military.total_strength).sum();
+        ui.label(format!("Total Military: {:.0}", total_military));
+    });
+}
+
+/// Renders the minimap window with world visualization
+fn render_minimap(ctx: &egui::Context, civs: &Query<&Civilization>) {
     egui::Window::new("Minimap")
         .resizable(false)
         .default_size([200.0, 100.0])
@@ -214,38 +298,40 @@ pub fn ui_system(
             ui.label("Minimap");
             ui.colored_label(egui::Color32::GRAY, "Map visualization would go here");
 
-            // Simple world representation
-            let available_size = ui.available_size();
-            let (response, painter) = ui.allocate_painter(available_size, egui::Sense::hover());
-
-            if response.hovered() {
-                // Draw a simple representation of the world
-                let rect = response.rect;
-                painter.rect_filled(rect, 0.0, egui::Color32::from_rgb(50, 100, 200));
-
-                // Draw some sample points for civilizations
-                let civs_vec: Vec<_> = civs.iter().collect();
-                for (_i, civ) in civs_vec.iter().enumerate().take(10) {
-                    if let Some(capital) = civ.capital {
-                        let x_ratio = capital.x as f32 / 100.0; // Assuming 100 width
-                        let y_ratio = capital.y as f32 / 50.0; // Assuming 50 height
-
-                        let point = rect.min
-                            + egui::Vec2::new(x_ratio * rect.width(), y_ratio * rect.height());
-
-                        painter.circle_filled(
-                            point,
-                            3.0,
-                            egui::Color32::from_rgb(
-                                (civ.color[0] * 255.0) as u8,
-                                (civ.color[1] * 255.0) as u8,
-                                (civ.color[2] * 255.0) as u8,
-                            ),
-                        );
-                    }
-                }
-            }
+            render_minimap_visualization(ui, civs);
         });
+}
 
-    Ok(())
+/// Draws the actual minimap visualization with civilization positions
+fn render_minimap_visualization(ui: &mut egui::Ui, civs: &Query<&Civilization>) {
+    let available_size = ui.available_size();
+    let (response, painter) = ui.allocate_painter(available_size, egui::Sense::hover());
+
+    if response.hovered() {
+        // Draw ocean background
+        let rect = response.rect;
+        painter.rect_filled(rect, 0.0, egui::Color32::from_rgb(50, 100, 200));
+
+        // Draw civilization capital positions
+        let civs_vec: Vec<_> = civs.iter().collect();
+        for (_i, civ) in civs_vec.iter().enumerate().take(10) {
+            if let Some(capital) = civ.capital {
+                let x_ratio = capital.x as f32 / 100.0; // Assuming 100 width
+                let y_ratio = capital.y as f32 / 50.0; // Assuming 50 height
+
+                let point = rect.min
+                    + egui::Vec2::new(x_ratio * rect.width(), y_ratio * rect.height());
+
+                painter.circle_filled(
+                    point,
+                    3.0,
+                    egui::Color32::from_rgb(
+                        (civ.color[0] * 255.0) as u8,
+                        (civ.color[1] * 255.0) as u8,
+                        (civ.color[2] * 255.0) as u8,
+                    ),
+                );
+            }
+        }
+    }
 }

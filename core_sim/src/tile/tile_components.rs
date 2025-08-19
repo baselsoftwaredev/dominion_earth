@@ -32,12 +32,12 @@ pub struct TileTerrainChanged {
     pub new_terrain: TerrainType,
 }
 use crate::resources::WorldMap;
+use crate::tile::tile_assets::TileAssets;
 use crate::tile::tile_passes::{
     assign_tile_neighbors_pass, spawn_world_tiles_pass, update_coast_tiles_pass,
 };
 use bevy::prelude::{Component, Entity};
 use bevy_ecs_tilemap::prelude::*;
-use crate::tile::tile_assets::TileAssets;
 
 /// System to setup world tiles, assign terrain, and link neighbors
 pub fn setup_world_tiles(

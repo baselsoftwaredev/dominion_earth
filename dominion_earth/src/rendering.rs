@@ -105,9 +105,9 @@ pub fn spawn_entity_on_tile(
 
 /// System to spawn all world tiles using the new tilemap setup
 pub fn spawn_world_tiles(
-    mut commands: Commands,
+    commands: Commands,
     tile_assets: Res<TileAssets>,
-    mut world_map: ResMut<WorldMap>,
+    world_map: ResMut<WorldMap>,
 ) {
     setup_tilemap(commands, tile_assets, world_map);
 }
