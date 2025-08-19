@@ -10,13 +10,13 @@ pub fn remove_internal_oceans_pass(
             if original[x as usize][y as usize] == TerrainType::Ocean {
                 let mut land_neighbors = 0;
                 // Check north
-                if (y + 1) < map_size.y && original[x as usize][(y + 1) as usize] != TerrainType::Ocean {
+                if (y + 1) < map_size.y
+                    && original[x as usize][(y + 1) as usize] != TerrainType::Ocean
+                {
                     land_neighbors += 1;
                 }
                 // Check south
-                if y > 0
-                    && original[x as usize][(y - 1) as usize] != TerrainType::Ocean
-                {
+                if y > 0 && original[x as usize][(y - 1) as usize] != TerrainType::Ocean {
                     land_neighbors += 1;
                 }
                 // Check east
@@ -40,7 +40,7 @@ pub fn remove_internal_oceans_pass(
 }
 use crate::tile::tile_components::{DefaultViewPoint, TileAssetProvider, TileNeighbors, WorldTile};
 use crate::{Position, TerrainType};
-use bevy::prelude::{Commands, Entity};
+use bevy::prelude::{Commands, Entity, Transform};
 use bevy_ecs_tilemap::prelude::*;
 
 /// First pass: spawn tiles, assign terrain, and store entities/terrain
@@ -80,6 +80,7 @@ pub fn spawn_world_tiles_pass(
                         terrain_type: terrain_type.clone(),
                         default_view_point: DefaultViewPoint::North,
                     },
+                    Transform::default(), // Add Transform component for rotation system
                 ))
                 .id();
             tile_entities[x as usize][y as usize] = tile_entity;

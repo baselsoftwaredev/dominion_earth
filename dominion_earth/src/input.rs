@@ -36,7 +36,10 @@ fn display_neighbor_info(
     tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
 ) {
     let pos = world_tile.grid_pos;
-    println!("=== DEBUG LOGGING: Tile ({}, {}) Neighbors ===", pos.x, pos.y);
+    println!(
+        "=== DEBUG LOGGING: Tile ({}, {}) Neighbors ===",
+        pos.x, pos.y
+    );
     println!(
         "DEBUG LOG - Center tile: {:?} (viewpoint: {:?})",
         world_tile.terrain_type, world_tile.default_view_point

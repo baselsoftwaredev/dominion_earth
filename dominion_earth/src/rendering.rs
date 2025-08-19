@@ -2,23 +2,54 @@ use core_sim::tile::tile_components::{WorldTile, DefaultViewPoint};
 use core_sim::tile::tile_components::TileNeighbors;
 /// System to rotate coast tile sprites based on their facing direction toward land
 pub fn rotate_coast_tiles(
-    mut query: Query<(&WorldTile, &mut Transform, &TileTextureIndex)>,
+    mut commands: Commands,
+    mut query: Query<(Entity, &WorldTile, Option<&mut TileFlip>)>,
 ) {
-    for (world_tile, mut transform, texture_index) in query.iter_mut() {
+    static mut ROTATION_COUNT: usize = 0;
+    unsafe { ROTATION_COUNT += 1; }
+    
+    if unsafe { ROTATION_COUNT } <= 3 { // Only log first few runs
+        println!("ROTATION SYSTEM RUNNING (TileFlip) - attempt {}", unsafe { ROTATION_COUNT });
+    }
+    
+    for (entity, world_tile, tile_flip) in query.iter_mut() {
         // Only rotate coast tiles
         if world_tile.terrain_type == core_sim::TerrainType::Coast {
-            // Rotate sprite to face toward the land direction
-            let angle = match world_tile.default_view_point {
-                DefaultViewPoint::North => 0.0, // Facing toward land to the North
-                DefaultViewPoint::East => -std::f32::consts::FRAC_PI_2, // Facing toward land to the East
-                DefaultViewPoint::South => std::f32::consts::PI, // Facing toward land to the South
-                DefaultViewPoint::West => std::f32::consts::FRAC_PI_2, // Facing toward land to the West
-                DefaultViewPoint::NorthEast => -std::f32::consts::FRAC_PI_4,
-                DefaultViewPoint::SouthEast => -3.0 * std::f32::consts::FRAC_PI_4,
-                DefaultViewPoint::SouthWest => 3.0 * std::f32::consts::FRAC_PI_4,
-                DefaultViewPoint::NorthWest => std::f32::consts::FRAC_PI_4,
+            // Determine the TileFlip configuration based on facing direction
+            let flip_config = match world_tile.default_view_point {
+                DefaultViewPoint::North => TileFlip { x: false, y: false, d: false }, // No flip - default orientation
+                DefaultViewPoint::East => TileFlip { x: false, y: true, d: true }, // 90° clockwise
+                DefaultViewPoint::South => TileFlip { x: true, y: true, d: false }, // 180° rotation
+                DefaultViewPoint::West => TileFlip { x: true, y: false, d: true }, // 90° counter-clockwise
+                DefaultViewPoint::NorthEast => TileFlip { x: false, y: false, d: true }, // 45° clockwise
+                DefaultViewPoint::SouthEast => TileFlip { x: false, y: true, d: false }, // 135° clockwise
+                DefaultViewPoint::SouthWest => TileFlip { x: true, y: true, d: true }, // 225° clockwise
+                DefaultViewPoint::NorthWest => TileFlip { x: true, y: false, d: false }, // 315° clockwise
             };
-            transform.rotation = Quat::from_rotation_z(angle);
+            
+            if unsafe { ROTATION_COUNT } <= 1 && world_tile.default_view_point == DefaultViewPoint::South {
+                println!("APPLYING TILE FLIP: Coast tile at ({}, {}) facing {:?} - setting flip config x={}, y={}, d={}", 
+                    world_tile.grid_pos.x, world_tile.grid_pos.y, world_tile.default_view_point, 
+                    flip_config.x, flip_config.y, flip_config.d);
+            }
+            
+            // Apply the TileFlip component
+            match tile_flip {
+                Some(mut existing_flip) => {
+                    // Update existing TileFlip component
+                    *existing_flip = flip_config;
+                    if unsafe { ROTATION_COUNT } <= 1 && world_tile.default_view_point == DefaultViewPoint::South {
+                        println!("Updated existing TileFlip component");
+                    }
+                }
+                None => {
+                    // Insert new TileFlip component
+                    commands.entity(entity).insert(flip_config);
+                    if unsafe { ROTATION_COUNT } <= 1 && world_tile.default_view_point == DefaultViewPoint::South {
+                        println!("Inserted new TileFlip component");
+                    }
+                }
+            }
         }
     }
 }
