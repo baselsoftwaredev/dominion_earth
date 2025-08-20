@@ -41,8 +41,8 @@ pub fn setup_game(
     rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
     println!("Generating world with random seed: {}", game_config.random_seed);
 
-    // Generate the world map
-    *world_map = world_gen::generate_island_map(100, 50, &mut rng.0);
+    // Generate the world map (reduced size for better performance)
+    *world_map = world_gen::generate_island_map(50, 25, &mut rng.0);
 
     // Initialize influence map
     // *influence_map = InfluenceMap::new(world_map.width, world_map.height);
@@ -53,7 +53,7 @@ pub fn setup_game(
     spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0);
 
 
-    println!("Game world initialized with {} x {} map", world_map.width, world_map.height);
+    println!("Game world initialized with {} x {} map (reduced size for performance)", world_map.width, world_map.height);
 }
 
 fn spawn_initial_civilizations(
@@ -135,7 +135,7 @@ fn spawn_initial_civilizations(
     println!("Spawned 20 civilizations");
 }
 
-/// Main game update system
+/// Main game update system - optimized to only update when necessary
 pub fn game_update_system(
     mut game_state: ResMut<GameState>,
     mut current_turn: ResMut<CurrentTurn>,
@@ -155,8 +155,12 @@ pub fn game_update_system(
         game_state.next_turn_requested
     };
 
-    // Set the TurnAdvanceRequest resource for the ECS turn system
-    turn_advance.0 = should_advance;
+    // Only update the TurnAdvanceRequest resource when the flag actually changes
+    // This prevents the turn system from being triggered unnecessarily every frame
+    if turn_advance.0 != should_advance {
+        turn_advance.0 = should_advance;
+    }
+    
     if should_advance {
         game_state.next_turn_requested = false;
     }

@@ -114,7 +114,7 @@ fn main() {
                     game::game_update_system,
                     core_sim::systems::turn_based_system,
                     rendering::update_unit_sprites,
-                    rendering::rotate_coast_tiles,
+                    rendering::apply_tile_rotation,
                     // Removed: ui::update_terrain_counts,
                     // Removed: rendering::render_world_overlays,
                 ),

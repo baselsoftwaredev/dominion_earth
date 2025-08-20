@@ -88,10 +88,10 @@ pub fn assign_tile_neighbors_pass(
     }
 }
 
-/// Third pass: Check land tiles for ocean neighbors and assign specific coast tile indices
+/// Third pass: Check land tiles for ocean neighbors and assign coast tile index
 pub fn update_coast_tiles_pass(
     commands: &mut Commands,
-    tile_assets: &impl TileAssetProvider,
+    _tile_assets: &impl TileAssetProvider,
     tile_entities: &Vec<Vec<Entity>>,
     terrain_types: &mut Vec<Vec<TerrainType>>,
     map_size: &TilemapSize,
@@ -104,64 +104,24 @@ pub fn update_coast_tiles_pass(
 
             // Only process land tiles (not ocean or existing coast)
             if !matches!(terrain, TerrainType::Ocean | TerrainType::Coast) {
-                // Check which sides have ocean neighbors
-                let has_north_ocean = (y + 1) < map_size.y
-                    && terrain_types[x as usize][(y + 1) as usize] == TerrainType::Ocean;
+                // Check if this land tile has ocean to the south
                 let has_south_ocean =
                     y > 0 && terrain_types[x as usize][(y - 1) as usize] == TerrainType::Ocean;
-                let has_east_ocean = (x + 1) < map_size.x
-                    && terrain_types[(x + 1) as usize][y as usize] == TerrainType::Ocean;
-                let has_west_ocean =
-                    x > 0 && terrain_types[(x - 1) as usize][y as usize] == TerrainType::Ocean;
 
-                // Determine tile index based on ocean neighbor pattern
-                let (tile_index, should_convert_to_coast) = match (
-                    has_north_ocean,
-                    has_east_ocean,
-                    has_south_ocean,
-                    has_west_ocean,
-                ) {
-                    // Ocean on all sides: tile index 2
-                    (true, true, true, true) => (2, true),
-                    // North, east, and south ocean: tile index 1
-                    (true, true, true, false) => (1, true),
-                    // East and south ocean: tile index 9
-                    (false, true, true, false) => (9, true),
-                    // Only south ocean: tile index 8
-                    (false, false, true, false) => (8, true),
-                    // Any other ocean adjacency - use default coast index
-                    (n, e, s, w) if n || e || s || w => (tile_assets.get_coast_index(), true),
-                    // No ocean neighbors - keep as land
-                    _ => (tile_assets.get_index_for_terrain(terrain), false),
-                };
-
-                if should_convert_to_coast {
+                if has_south_ocean {
                     println!(
-                        "Converting land tile at ({}, {}) from {:?} to Coast with tile index {}. Ocean neighbors - North: {}, East: {}, South: {}, West: {}",
-                        x, y, terrain, tile_index, has_north_ocean, has_east_ocean, has_south_ocean, has_west_ocean
+                        "Converting land tile at ({}, {}) from {:?} to Coast with tile index 8. Has south ocean neighbor.",
+                        x, y, terrain
                     );
 
-                    // Determine view point based on ocean neighbors
-                    let view_point = if has_south_ocean {
-                        DefaultViewPoint::South
-                    } else if has_north_ocean {
-                        DefaultViewPoint::North
-                    } else if has_east_ocean {
-                        DefaultViewPoint::East
-                    } else if has_west_ocean {
-                        DefaultViewPoint::West
-                    } else {
-                        DefaultViewPoint::North
-                    };
-
-                    // Update tile to coast with the specific tile index
+                    // Update tile to coast with index 8
                     commands
                         .entity(tile_entity)
-                        .insert(TileTextureIndex(tile_index))
+                        .insert(TileTextureIndex(8))
                         .insert(WorldTile {
                             grid_pos: Position::new(x as i32, y as i32),
                             terrain_type: TerrainType::Coast,
-                            default_view_point: view_point,
+                            default_view_point: DefaultViewPoint::North, // Fixed view point, no rotation needed
                         });
 
                     // Update the terrain_types array to keep it synchronized with ECS
