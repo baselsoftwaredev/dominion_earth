@@ -66,8 +66,6 @@ pub fn setup_world_tiles(
         &mut tile_entities,
         &mut terrain_types,
     );
-    // Remove internal ocean tiles (lakes)
-    crate::tile::tile_passes::remove_internal_oceans_pass(&mut terrain_types, &map_size);
     assign_tile_neighbors_pass(commands, &tile_entities, &map_size);
     update_coast_tiles_pass(
         commands,
@@ -87,7 +85,6 @@ pub trait TileAssetProvider {
     fn get_coast_index(&self) -> u32;
 }
 use crate::{CivId, Position, TerrainType};
-use bevy_ecs::prelude::*;
 
 #[derive(Component)]
 pub struct WorldTile {
