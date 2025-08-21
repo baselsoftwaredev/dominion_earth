@@ -1,5 +1,5 @@
-use core_sim::tile::tile_components::{WorldTile, DefaultViewPoint};
 use core_sim::tile::tile_components::TileNeighbors;
+use core_sim::tile::tile_components::{DefaultViewPoint, WorldTile};
 
 static mut ROTATION_COUNT: usize = 0;
 
@@ -12,12 +12,17 @@ pub fn apply_tile_rotation(
     if query.is_empty() {
         return;
     }
-    
-    unsafe { ROTATION_COUNT += 1; }
-    if unsafe { ROTATION_COUNT } <= 1 {
-        println!("ROTATION SYSTEM RUNNING (TileFlip) - attempt {} (only for changed tiles)", unsafe { ROTATION_COUNT });
+
+    unsafe {
+        ROTATION_COUNT += 1;
     }
-    
+    if unsafe { ROTATION_COUNT } <= 1 {
+        println!(
+            "ROTATION SYSTEM RUNNING (TileFlip) - attempt {} (only for changed tiles)",
+            unsafe { ROTATION_COUNT }
+        );
+    }
+
     for (_entity, world_tile, _tile_flip) in query.iter() {
         // Skip rotation for coast tiles - they should display as-is with tile index 8
         if world_tile.terrain_type == core_sim::TerrainType::Coast {
@@ -170,46 +175,46 @@ pub fn update_unit_sprites(
 }
 
 /// System to render overlays (stub for future logic)
-pub fn render_world_overlays() {
-    // Implement logic to render overlays if needed
-}
+// pub fn render_world_overlays() {
+//     // Implement logic to render overlays if needed
+// }
 
 // Example usage for units, capitals, cities:
 // spawn_entity_on_tile(commands, tilemap_query, tilemap_id, unit_assets.ancient_infantry.clone(), unit_position, 1.0);
 // spawn_entity_on_tile(commands, tilemap_query, tilemap_id, tile_assets.capital_ancient.clone(), capital_position, 2.0);
 // spawn_entity_on_tile(commands, tilemap_query, tilemap_id, city_asset, city_position, 3.0);
 
-/// Generate a unique color for each civilization based on their ID
-fn get_civ_color(civ_id: &CivId) -> Color {
-    // Simple hash-based color generation for consistent colors per civilization
-    let hash = civ_id.0.wrapping_mul(31);
+// /// Generate a unique color for each civilization based on their ID
+// fn get_civ_color(civ_id: &CivId) -> Color {
+//     // Simple hash-based color generation for consistent colors per civilization
+//     let hash = civ_id.0.wrapping_mul(31);
 
-    // Convert hash to HSV for better color distribution
-    let hue = (hash % 360) as f32;
-    let saturation = 0.7;
-    let value = 0.9;
+//     // Convert hash to HSV for better color distribution
+//     let hue = (hash % 360) as f32;
+//     let saturation = 0.7;
+//     let value = 0.9;
 
-    // Convert HSV to RGB
-    let c = value * saturation;
-    let x = c * (1.0 - ((hue / 60.0) % 2.0 - 1.0).abs());
-    let m = value - c;
+//     // Convert HSV to RGB
+//     let c = value * saturation;
+//     let x = c * (1.0 - ((hue / 60.0) % 2.0 - 1.0).abs());
+//     let m = value - c;
 
-    let (r, g, b) = if hue < 60.0 {
-        (c, x, 0.0)
-    } else if hue < 120.0 {
-        (x, c, 0.0)
-    } else if hue < 180.0 {
-        (0.0, c, x)
-    } else if hue < 240.0 {
-        (0.0, x, c)
-    } else if hue < 300.0 {
-        (x, 0.0, c)
-    } else {
-        (c, 0.0, x)
-    };
+//     let (r, g, b) = if hue < 60.0 {
+//         (c, x, 0.0)
+//     } else if hue < 120.0 {
+//         (x, c, 0.0)
+//     } else if hue < 180.0 {
+//         (0.0, c, x)
+//     } else if hue < 240.0 {
+//         (0.0, x, c)
+//     } else if hue < 300.0 {
+//         (x, 0.0, c)
+//     } else {
+//         (c, 0.0, x)
+//     };
 
-    Color::srgb(r + m, g + m, b + m)
-}
+//     Color::srgb(r + m, g + m, b + m)
+// }
 
 /// Final pass to ensure all coast viewpoints are correctly assigned after all setup is complete
 pub fn finalize_coast_viewpoints(
@@ -221,19 +226,19 @@ pub fn finalize_coast_viewpoints(
     if debug_logging.0 {
         println!("=== FINALIZING COAST VIEWPOINTS ===");
     }
-    
+
     // Collect all coast tiles that need viewpoint updates
     let mut updates = Vec::new();
-    
+
     for (entity, world_tile, neighbors) in tile_query.iter() {
         if world_tile.terrain_type == core_sim::TerrainType::Coast {
             // Re-calculate viewpoint based on current neighbors
             // Coast tiles should face toward the land (not toward ocean)
-            
+
             // Check all neighbors to find land directions
             let mut land_directions = Vec::new();
             let mut neighbor_debug = Vec::new();
-            
+
             if let Some(north_entity) = neighbors.north {
                 if let Ok((_, neighbor_tile, _)) = tile_query.get(north_entity) {
                     neighbor_debug.push(format!("North: {:?}", neighbor_tile.terrain_type));
@@ -244,7 +249,7 @@ pub fn finalize_coast_viewpoints(
             } else {
                 neighbor_debug.push("North: OutOfBounds".to_string());
             }
-            
+
             if let Some(south_entity) = neighbors.south {
                 if let Ok((_, neighbor_tile, _)) = tile_query.get(south_entity) {
                     neighbor_debug.push(format!("South: {:?}", neighbor_tile.terrain_type));
@@ -255,7 +260,7 @@ pub fn finalize_coast_viewpoints(
             } else {
                 neighbor_debug.push("South: OutOfBounds".to_string());
             }
-            
+
             if let Some(east_entity) = neighbors.east {
                 if let Ok((_, neighbor_tile, _)) = tile_query.get(east_entity) {
                     neighbor_debug.push(format!("East: {:?}", neighbor_tile.terrain_type));
@@ -266,7 +271,7 @@ pub fn finalize_coast_viewpoints(
             } else {
                 neighbor_debug.push("East: OutOfBounds".to_string());
             }
-            
+
             if let Some(west_entity) = neighbors.west {
                 if let Ok((_, neighbor_tile, _)) = tile_query.get(west_entity) {
                     neighbor_debug.push(format!("West: {:?}", neighbor_tile.terrain_type));
@@ -277,12 +282,12 @@ pub fn finalize_coast_viewpoints(
             } else {
                 neighbor_debug.push("West: OutOfBounds".to_string());
             }
-            
+
             // Assign viewpoint to face toward the primary land direction
             let new_viewpoint = if land_directions.contains(&"South") {
                 DefaultViewPoint::South
             } else if land_directions.contains(&"North") {
-                DefaultViewPoint::North  
+                DefaultViewPoint::North
             } else if land_directions.contains(&"East") {
                 DefaultViewPoint::East
             } else if land_directions.contains(&"West") {
@@ -291,7 +296,7 @@ pub fn finalize_coast_viewpoints(
                 // If no land neighbors (surrounded by ocean), default to North
                 DefaultViewPoint::North
             };
-            
+
             // Only schedule update if viewpoint has changed
             if world_tile.default_view_point != new_viewpoint {
                 if debug_logging.0 {
@@ -305,11 +310,16 @@ pub fn finalize_coast_viewpoints(
                     println!("  Neighbors: {}", neighbor_debug.join(", "));
                     println!("  Land directions: {:?}", land_directions);
                 }
-                updates.push((entity, new_viewpoint, world_tile.grid_pos, world_tile.terrain_type.clone()));
+                updates.push((
+                    entity,
+                    new_viewpoint,
+                    world_tile.grid_pos,
+                    world_tile.terrain_type.clone(),
+                ));
             }
         }
     }
-    
+
     // Apply all updates
     for (entity, new_viewpoint, grid_pos, terrain_type) in updates {
         // Update ECS WorldTile entity
@@ -318,13 +328,13 @@ pub fn finalize_coast_viewpoints(
             terrain_type: terrain_type.clone(),
             default_view_point: new_viewpoint,
         });
-        
+
         // Also update the WorldMap resource to keep it synchronized
         if let Some(map_tile) = world_map.get_tile_mut(grid_pos) {
             map_tile.terrain = terrain_type;
         }
     }
-    
+
     if debug_logging.0 {
         println!("=== COAST VIEWPOINT FINALIZATION COMPLETE ===");
     }

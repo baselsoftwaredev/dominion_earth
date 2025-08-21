@@ -6,7 +6,9 @@ mod ui;
 pub mod unit_assets;
 
 use bevy::prelude::*;
+use bevy::winit::WinitSettings;
 use bevy_brp_extras::BrpExtrasPlugin;
+use bevy_framepace::FramepacePlugin;
 use clap::Parser;
 use core_sim::{
     influence_map::InfluenceMap,
@@ -60,7 +62,8 @@ fn main() {
             ..default()
         }))
         .add_plugins(bevy_egui::EguiPlugin::default())
-        .add_plugins(bevy_ecs_tilemap::TilemapPlugin);
+        .add_plugins(bevy_ecs_tilemap::TilemapPlugin)
+        .add_plugins(FramepacePlugin);
 
         // Conditionally add remote protocol plugins
         if cli.enable_remote {
@@ -72,6 +75,7 @@ fn main() {
             .init_resource::<ui::SelectedTile>()
             .init_resource::<CurrentTurn>()
             .init_resource::<ActiveCivTurn>()
+            .insert_resource(WinitSettings::desktop_app())
             .insert_resource({
                 let mut config = GameConfig::default();
                 if let Some(seed) = cli.seed {

@@ -15,5 +15,5 @@ anyhow = { workspace = true }
 rand = { workspace = true }
 rand_pcg = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
-
 bevy_ecs_tilemap = "0.16"
+bevy_framepace = "0.19.1"

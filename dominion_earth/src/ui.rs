@@ -31,51 +31,51 @@ pub struct TerrainCounts {
 }
 
 /// System to update terrain counts when the world map changes
-pub fn update_terrain_counts(world_map: Res<WorldMap>, mut terrain_counts: ResMut<TerrainCounts>) {
-    if !world_map.is_changed() {
-        return;
-    }
-    let mut plains = 0;
-    let mut hills = 0;
-    let mut forest = 0;
-    let mut ocean = 0;
-    let mut coast = 0;
-    let mut mountains = 0;
-    let mut desert = 0;
-    let mut river = 0;
-    for x in 0..world_map.width {
-        for y in 0..world_map.height {
-            if let Some(tile) = world_map.get_tile(Position::new(x as i32, y as i32)) {
-                match tile.terrain {
-                    TerrainType::Plains => plains += 1,
-                    TerrainType::Hills => hills += 1,
-                    TerrainType::Forest => forest += 1,
-                    TerrainType::Ocean => ocean += 1,
-                    TerrainType::Coast => coast += 1,
-                    TerrainType::Mountains => mountains += 1,
-                    TerrainType::Desert => desert += 1,
-                    TerrainType::River => river += 1,
-                }
-            }
-        }
-    }
-    *terrain_counts = TerrainCounts {
-        plains,
-        hills,
-        forest,
-        ocean,
-        coast,
-        mountains,
-        desert,
-        river,
-    };
-}
+// pub fn update_terrain_counts(world_map: Res<WorldMap>, mut terrain_counts: ResMut<TerrainCounts>) {
+//     if !world_map.is_changed() {
+//         return;
+//     }
+//     let mut plains = 0;
+//     let mut hills = 0;
+//     let mut forest = 0;
+//     let mut ocean = 0;
+//     let mut coast = 0;
+//     let mut mountains = 0;
+//     let mut desert = 0;
+//     let mut river = 0;
+//     for x in 0..world_map.width {
+//         for y in 0..world_map.height {
+//             if let Some(tile) = world_map.get_tile(Position::new(x as i32, y as i32)) {
+//                 match tile.terrain {
+//                     TerrainType::Plains => plains += 1,
+//                     TerrainType::Hills => hills += 1,
+//                     TerrainType::Forest => forest += 1,
+//                     TerrainType::Ocean => ocean += 1,
+//                     TerrainType::Coast => coast += 1,
+//                     TerrainType::Mountains => mountains += 1,
+//                     TerrainType::Desert => desert += 1,
+//                     TerrainType::River => river += 1,
+//                 }
+//             }
+//         }
+//     }
+//     *terrain_counts = TerrainCounts {
+//         plains,
+//         hills,
+//         forest,
+//         ocean,
+//         coast,
+//         mountains,
+//         desert,
+//         river,
+//     };
+// }
 use crate::game::GameState;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use core_sim::{
     resources::{CurrentTurn, WorldMap},
-    Civilization, Position, TerrainType,
+    Civilization, Position,
 };
 
 /// Main UI system that orchestrates all UI components

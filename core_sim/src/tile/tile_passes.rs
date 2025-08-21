@@ -1,6 +1,7 @@
 use crate::tile::tile_components::{DefaultViewPoint, TileAssetProvider, TileNeighbors, WorldTile};
 use crate::{Position, TerrainType};
 use bevy::prelude::{Commands, Entity, Transform};
+use bevy::render::view::{InheritedVisibility, ViewVisibility, Visibility};
 use bevy_ecs_tilemap::prelude::*;
 
 /// First pass: spawn tiles, assign terrain, and store entities/terrain
@@ -41,6 +42,9 @@ pub fn spawn_world_tiles_pass(
                         default_view_point: DefaultViewPoint::North,
                     },
                     Transform::default(), // Add Transform component for rotation system
+                    Visibility::Inherited, // Add visibility component for child entities
+                    InheritedVisibility::VISIBLE, // Add inherited visibility
+                    ViewVisibility::default(), // Add view visibility
                 ))
                 .id();
             tile_entities[x as usize][y as usize] = tile_entity;
