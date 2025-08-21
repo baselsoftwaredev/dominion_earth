@@ -35,11 +35,12 @@ impl Position {
 
     /// Get adjacent positions in 4 directions (North, South, East, West)
     pub fn adjacent_positions(&self) -> [Position; 4] {
+        use crate::components::direction_offsets;
         [
-            Position::new(self.x, self.y + 1), // North
-            Position::new(self.x, self.y - 1), // South
-            Position::new(self.x + 1, self.y), // East
-            Position::new(self.x - 1, self.y), // West
+            Position::new(self.x + direction_offsets::NORTH.0, self.y + direction_offsets::NORTH.1), // North
+            Position::new(self.x + direction_offsets::SOUTH.0, self.y + direction_offsets::SOUTH.1), // South
+            Position::new(self.x + direction_offsets::EAST.0, self.y + direction_offsets::EAST.1),   // East
+            Position::new(self.x + direction_offsets::WEST.0, self.y + direction_offsets::WEST.1),   // West
         ]
     }
 
@@ -65,12 +66,14 @@ impl Position {
 
     /// Move in a specific direction
     pub fn move_in_direction(&self, direction: Direction) -> Position {
-        match direction {
-            Direction::North => Position::new(self.x, self.y + 1),
-            Direction::South => Position::new(self.x, self.y - 1),
-            Direction::East => Position::new(self.x + 1, self.y),
-            Direction::West => Position::new(self.x - 1, self.y),
-        }
+        use crate::components::direction_offsets;
+        let offset = match direction {
+            Direction::North => direction_offsets::NORTH,
+            Direction::South => direction_offsets::SOUTH,
+            Direction::East => direction_offsets::EAST,
+            Direction::West => direction_offsets::WEST,
+        };
+        Position::new(self.x + offset.0, self.y + offset.1)
     }
 }
 
@@ -83,15 +86,59 @@ pub enum Direction {
     West,
 }
 
+/// Direction constants for easy access
+pub mod directions {
+    use super::Direction;
+    
+    pub const NORTH: Direction = Direction::North;
+    pub const SOUTH: Direction = Direction::South;
+    pub const EAST: Direction = Direction::East;
+    pub const WEST: Direction = Direction::West;
+    
+    /// All directions as an array
+    pub const ALL: [Direction; 4] = [NORTH, SOUTH, EAST, WEST];
+}
+
+/// Direction name constants for consistent string representation
+pub mod direction_names {
+    pub const NORTH: &str = "North";
+    pub const SOUTH: &str = "South";
+    pub const EAST: &str = "East";
+    pub const WEST: &str = "West";
+    
+    /// All direction names as an array
+    pub const ALL: [&str; 4] = [NORTH, SOUTH, EAST, WEST];
+}
+
+/// Coordinate offset constants for directional calculations
+pub mod direction_offsets {
+    /// (x, y) offset for North direction
+    pub const NORTH: (i32, i32) = (0, 1);
+    /// (x, y) offset for South direction
+    pub const SOUTH: (i32, i32) = (0, -1);
+    /// (x, y) offset for East direction
+    pub const EAST: (i32, i32) = (1, 0);
+    /// (x, y) offset for West direction
+    pub const WEST: (i32, i32) = (-1, 0);
+    
+    /// All direction offsets as an array
+    pub const ALL: [(i32, i32); 4] = [NORTH, SOUTH, EAST, WEST];
+}
+
 impl Direction {
     /// Get all 4 directions
     pub fn all() -> [Direction; 4] {
-        [
-            Direction::North,
-            Direction::South,
-            Direction::East,
-            Direction::West,
-        ]
+        directions::ALL
+    }
+    
+    /// Get the string name for this direction
+    pub fn name(&self) -> &'static str {
+        match self {
+            Direction::North => direction_names::NORTH,
+            Direction::South => direction_names::SOUTH,
+            Direction::East => direction_names::EAST,
+            Direction::West => direction_names::WEST,
+        }
     }
 
     /// Get opposite direction

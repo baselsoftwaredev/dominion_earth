@@ -15,6 +15,13 @@ pub struct TileAssets {
     pub coast_index: usize,
     pub ocean_index: usize,
     pub river_index: usize,
+    
+    // Simple coast variations (will be rotated/flipped as needed)
+    pub coast_1_side_index: usize,     // Index 8 - 1 side coast (ocean to south)
+    pub coast_2_side_index: usize,     // Index 9 - 2 side coast (ocean to east and south)
+    pub coast_3_side_index: usize,     // Index 1 - 3 side coast (ocean to north, east, south)
+    pub island_index: usize,           // Island (ocean on all 4 sides)
+    
     pub capital_ancient_index: usize,
     pub ancient_infantry_index: usize,
 }
@@ -34,6 +41,40 @@ impl TileAssetProvider for TileAssets {
     }
 
     fn get_coast_index(&self) -> u32 {
+        self.coast_index as u32
+    }
+    
+    fn get_coast_index_for_ocean_sides(&self, has_north: bool, has_south: bool, has_east: bool, has_west: bool) -> u32 {
+        self.get_coast_index_for_ocean_sides_impl(has_north, has_south, has_east, has_west)
+    }
+}
+
+impl TileAssets {
+    /// Get the appropriate coast tile index based on which sides have ocean neighbors
+    fn get_coast_index_for_ocean_sides_impl(&self, has_north: bool, has_south: bool, has_east: bool, has_west: bool) -> u32 {
+        // Follow user's specific requirements for coast tile patterns
+        
+        // Island - ocean on all 4 sides
+        if has_north && has_south && has_east && has_west {
+            return self.island_index as u32;
+        }
+        
+        // 3 side coast - only for north, east, and south pattern (index 1)
+        if has_north && has_east && has_south && !has_west {
+            return self.coast_3_side_index as u32;
+        }
+        
+        // 2 side coast - only for east and south pattern (index 9)
+        if !has_north && has_south && has_east && !has_west {
+            return self.coast_2_side_index as u32;
+        }
+        
+        // 1 side coast - only for south pattern (index 8)
+        if !has_north && has_south && !has_east && !has_west {
+            return self.coast_1_side_index as u32;
+        }
+        
+        // For all other patterns, fallback to regular coast
         self.coast_index as u32
     }
 }
@@ -62,9 +103,16 @@ pub fn setup_tile_assets(
         mountains_index: 0,        // Mountains sprite index
         forest_index: 0,           // Forest sprite index
         desert_index: 0,           // Desert sprite index
-        coast_index: 8,            // Coast sprite index
-        ocean_index: 16,            // Ocean sprite index
+        coast_index: 8,            // Coast sprite index (fallback)
+        ocean_index: 16,           // Ocean sprite index
         river_index: 0,            // River sprite index
+        
+        // Simple coast variations (rotated/flipped as needed)
+        coast_1_side_index: 8,     // 1 side coast (ocean to south pattern)
+        coast_2_side_index: 9,     // 2 side coast (ocean to east and south pattern)
+        coast_3_side_index: 1,     // 3 side coast (ocean to north, east, south pattern)
+        island_index: 10,          // Island (ocean on all 4 sides) - TODO: Set actual index
+        
         capital_ancient_index: 8,  // Capital sprite index
         ancient_infantry_index: 9, // Infantry sprite index
     };

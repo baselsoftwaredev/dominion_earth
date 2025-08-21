@@ -1,4 +1,5 @@
 use crate::tile::tile_components::{DefaultViewPoint, TileAssetProvider, TileNeighbors, WorldTile};
+use crate::components::direction_names;
 use crate::{Position, TerrainType};
 use bevy::prelude::{Commands, Entity, Transform};
 use bevy::render::view::{InheritedVisibility, ViewVisibility, Visibility};
@@ -121,10 +122,10 @@ pub fn update_coast_tiles_pass(
                 // If this land tile has any ocean neighbors, convert it to coast
                 if has_north_ocean || has_south_ocean || has_east_ocean || has_west_ocean {
                     let ocean_sides = [
-                        ("North", has_north_ocean),
-                        ("South", has_south_ocean),
-                        ("East", has_east_ocean),
-                        ("West", has_west_ocean),
+                        (direction_names::NORTH, has_north_ocean),
+                        (direction_names::SOUTH, has_south_ocean),
+                        (direction_names::EAST, has_east_ocean),
+                        (direction_names::WEST, has_west_ocean),
                     ]
                     .iter()
                     .filter(|(_, has_ocean)| *has_ocean)
@@ -139,9 +140,15 @@ pub fn update_coast_tiles_pass(
                         ocean_sides.join(", ")
                     );
 
-                    // For now, assign all coast tiles to plains index as requested
-                    // Later we can implement different coast tile indices based on ocean_sides
-                    let coast_tile_index = tile_assets.get_index_for_terrain(&TerrainType::Plains);
+                    // Get the appropriate coast tile index based on ocean neighbors
+                    let coast_tile_index = tile_assets.get_coast_index_for_ocean_sides(
+                        has_north_ocean, 
+                        has_south_ocean, 
+                        has_east_ocean, 
+                        has_west_ocean
+                    );
+
+                    println!("  -> Using coast tile index: {}", coast_tile_index);
 
                     // Update tile to coast with the chosen index
                     commands
