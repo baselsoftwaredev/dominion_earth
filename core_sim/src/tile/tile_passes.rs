@@ -5,171 +5,360 @@ use bevy::prelude::{Commands, Entity, Transform};
 use bevy::render::view::{InheritedVisibility, ViewVisibility, Visibility};
 use bevy_ecs_tilemap::prelude::*;
 
-/// First pass: spawn tiles, assign terrain, and store entities/terrain
+//=============================================================================
+// WORLD TILE GENERATION - THREE-PASS SYSTEM
+//=============================================================================
+// This module handles world tile generation in three distinct passes:
+// 1. SPAWN PASS: Create tile entities with basic terrain
+// 2. NEIGHBOR PASS: Link tiles to their adjacent neighbors
+// 3. COAST PASS: Convert land tiles to coast tiles when adjacent to ocean
+//=============================================================================
+
+/// **PASS 1: SPAWN TILES**
+///
+/// Creates the initial tile entities across the world map grid.
+/// Each tile gets its base terrain type (Plains, Hills, Ocean, etc.)
+/// and is positioned in the ECS tilemap system.
+///
+/// **What this does:**
+/// - Iterates through every position on the world map
+/// - Creates a tile entity for each position  
+/// - Assigns the terrain type from the world map data
+/// - Sets up visual components (texture, position, visibility)
+/// - Stores tile entities in a 2D grid for later reference
 pub fn spawn_world_tiles_pass(
     commands: &mut Commands,
     tilemap_id: TilemapId,
     tile_assets: &impl TileAssetProvider,
     world_map: &crate::resources::WorldMap,
     tile_storage: &mut TileStorage,
-    tile_entities: &mut Vec<Vec<Entity>>,
-    terrain_types: &mut Vec<Vec<TerrainType>>,
+    tile_entities: &mut Vec<Vec<Entity>>, // 2D grid: [x][y] -> Entity
+    terrain_types: &mut Vec<Vec<TerrainType>>, // 2D grid: [x][y] -> TerrainType
 ) {
-    let map_size = TilemapSize {
+    let map_dimensions = TilemapSize {
         x: world_map.width,
         y: world_map.height,
     };
-    for x in 0..map_size.x {
-        for y in 0..map_size.y {
-            let tile_pos = TilePos { x, y };
-            let world_pos = Position::new(x as i32, y as i32);
-            let terrain_type = world_map
-                .get_tile(world_pos)
-                .map(|t| t.terrain.clone())
-                .unwrap_or(TerrainType::Ocean);
-            terrain_types[x as usize][y as usize] = terrain_type.clone();
-            let texture_index = tile_assets.get_index_for_terrain(&terrain_type);
+
+    // Iterate through every position on the map grid
+    for x_coord in 0..map_dimensions.x {
+        for y_coord in 0..map_dimensions.y {
+            let tile_position = TilePos {
+                x: x_coord,
+                y: y_coord,
+            };
+            let world_position = Position::new(x_coord as i32, y_coord as i32);
+
+            // Get the terrain type for this position from the world map
+            let terrain_at_position = world_map
+                .get_tile(world_position)
+                .map(|tile| tile.terrain.clone())
+                .unwrap_or(TerrainType::Ocean); // Default to ocean if no data
+
+            // Store terrain type in our working array
+            terrain_types[x_coord as usize][y_coord as usize] = terrain_at_position.clone();
+
+            // Get the sprite index for this terrain type
+            let sprite_index = tile_assets.get_index_for_terrain(&terrain_at_position);
+
+            // Create the tile entity with all necessary components
             let tile_entity = commands
                 .spawn((
+                    // Core tilemap components
                     TileBundle {
-                        position: tile_pos,
+                        position: tile_position,
                         tilemap_id,
-                        texture_index: TileTextureIndex(texture_index),
+                        texture_index: TileTextureIndex(sprite_index),
                         ..Default::default()
                     },
+                    // Game-specific components
                     WorldTile {
-                        grid_pos: world_pos,
-                        terrain_type: terrain_type.clone(),
+                        grid_pos: world_position,
+                        terrain_type: terrain_at_position.clone(),
                         default_view_point: DefaultViewPoint::North,
                     },
-                    Transform::default(), // Add Transform component for rotation system
-                    Visibility::Inherited, // Add visibility component for child entities
-                    InheritedVisibility::VISIBLE, // Add inherited visibility
-                    ViewVisibility::default(), // Add view visibility
+                    // Bevy required components for rendering and transforms
+                    Transform::default(),
+                    Visibility::Inherited,
+                    InheritedVisibility::VISIBLE,
+                    ViewVisibility::default(),
                 ))
                 .id();
-            tile_entities[x as usize][y as usize] = tile_entity;
-            tile_storage.set(&tile_pos, tile_entity);
+
+            // Store the entity in our 2D grid for neighbor linking
+            tile_entities[x_coord as usize][y_coord as usize] = tile_entity;
+            tile_storage.set(&tile_position, tile_entity);
         }
     }
 }
 
-/// Second pass: assign TileNeighbors to each tile
+/// **PASS 2: LINK NEIGHBORS**
+///
+/// Connects each tile to its adjacent neighbors (North, South, East, West).
+/// This creates a navigation graph that allows systems to easily traverse
+/// between adjacent tiles.
+///
+/// **Coordinate System:**
+/// - X increases going East (→)
+/// - Y increases going North (↑)
+/// - Map boundaries are handled safely (no out-of-bounds neighbors)
 pub fn assign_tile_neighbors_pass(
     commands: &mut Commands,
-    tile_entities: &Vec<Vec<Entity>>,
-    map_size: &TilemapSize,
+    tile_entities: &Vec<Vec<Entity>>, // 2D grid of tile entities [x][y]
+    map_dimensions: &TilemapSize,
 ) {
-    for x in 0..map_size.x {
-        for y in 0..map_size.y {
-            let tile_entity = tile_entities[x as usize][y as usize];
-            let north = if (y + 1) < map_size.y {
-                Some(tile_entities[x as usize][(y + 1) as usize])
+    // Process every tile position
+    for x_coord in 0..map_dimensions.x {
+        for y_coord in 0..map_dimensions.y {
+            let current_tile = tile_entities[x_coord as usize][y_coord as usize];
+
+            // Find neighbor entities in each direction (with boundary checks)
+            let neighbor_to_north = if (y_coord + 1) < map_dimensions.y {
+                Some(tile_entities[x_coord as usize][(y_coord + 1) as usize])
             } else {
-                None
+                None // No neighbor beyond north edge
             };
-            let south = if y > 0 {
-                Some(tile_entities[x as usize][(y - 1) as usize])
+
+            let neighbor_to_south = if y_coord > 0 {
+                Some(tile_entities[x_coord as usize][(y_coord - 1) as usize])
             } else {
-                None
+                None // No neighbor beyond south edge
             };
-            let east = if (x + 1) < map_size.x {
-                Some(tile_entities[(x + 1) as usize][y as usize])
+
+            let neighbor_to_east = if (x_coord + 1) < map_dimensions.x {
+                Some(tile_entities[(x_coord + 1) as usize][y_coord as usize])
             } else {
-                None
+                None // No neighbor beyond east edge
             };
-            let west = if x > 0 {
-                Some(tile_entities[(x - 1) as usize][y as usize])
+
+            let neighbor_to_west = if x_coord > 0 {
+                Some(tile_entities[(x_coord - 1) as usize][y_coord as usize])
             } else {
-                None
+                None // No neighbor beyond west edge
             };
-            commands.entity(tile_entity).insert(TileNeighbors {
-                north,
-                south,
-                east,
-                west,
+
+            // Attach the neighbor links to this tile
+            commands.entity(current_tile).insert(TileNeighbors {
+                north: neighbor_to_north,
+                south: neighbor_to_south,
+                east: neighbor_to_east,
+                west: neighbor_to_west,
             });
         }
     }
 }
 
-/// Third pass: Check land tiles for ocean neighbors and assign appropriate coast tile index
+/// **PASS 3: GENERATE COASTLINES**
+///
+/// Converts land tiles to coast tiles when they are adjacent to ocean.
+/// This creates realistic coastlines by detecting which land tiles
+/// border the ocean and assigning appropriate coast sprites.
+///
+/// **Coast Tile Types:**
+/// - 1-side coast (index 8): Land with ocean only to the south
+/// - 2-side coast (index 9): Land with ocean to both south and east  
+/// - 3-side coast (index 1): Land with ocean to north, east, and south
+/// - Island: Land completely surrounded by ocean
+/// - Other patterns: Fall back to basic coast tile (can be rotated/flipped)
 pub fn update_coast_tiles_pass(
     commands: &mut Commands,
     tile_assets: &impl TileAssetProvider,
     tile_entities: &Vec<Vec<Entity>>,
     terrain_types: &mut Vec<Vec<TerrainType>>,
-    map_size: &TilemapSize,
+    map_dimensions: &TilemapSize,
     world_map: &mut crate::resources::WorldMap,
 ) {
-    for x in 0..map_size.x {
-        for y in 0..map_size.y {
-            let tile_entity = tile_entities[x as usize][y as usize];
-            let terrain = &terrain_types[x as usize][y as usize];
+    // Collect all coast conversions first to avoid borrowing conflicts
+    let mut coast_conversions = Vec::new();
 
-            // Only process land tiles (not ocean or existing coast)
-            if !matches!(terrain, TerrainType::Ocean | TerrainType::Coast) {
-                // Check which sides have ocean neighbors
-                let has_north_ocean = (y + 1) < map_size.y
-                    && terrain_types[x as usize][(y + 1) as usize] == TerrainType::Ocean;
-                let has_south_ocean =
-                    y > 0 && terrain_types[x as usize][(y - 1) as usize] == TerrainType::Ocean;
-                let has_east_ocean = (x + 1) < map_size.x
-                    && terrain_types[(x + 1) as usize][y as usize] == TerrainType::Ocean;
-                let has_west_ocean =
-                    x > 0 && terrain_types[(x - 1) as usize][y as usize] == TerrainType::Ocean;
+    // Process every position on the map to find land tiles that need coast conversion
+    for x_coord in 0..map_dimensions.x {
+        for y_coord in 0..map_dimensions.y {
+            let current_terrain = &terrain_types[x_coord as usize][y_coord as usize];
 
-                // If this land tile has any ocean neighbors, convert it to coast
-                if has_north_ocean || has_south_ocean || has_east_ocean || has_west_ocean {
-                    let ocean_sides = [
-                        (direction_names::NORTH, has_north_ocean),
-                        (direction_names::SOUTH, has_south_ocean),
-                        (direction_names::EAST, has_east_ocean),
-                        (direction_names::WEST, has_west_ocean),
-                    ]
-                    .iter()
-                    .filter(|(_, has_ocean)| *has_ocean)
-                    .map(|(side, _)| *side)
-                    .collect::<Vec<_>>();
+            // Only convert land tiles (skip ocean and existing coast tiles)
+            if should_convert_to_coast(current_terrain) {
+                // Check what types of terrain surround this tile
+                let ocean_neighbors =
+                    detect_ocean_neighbors(x_coord, y_coord, terrain_types, map_dimensions);
 
-                    println!(
-                        "Converting land tile at ({}, {}) from {:?} to Coast. Ocean neighbors: {}",
-                        x,
-                        y,
-                        terrain,
-                        ocean_sides.join(", ")
-                    );
-
-                    // Get the appropriate coast tile index based on ocean neighbors
-                    let coast_tile_index = tile_assets.get_coast_index_for_ocean_sides(
-                        has_north_ocean,
-                        has_south_ocean,
-                        has_east_ocean,
-                        has_west_ocean,
-                    );
-
-                    println!("  -> Using coast tile index: {}", coast_tile_index);
-
-                    // Update tile to coast with the chosen index
-                    commands
-                        .entity(tile_entity)
-                        .insert(TileTextureIndex(coast_tile_index))
-                        .insert(WorldTile {
-                            grid_pos: Position::new(x as i32, y as i32),
-                            terrain_type: TerrainType::Coast,
-                            default_view_point: DefaultViewPoint::North, // Fixed view point for now
-                        });
-
-                    // Update the terrain_types array to keep it synchronized with ECS
-                    terrain_types[x as usize][y as usize] = TerrainType::Coast;
-
-                    // Update the WorldMap resource to keep UI in sync
-                    let world_pos = Position::new(x as i32, y as i32);
-                    if let Some(map_tile) = world_map.get_tile_mut(world_pos) {
-                        map_tile.terrain = TerrainType::Coast;
-                    }
+                // If any ocean neighbors exist, mark for coast conversion
+                if ocean_neighbors.has_any_ocean() {
+                    coast_conversions.push((
+                        x_coord,
+                        y_coord,
+                        ocean_neighbors,
+                        current_terrain.clone(),
+                    ));
                 }
             }
         }
+    }
+
+    // Now apply all the coast conversions
+    for (x_coord, y_coord, ocean_neighbors, original_terrain) in coast_conversions {
+        let current_tile_entity = tile_entities[x_coord as usize][y_coord as usize];
+
+        convert_land_to_coast_tile(
+            commands,
+            tile_assets,
+            current_tile_entity,
+            x_coord,
+            y_coord,
+            &original_terrain,
+            &ocean_neighbors,
+            terrain_types,
+            world_map,
+        );
+    }
+}
+
+//=============================================================================
+// HELPER FUNCTIONS - Coast Generation Support
+//=============================================================================
+
+/// Determines if a terrain type should be converted to coast
+/// (Only land tiles, not ocean or existing coast)
+fn should_convert_to_coast(terrain: &TerrainType) -> bool {
+    !matches!(terrain, TerrainType::Ocean | TerrainType::Coast)
+}
+
+/// Container for ocean neighbor detection results
+#[derive(Debug)]
+struct OceanNeighbors {
+    north: bool, // Is there ocean to the north?
+    south: bool, // Is there ocean to the south?
+    east: bool,  // Is there ocean to the east?
+    west: bool,  // Is there ocean to the west?
+}
+
+impl OceanNeighbors {
+    /// Returns true if this tile has any ocean neighbors
+    fn has_any_ocean(&self) -> bool {
+        self.north || self.south || self.east || self.west
+    }
+
+    /// Returns a list of direction names where ocean exists
+    fn get_ocean_direction_names(&self) -> Vec<&'static str> {
+        let mut directions = Vec::new();
+        if self.north {
+            directions.push(direction_names::NORTH);
+        }
+        if self.south {
+            directions.push(direction_names::SOUTH);
+        }
+        if self.east {
+            directions.push(direction_names::EAST);
+        }
+        if self.west {
+            directions.push(direction_names::WEST);
+        }
+        directions
+    }
+}
+
+/// Checks all four cardinal directions around a tile position to detect ocean neighbors
+///
+/// **Coordinate System Reminder:**
+/// - North: y + 1 (up on screen)
+/// - South: y - 1 (down on screen)  
+/// - East: x + 1 (right on screen)
+/// - West: x - 1 (left on screen)
+fn detect_ocean_neighbors(
+    x_coord: u32,
+    y_coord: u32,
+    terrain_grid: &Vec<Vec<TerrainType>>,
+    map_dimensions: &TilemapSize,
+) -> OceanNeighbors {
+    OceanNeighbors {
+        north: is_ocean_at_position(x_coord, y_coord + 1, terrain_grid, map_dimensions),
+        south: is_ocean_at_position(
+            x_coord,
+            y_coord.saturating_sub(1),
+            terrain_grid,
+            map_dimensions,
+        ),
+        east: is_ocean_at_position(x_coord + 1, y_coord, terrain_grid, map_dimensions),
+        west: is_ocean_at_position(
+            x_coord.saturating_sub(1),
+            y_coord,
+            terrain_grid,
+            map_dimensions,
+        ),
+    }
+}
+
+/// Safely checks if there's ocean at a specific position
+/// Returns false for out-of-bounds positions (treats map edges as non-ocean)
+fn is_ocean_at_position(
+    x: u32,
+    y: u32,
+    terrain_grid: &Vec<Vec<TerrainType>>,
+    map_dimensions: &TilemapSize,
+) -> bool {
+    // Check bounds first
+    if x >= map_dimensions.x || y >= map_dimensions.y {
+        return false; // Out of bounds = no ocean
+    }
+
+    // Special case: y can underflow to very large number when subtracting
+    if y > 1000 {
+        // Reasonable check for underflow
+        return false;
+    }
+
+    // Check if the terrain at this position is ocean
+    terrain_grid[x as usize][y as usize] == TerrainType::Ocean
+}
+
+/// Converts a land tile to a coast tile with the appropriate sprite
+fn convert_land_to_coast_tile(
+    commands: &mut Commands,
+    tile_assets: &impl TileAssetProvider,
+    tile_entity: Entity,
+    x_coord: u32,
+    y_coord: u32,
+    original_terrain: &TerrainType,
+    ocean_neighbors: &OceanNeighbors,
+    terrain_grid: &mut Vec<Vec<TerrainType>>,
+    world_map: &mut crate::resources::WorldMap,
+) {
+    // Log the conversion for debugging
+    let ocean_direction_names = ocean_neighbors.get_ocean_direction_names();
+    println!(
+        "Converting land tile at ({}, {}) from {:?} to Coast. Ocean neighbors: {}",
+        x_coord,
+        y_coord,
+        original_terrain,
+        ocean_direction_names.join(", ")
+    );
+
+    // Determine which coast sprite to use based on ocean neighbor pattern
+    let coast_sprite_index = tile_assets.get_coast_index_for_ocean_sides(
+        ocean_neighbors.north,
+        ocean_neighbors.south,
+        ocean_neighbors.east,
+        ocean_neighbors.west,
+    );
+
+    println!("  -> Using coast tile index: {}", coast_sprite_index);
+
+    // Update the tile entity with coast components
+    commands
+        .entity(tile_entity)
+        .insert(TileTextureIndex(coast_sprite_index))
+        .insert(WorldTile {
+            grid_pos: Position::new(x_coord as i32, y_coord as i32),
+            terrain_type: TerrainType::Coast,
+            default_view_point: DefaultViewPoint::North,
+        });
+
+    // Keep our terrain grid synchronized
+    terrain_grid[x_coord as usize][y_coord as usize] = TerrainType::Coast;
+
+    // Keep the world map resource synchronized for UI display
+    let world_position = Position::new(x_coord as i32, y_coord as i32);
+    if let Some(map_tile) = world_map.get_tile_mut(world_position) {
+        map_tile.terrain = TerrainType::Coast;
     }
 }
