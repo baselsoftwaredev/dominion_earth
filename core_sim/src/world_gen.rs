@@ -134,7 +134,7 @@ fn generate_island_at(
 fn smooth_coastlines(map: &mut WorldMap) {
     let mut changes = Vec::new();
 
-    // Convert isolated land tiles to ocean and isolated ocean tiles to coast
+    // Convert isolated land tiles to ocean (but don't create coast tiles - that's handled in tile_passes)
     for x in 1..(map.width - 1) {
         for y in 1..(map.height - 1) {
             let pos = Position::new(x as i32, y as i32);
@@ -148,10 +148,8 @@ fn smooth_coastlines(map: &mut WorldMap) {
 
                 match tile.terrain {
                     TerrainType::Ocean => {
-                        // Convert ocean to coast if it has land neighbors
-                        if land_neighbors > 0 {
-                            changes.push((pos, TerrainType::Coast));
-                        }
+                        // Don't convert ocean to coast here - this will be handled in tile_passes
+                        // with proper directional coast tile logic
                     }
                     _ => {
                         // Convert isolated land to ocean
@@ -358,22 +356,10 @@ pub fn get_starting_positions() -> Vec<(String, Position, [f32; 3])> {
         ("India".to_string(), Position::new(32, 12), [1.0, 0.5, 0.0]),
         ("China".to_string(), Position::new(37, 11), [1.0, 0.0, 0.0]),
         ("Japan".to_string(), Position::new(41, 10), [1.0, 1.0, 1.0]),
-        (
-            "Vikings".to_string(),
-            Position::new(24, 6),
-            [0.0, 0.8, 1.0],
-        ),
-        (
-            "England".to_string(),
-            Position::new(22, 7),
-            [0.0, 0.3, 0.6],
-        ),
+        ("Vikings".to_string(), Position::new(24, 6), [0.0, 0.8, 1.0]),
+        ("England".to_string(), Position::new(22, 7), [0.0, 0.3, 0.6]),
         ("France".to_string(), Position::new(23, 8), [0.0, 0.0, 1.0]),
-        (
-            "Germany".to_string(),
-            Position::new(24, 8),
-            [0.3, 0.3, 0.3],
-        ),
+        ("Germany".to_string(), Position::new(24, 8), [0.3, 0.3, 0.3]),
         ("Russia".to_string(), Position::new(29, 7), [0.0, 0.5, 0.0]),
         (
             "Mongolia".to_string(),

@@ -92,10 +92,10 @@ pub fn assign_tile_neighbors_pass(
     }
 }
 
-/// Third pass: Check land tiles for ocean neighbors and assign coast tile index
+/// Third pass: Check land tiles for ocean neighbors and assign appropriate coast tile index
 pub fn update_coast_tiles_pass(
     commands: &mut Commands,
-    _tile_assets: &impl TileAssetProvider,
+    tile_assets: &impl TileAssetProvider,
     tile_entities: &Vec<Vec<Entity>>,
     terrain_types: &mut Vec<Vec<TerrainType>>,
     map_size: &TilemapSize,
@@ -108,24 +108,49 @@ pub fn update_coast_tiles_pass(
 
             // Only process land tiles (not ocean or existing coast)
             if !matches!(terrain, TerrainType::Ocean | TerrainType::Coast) {
-                // Check if this land tile has ocean to the south
+                // Check which sides have ocean neighbors
+                let has_north_ocean = (y + 1) < map_size.y
+                    && terrain_types[x as usize][(y + 1) as usize] == TerrainType::Ocean;
                 let has_south_ocean =
                     y > 0 && terrain_types[x as usize][(y - 1) as usize] == TerrainType::Ocean;
+                let has_east_ocean = (x + 1) < map_size.x
+                    && terrain_types[(x + 1) as usize][y as usize] == TerrainType::Ocean;
+                let has_west_ocean =
+                    x > 0 && terrain_types[(x - 1) as usize][y as usize] == TerrainType::Ocean;
 
-                if has_south_ocean {
+                // If this land tile has any ocean neighbors, convert it to coast
+                if has_north_ocean || has_south_ocean || has_east_ocean || has_west_ocean {
+                    let ocean_sides = [
+                        ("North", has_north_ocean),
+                        ("South", has_south_ocean),
+                        ("East", has_east_ocean),
+                        ("West", has_west_ocean),
+                    ]
+                    .iter()
+                    .filter(|(_, has_ocean)| *has_ocean)
+                    .map(|(side, _)| *side)
+                    .collect::<Vec<_>>();
+
                     println!(
-                        "Converting land tile at ({}, {}) from {:?} to Coast with tile index 8. Has south ocean neighbor.",
-                        x, y, terrain
+                        "Converting land tile at ({}, {}) from {:?} to Coast. Ocean neighbors: {}",
+                        x,
+                        y,
+                        terrain,
+                        ocean_sides.join(", ")
                     );
 
-                    // Update tile to coast with index 8
+                    // For now, assign all coast tiles to plains index as requested
+                    // Later we can implement different coast tile indices based on ocean_sides
+                    let coast_tile_index = tile_assets.get_index_for_terrain(&TerrainType::Plains);
+
+                    // Update tile to coast with the chosen index
                     commands
                         .entity(tile_entity)
-                        .insert(TileTextureIndex(8))
+                        .insert(TileTextureIndex(coast_tile_index))
                         .insert(WorldTile {
                             grid_pos: Position::new(x as i32, y as i32),
                             terrain_type: TerrainType::Coast,
-                            default_view_point: DefaultViewPoint::North, // Fixed view point, no rotation needed
+                            default_view_point: DefaultViewPoint::North, // Fixed view point for now
                         });
 
                     // Update the terrain_types array to keep it synchronized with ECS
