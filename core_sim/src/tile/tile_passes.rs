@@ -1,5 +1,5 @@
-use crate::tile::tile_components::{DefaultViewPoint, TileAssetProvider, TileNeighbors, WorldTile};
 use crate::components::direction_names;
+use crate::tile::tile_components::{DefaultViewPoint, TileAssetProvider, TileNeighbors, WorldTile};
 use crate::{Position, TerrainType};
 use bevy::prelude::{Commands, Entity, Transform};
 use bevy::render::view::{InheritedVisibility, ViewVisibility, Visibility};
@@ -142,10 +142,10 @@ pub fn update_coast_tiles_pass(
 
                     // Get the appropriate coast tile index based on ocean neighbors
                     let coast_tile_index = tile_assets.get_coast_index_for_ocean_sides(
-                        has_north_ocean, 
-                        has_south_ocean, 
-                        has_east_ocean, 
-                        has_west_ocean
+                        has_north_ocean,
+                        has_south_ocean,
+                        has_east_ocean,
+                        has_west_ocean,
                     );
 
                     println!("  -> Using coast tile index: {}", coast_tile_index);

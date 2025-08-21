@@ -83,7 +83,13 @@ pub fn setup_world_tiles(
 pub trait TileAssetProvider {
     fn get_index_for_terrain(&self, terrain: &TerrainType) -> u32;
     fn get_coast_index(&self) -> u32;
-    fn get_coast_index_for_ocean_sides(&self, has_north: bool, has_south: bool, has_east: bool, has_west: bool) -> u32;
+    fn get_coast_index_for_ocean_sides(
+        &self,
+        has_north: bool,
+        has_south: bool,
+        has_east: bool,
+        has_west: bool,
+    ) -> u32;
 }
 use crate::{CivId, Position, TerrainType};
 
