@@ -66,7 +66,7 @@ impl TileAssets {
         
         // 1 side coast - only for north pattern (index 1, will be flipped 180°)
         if has_north && !has_south && !has_east && !has_west {
-            return self.coast_3_side_index as u32; // Use index 1, will be flipped to face south
+            return self.coast_1_side_index as u32; // Use index 1, will be flipped to face south
         }
         
         // 2 side coast - only for east and south pattern (index 9)

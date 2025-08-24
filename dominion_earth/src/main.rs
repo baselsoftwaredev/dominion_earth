@@ -105,8 +105,6 @@ fn main() {
                         .after(game::setup_game),
                     rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
                     rendering::spawn_capital_sprites.after(rendering::spawn_world_tiles),
-                    // TODO: Re-enable when TileFlip-based coast system is implemented
-                    // rendering::finalize_coast_viewpoints.after(rendering::spawn_world_tiles),
                 ),
             )
             .add_systems(

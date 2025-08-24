@@ -339,13 +339,31 @@ fn is_ocean_at_position(
 /// Following user's specification: "if 1 side ocean and its ocean neighbour is north flip the tile"
 fn determine_tile_flip(ocean_neighbors: &OceanNeighbors) -> TileFlip {
     let ocean_count = ocean_neighbors.count_ocean_sides();
-    
+
     // Special case: if exactly 1 ocean neighbor and it's to the north, flip the tile
     if ocean_count == 1 && ocean_neighbors.north {
         TileFlip {
             x: false,
-            y: true,  // Flip vertically when ocean is to the north
+            y: true, // Flip vertically when ocean is to the north
             d: false,
+        }
+    } else if ocean_count == 1 && ocean_neighbors.east {
+        TileFlip {
+            x: false,
+            y: false,
+            d: true,  // 90° clockwise rotation to face east
+        }
+    } else if ocean_count == 1 && ocean_neighbors.south {
+        TileFlip {
+            x: false,
+            y: false, // No flip needed when ocean is to the south
+            d: false,
+        }
+    } else if ocean_count == 1 && ocean_neighbors.west {
+        TileFlip {
+            x: true,  // Flip horizontally when ocean is to the west
+            y: true,  // Also flip vertically to face east
+            d: true,
         }
     } else {
         // Default: no flipping for other patterns
@@ -391,7 +409,7 @@ fn convert_land_to_coast_tile(
 
     // Determine flip settings based on ocean neighbor patterns
     let tile_flip = determine_tile_flip(ocean_neighbors);
-    
+
     // Log flip decision for debugging
     if tile_flip.x || tile_flip.y {
         println!("  -> Flipping tile: x={}, y={}", tile_flip.x, tile_flip.y);
