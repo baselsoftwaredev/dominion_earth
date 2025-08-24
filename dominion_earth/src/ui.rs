@@ -183,15 +183,12 @@ fn render_selected_tile_info(
         // Show data from ECS WorldTile entities
         let mut found_ecs = false;
         let mut ecs_terrain = None;
-        let mut ecs_viewpoint = None;
         let mut neighbors_info = Vec::new();
         
         for (world_tile, tile_neighbors) in world_tile_query.iter() {
             if world_tile.grid_pos == pos {
                 ecs_terrain = Some(world_tile.terrain_type.clone());
-                ecs_viewpoint = Some(world_tile.default_view_point.clone());
                 ui.label(format!("ECS Terrain: {:?}", world_tile.terrain_type));
-                ui.label(format!("ECS Facing: {:?}", world_tile.default_view_point));
                 
                 // Collect neighbor information
                 neighbors_info = collect_neighbor_info(tile_neighbors, world_tile_query);
@@ -225,7 +222,6 @@ fn render_selected_tile_info(
         if found_ecs && should_log {
             println!("=== UI DISPLAY: Tile ({}, {}) Data ===", pos.x, pos.y);
             println!("UI DISPLAY - ECS Terrain: {:?}", ecs_terrain.as_ref().unwrap());
-            println!("UI DISPLAY - ECS Facing: {:?}", ecs_viewpoint.as_ref().unwrap());
             
             // Print neighbor terrain types
             println!("UI DISPLAY - Neighbors:");

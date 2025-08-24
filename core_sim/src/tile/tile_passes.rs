@@ -1,9 +1,10 @@
 use crate::components::direction_names;
-use crate::tile::tile_components::{DefaultViewPoint, TileAssetProvider, TileNeighbors, WorldTile};
+use crate::tile::tile_components::{TileAssetProvider, TileNeighbors, WorldTile};
 use crate::{Position, TerrainType};
 use bevy::prelude::{Commands, Entity, Transform};
 use bevy::render::view::{InheritedVisibility, ViewVisibility, Visibility};
 use bevy_ecs_tilemap::prelude::*;
+use bevy_ecs_tilemap::tiles::TileFlip;
 
 //=============================================================================
 // WORLD TILE GENERATION - THREE-PASS SYSTEM
@@ -75,7 +76,6 @@ pub fn spawn_world_tiles_pass(
                     WorldTile {
                         grid_pos: world_position,
                         terrain_type: terrain_at_position.clone(),
-                        default_view_point: DefaultViewPoint::North,
                     },
                     // Bevy required components for rendering and transforms
                     Transform::default(),
@@ -148,14 +148,15 @@ pub fn assign_tile_neighbors_pass(
     }
 }
 
-/// **PASS 3: GENERATE COASTLINES**
+/// **PASS 3: COAST CONVERSION**
 ///
-/// Converts land tiles to coast tiles when they are adjacent to ocean.
-/// This creates realistic coastlines by detecting which land tiles
-/// border the ocean and assigning appropriate coast sprites.
+/// Goes through land tiles and finds their ocean neighbors.
+/// Depending on ocean neighbors, replaces with relevant coast tiles.
+/// Follows user's exact specification: "go through land tiles and find its neighbours,
+/// depending on its neighbour to ocean replace with with relevant coast tiles"
 ///
 /// **Coast Tile Types:**
-/// - 1-side coast (index 8): Land with ocean only to the south
+/// - 1-side coast (index 8): Land with ocean to the north only  
 /// - 2-side coast (index 9): Land with ocean to both south and east  
 /// - 3-side coast (index 1): Land with ocean to north, east, and south
 /// - Island: Land completely surrounded by ocean
@@ -171,18 +172,18 @@ pub fn update_coast_tiles_pass(
     // Collect all coast conversions first to avoid borrowing conflicts
     let mut coast_conversions = Vec::new();
 
-    // Process every position on the map to find land tiles that need coast conversion
+    // Process every land tile one by one as requested by user
     for x_coord in 0..map_dimensions.x {
         for y_coord in 0..map_dimensions.y {
             let current_terrain = &terrain_types[x_coord as usize][y_coord as usize];
 
-            // Only convert land tiles (skip ocean and existing coast tiles)
-            if should_convert_to_coast(current_terrain) {
-                // Check what types of terrain surround this tile
+            // Only process land tiles (skip ocean)
+            if is_land_tile(current_terrain) {
+                // Find its ocean neighbors
                 let ocean_neighbors =
                     detect_ocean_neighbors(x_coord, y_coord, terrain_types, map_dimensions);
 
-                // If any ocean neighbors exist, mark for coast conversion
+                // If it has ocean neighbors, collect for coast conversion
                 if ocean_neighbors.has_any_ocean() {
                     coast_conversions.push((
                         x_coord,
@@ -255,6 +256,29 @@ impl OceanNeighbors {
         }
         directions
     }
+
+    /// Counts how many ocean neighbors this tile has (1, 2, 3, or 4)
+    fn count_ocean_sides(&self) -> u32 {
+        let mut count = 0;
+        if self.north {
+            count += 1;
+        }
+        if self.south {
+            count += 1;
+        }
+        if self.east {
+            count += 1;
+        }
+        if self.west {
+            count += 1;
+        }
+        count
+    }
+}
+
+/// Helper function to check if a terrain type is land (not ocean)
+fn is_land_tile(terrain: &TerrainType) -> bool {
+    !matches!(terrain, TerrainType::Ocean)
 }
 
 /// Checks all four cardinal directions around a tile position to detect ocean neighbors
@@ -311,6 +335,28 @@ fn is_ocean_at_position(
     terrain_grid[x as usize][y as usize] == TerrainType::Ocean
 }
 
+/// Determines the appropriate tile flip settings based on ocean neighbor patterns
+/// Following user's specification: "if 1 side ocean and its ocean neighbour is north flip the tile"
+fn determine_tile_flip(ocean_neighbors: &OceanNeighbors) -> TileFlip {
+    let ocean_count = ocean_neighbors.count_ocean_sides();
+    
+    // Special case: if exactly 1 ocean neighbor and it's to the north, flip the tile
+    if ocean_count == 1 && ocean_neighbors.north {
+        TileFlip {
+            x: false,
+            y: true,  // Flip vertically when ocean is to the north
+            d: false,
+        }
+    } else {
+        // Default: no flipping for other patterns
+        TileFlip {
+            x: false,
+            y: false,
+            d: false,
+        }
+    }
+}
+
 /// Converts a land tile to a coast tile with the appropriate sprite
 fn convert_land_to_coast_tile(
     commands: &mut Commands,
@@ -343,14 +389,22 @@ fn convert_land_to_coast_tile(
 
     println!("  -> Using coast tile index: {}", coast_sprite_index);
 
+    // Determine flip settings based on ocean neighbor patterns
+    let tile_flip = determine_tile_flip(ocean_neighbors);
+    
+    // Log flip decision for debugging
+    if tile_flip.x || tile_flip.y {
+        println!("  -> Flipping tile: x={}, y={}", tile_flip.x, tile_flip.y);
+    }
+
     // Update the tile entity with coast components
     commands
         .entity(tile_entity)
         .insert(TileTextureIndex(coast_sprite_index))
+        .insert(tile_flip)
         .insert(WorldTile {
             grid_pos: Position::new(x_coord as i32, y_coord as i32),
             terrain_type: TerrainType::Coast,
-            default_view_point: DefaultViewPoint::North,
         });
 
     // Keep our terrain grid synchronized

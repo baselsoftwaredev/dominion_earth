@@ -3,13 +3,35 @@ use crate::{
 };
 use rand::Rng;
 
-/// Generate a randomized archipelago map with island clusters
+/// Generate a randomized archipelago map following clean generation steps:
+/// 1. Start with whole map as ocean
+/// 2. Add plain land masses only (no hills/other terrain yet)
+/// 3. Process land tiles to convert to appropriate coast tiles based on ocean neighbors
 pub fn generate_island_map(width: u32, height: u32, rng: &mut impl Rng) -> WorldMap {
     let mut map = WorldMap::new(width, height);
 
-    // Start with all ocean
-    for x in 0..width {
-        for y in 0..height {
+    // STEP 1: Start with whole map as ocean tiles
+    initialize_ocean_map(&mut map);
+
+    // STEP 2: Create plain land masses only (no hills/other terrain)
+    generate_plain_landmasses(&mut map, width, height, rng);
+
+    // NOTE: Coast tile conversion will happen later in tile_passes.rs
+    // The coast conversion logic is handled in the three-pass system:
+    // - spawn_tiles_pass: creates initial terrain
+    // - assign_neighbors_pass: links neighbors
+    // - convert_to_coast_pass: processes land->coast conversion with flipping
+
+    // Place resources on land (this can stay for now)
+    place_resources(&mut map, rng);
+
+    map
+}
+
+/// STEP 1: Initialize entire map with ocean tiles
+fn initialize_ocean_map(map: &mut WorldMap) {
+    for x in 0..map.width {
+        for y in 0..map.height {
             let pos = Position::new(x as i32, y as i32);
             if let Some(tile) = map.get_tile_mut(pos) {
                 *tile = MapTile {
@@ -23,37 +45,35 @@ pub fn generate_island_map(width: u32, height: u32, rng: &mut impl Rng) -> World
             }
         }
     }
+}
 
+/// STEP 2: Generate plain land masses only (no hills or other terrain types)
+fn generate_plain_landmasses(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
     // Generate 3-5 large islands with smaller satellite islands
     let num_major_islands = rng.gen_range(3..=5);
 
     for _ in 0..num_major_islands {
-        generate_island_cluster(&mut map, width, height, rng);
+        generate_plain_island_cluster(map, width, height, rng);
     }
 
     // Add scattered small islands
     let num_small_islands = rng.gen_range(8..15);
     for _ in 0..num_small_islands {
-        generate_small_island(&mut map, width, height, rng);
+        generate_small_plain_island(map, width, height, rng);
     }
 
     // Smooth and refine the landmasses
-    smooth_coastlines(&mut map);
-
-    // Place resources on land
-    place_resources(&mut map, rng);
-
-    map
+    smooth_plain_landmasses(map);
 }
 
-fn generate_island_cluster(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
+fn generate_plain_island_cluster(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
     // Pick a random center for the main island
     let center_x = rng.gen_range(width / 6..5 * width / 6);
     let center_y = rng.gen_range(height / 6..5 * height / 6);
 
     // Generate main island
     let main_radius = rng.gen_range(8..15);
-    generate_island_at(map, center_x, center_y, main_radius, rng);
+    generate_plain_island_at(map, center_x, center_y, main_radius, rng);
 
     // Generate 2-4 satellite islands around the main one
     let num_satellites = rng.gen_range(2..=4);
@@ -66,20 +86,20 @@ fn generate_island_cluster(map: &mut WorldMap, width: u32, height: u32, rng: &mu
 
         if sat_x >= 0.0 && sat_x < width as f32 && sat_y >= 0.0 && sat_y < height as f32 {
             let sat_radius = rng.gen_range(4..8);
-            generate_island_at(map, sat_x as u32, sat_y as u32, sat_radius, rng);
+            generate_plain_island_at(map, sat_x as u32, sat_y as u32, sat_radius, rng);
         }
     }
 }
 
-fn generate_small_island(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
+fn generate_small_plain_island(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
     let center_x = rng.gen_range(0..width);
     let center_y = rng.gen_range(0..height);
     let radius = rng.gen_range(2..5);
 
-    generate_island_at(map, center_x, center_y, radius, rng);
+    generate_plain_island_at(map, center_x, center_y, radius, rng);
 }
 
-fn generate_island_at(
+fn generate_plain_island_at(
     map: &mut WorldMap,
     center_x: u32,
     center_y: u32,
@@ -104,26 +124,15 @@ fn generate_island_at(
             if distance <= adjusted_radius {
                 let pos = Position::new(x, y);
                 if let Some(tile) = map.get_tile_mut(pos) {
-                    // Create varied terrain - mostly plains but some hills
-                    let terrain = if rng.gen::<f32>() < 0.8 {
-                        TerrainType::Plains
-                    } else {
-                        TerrainType::Hills
-                    };
-
-                    let (movement_cost, defense_bonus) = match terrain {
-                        TerrainType::Plains => (1.0, 0.0),
-                        TerrainType::Hills => (1.5, 0.25),
-                        _ => (1.0, 0.0),
-                    };
-
+                    // Create ONLY plains - no hills or other terrain types yet
+                    // Hills and other terrain will be added in later generation passes
                     *tile = MapTile {
-                        terrain,
+                        terrain: TerrainType::Plains,
                         owner: None,
                         city: None,
                         resource: None,
-                        movement_cost,
-                        defense_bonus,
+                        movement_cost: 1.0,
+                        defense_bonus: 0.0,
                     };
                 }
             }
@@ -131,47 +140,50 @@ fn generate_island_at(
     }
 }
 
-fn smooth_coastlines(map: &mut WorldMap) {
+fn smooth_plain_landmasses(map: &mut WorldMap) {
     let mut changes = Vec::new();
 
-    // Convert isolated land tiles to ocean (but don't create coast tiles - that's handled in tile_passes)
-    for x in 1..(map.width - 1) {
-        for y in 1..(map.height - 1) {
-            let pos = Position::new(x as i32, y as i32);
-            if let Some(tile) = map.get_tile(pos) {
-                let neighbors = map.neighbors(pos);
-                let land_neighbors = neighbors
-                    .iter()
-                    .filter_map(|&p| map.get_tile(p))
-                    .filter(|t| !matches!(t.terrain, TerrainType::Ocean))
-                    .count();
+    // Convert isolated land tiles to ocean (simple smoothing)
+    // for x in 1..(map.width - 1) {
+    //     for y in 1..(map.height - 1) {
+    //         let pos = Position::new(x as i32, y as i32);
+    //         if let Some(tile) = map.get_tile(pos) {
+    //             let neighbors = map.neighbors(pos);
+    //             let land_neighbors = neighbors
+    //                 .iter()
+    //                 .filter_map(|&p| map.get_tile(p))
+    //                 .filter(|t| matches!(t.terrain, TerrainType::Plains))
+    //                 .count();
 
-                match tile.terrain {
-                    TerrainType::Ocean => {
-                        // Don't convert ocean to coast here - this will be handled in tile_passes
-                        // with proper directional coast tile logic
-                    }
-                    _ => {
-                        // Convert isolated land to ocean
-                        if land_neighbors < 2 {
-                            changes.push((pos, TerrainType::Ocean));
-                        }
-                    }
-                }
-            }
-        }
-    }
+    //             match tile.terrain {
+    //                 TerrainType::Plains => {
+    //                     // If a plains tile has very few plains neighbors, make it ocean
+    //                     if land_neighbors <= 1 {
+    //                         changes.push((pos, TerrainType::Ocean));
+    //                     }
+    //                 }
+    //                 TerrainType::Ocean => {
+    //                     // If an ocean tile is surrounded by many plains, make it plains
+    //                     if land_neighbors >= 6 {
+    //                         changes.push((pos, TerrainType::Plains));
+    //                     }
+    //                 }
+    //                 _ => {} // Other terrain types handled later
+    //             }
+    //         }
+    //     }
+    // }
 
     // Apply changes
-    for (pos, terrain) in changes {
+    for (pos, new_terrain) in changes {
         if let Some(tile) = map.get_tile_mut(pos) {
-            let (movement_cost, defense_bonus) = match terrain {
+            let (movement_cost, defense_bonus) = match new_terrain {
                 TerrainType::Ocean => (3.0, 0.0),
-                TerrainType::Coast => (1.0, 0.0),
-                _ => (tile.movement_cost, tile.defense_bonus),
+                TerrainType::Plains => (1.0, 0.0),
+                _ => (1.0, 0.0),
             };
 
-            tile.terrain = terrain;
+            tile.terrain = new_terrain;
             tile.movement_cost = movement_cost;
             tile.defense_bonus = defense_bonus;
         }

@@ -41,8 +41,8 @@ fn display_neighbor_info(
         pos.x, pos.y
     );
     println!(
-        "DEBUG LOG - Center tile: {:?} (viewpoint: {:?})",
-        world_tile.terrain_type, world_tile.default_view_point
+        "DEBUG LOG - Center tile: {:?}",
+        world_tile.terrain_type
     );
 
     // Show North neighbor
@@ -69,12 +69,11 @@ fn display_single_neighbor(
     if let Some(entity) = neighbor_entity {
         if let Ok((_, tile, _)) = tile_query.get(entity) {
             println!(
-                "{}: {:?} at ({}, {}) (viewpoint: {:?})",
+                "{}: {:?} at ({}, {})",
                 direction,
                 tile.terrain_type,
                 tile.grid_pos.x,
-                tile.grid_pos.y,
-                tile.default_view_point
+                tile.grid_pos.y
             );
         }
     } else {

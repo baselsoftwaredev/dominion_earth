@@ -105,8 +105,8 @@ fn main() {
                         .after(game::setup_game),
                     rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
                     rendering::spawn_capital_sprites.after(rendering::spawn_world_tiles),
-                    // Add a final pass to ensure all coast viewpoints are correctly assigned
-                    rendering::finalize_coast_viewpoints.after(rendering::spawn_world_tiles),
+                    // TODO: Re-enable when TileFlip-based coast system is implemented
+                    // rendering::finalize_coast_viewpoints.after(rendering::spawn_world_tiles),
                 ),
             )
             .add_systems(
@@ -118,9 +118,6 @@ fn main() {
                     game::game_update_system,
                     core_sim::systems::turn_based_system,
                     rendering::update_unit_sprites,
-                    rendering::apply_tile_rotation,
-                    // Removed: ui::update_terrain_counts,
-                    // Removed: rendering::render_world_overlays,
                 ),
             )
             .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);

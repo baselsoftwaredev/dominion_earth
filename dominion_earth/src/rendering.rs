@@ -1,37 +1,6 @@
 use core_sim::tile::tile_components::TileNeighbors;
 use core_sim::tile::tile_components::{DefaultViewPoint, WorldTile};
 
-static mut ROTATION_COUNT: usize = 0;
-
-/// System to rotate coast tile sprites based on their facing direction toward land
-/// Now optimized to only run when tiles actually change
-pub fn apply_tile_rotation(
-    query: Query<(Entity, &WorldTile, Option<&mut TileFlip>), Changed<WorldTile>>,
-) {
-    // Only process if there are actually changed tiles
-    if query.is_empty() {
-        return;
-    }
-
-    unsafe {
-        ROTATION_COUNT += 1;
-    }
-    if unsafe { ROTATION_COUNT } <= 1 {
-        println!(
-            "ROTATION SYSTEM RUNNING (TileFlip) - attempt {} (only for changed tiles)",
-            unsafe { ROTATION_COUNT }
-        );
-    }
-
-    for (_entity, world_tile, _tile_flip) in query.iter() {
-        // Skip rotation for coast tiles - they should display as-is with tile index 8
-        if world_tile.terrain_type == core_sim::TerrainType::Coast {
-            // Don't apply any rotation to coast tiles
-            continue;
-        }
-    }
-}
-
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::tile::tile_assets::TileAssets;
@@ -174,7 +143,7 @@ pub fn update_unit_sprites(
     // Currently empty implementation - will be filled when unit movement is implemented
 }
 
-/// System to render overlays (stub for future logic)
+// System to render overlays (stub for future logic)
 // pub fn render_world_overlays() {
 //     // Implement logic to render overlays if needed
 // }
@@ -216,7 +185,9 @@ pub fn update_unit_sprites(
 //     Color::srgb(r + m, g + m, b + m)
 // }
 
-/// Final pass to ensure all coast viewpoints are correctly assigned after all setup is complete
+// Final pass to ensure all coast viewpoints are correctly assigned after all setup is complete
+// TODO: Replace with TileFlip-based system when default_view_point is removed
+/*
 pub fn finalize_coast_viewpoints(
     mut commands: Commands,
     tile_query: Query<(Entity, &WorldTile, &TileNeighbors)>,
@@ -339,3 +310,4 @@ pub fn finalize_coast_viewpoints(
         println!("=== COAST VIEWPOINT FINALIZATION COMPLETE ===");
     }
 }
+*/

@@ -97,7 +97,6 @@ use crate::{CivId, Position, TerrainType};
 pub struct WorldTile {
     pub grid_pos: Position,
     pub terrain_type: TerrainType,
-    pub default_view_point: DefaultViewPoint,
 }
 
 #[derive(Component, Clone)]
