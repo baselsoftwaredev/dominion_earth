@@ -43,45 +43,6 @@ impl TileAssetProvider for TileAssets {
     fn get_coast_index(&self) -> u32 {
         self.coast_index as u32
     }
-    
-    fn get_coast_index_for_ocean_sides(&self, has_north: bool, has_south: bool, has_east: bool, has_west: bool) -> u32 {
-        self.get_coast_index_for_ocean_sides_impl(has_north, has_south, has_east, has_west)
-    }
-}
-
-impl TileAssets {
-    /// Get the appropriate coast tile index based on which sides have ocean neighbors
-    fn get_coast_index_for_ocean_sides_impl(&self, has_north: bool, has_south: bool, has_east: bool, has_west: bool) -> u32 {
-        // Follow user's specific requirements for coast tile patterns
-        
-        // Island - ocean on all 4 sides
-        if has_north && has_south && has_east && has_west {
-            return self.island_index as u32;
-        }
-        
-        // 3 side coast - only for north, east, and south pattern (index 1)
-        if has_north && has_east && has_south && !has_west {
-            return self.coast_3_side_index as u32;
-        }
-        
-        // 1 side coast - only for north pattern (index 1, will be flipped 180°)
-        if has_north && !has_south && !has_east && !has_west {
-            return self.coast_1_side_index as u32; // Use index 1, will be flipped to face south
-        }
-        
-        // 2 side coast - only for east and south pattern (index 9)
-        if !has_north && has_south && has_east && !has_west {
-            return self.coast_2_side_index as u32;
-        }
-        
-        // 1 side coast - only for south pattern (index 8)
-        if !has_north && has_south && !has_east && !has_west {
-            return self.coast_1_side_index as u32;
-        }
-        
-        // For all other patterns, fallback to regular coast
-        self.coast_index as u32
-    }
 }
 
 /// Load tile assets

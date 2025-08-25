@@ -7,25 +7,46 @@ use bevy_ecs_tilemap::prelude::*;
 use bevy_ecs_tilemap::tiles::TileFlip;
 
 //=============================================================================
-// TILE ROTATION CONSTANTS
+// TILE FLIP CONSTANTS
 //=============================================================================
-/// Standard tile flip configurations for clean 90-degree rotations
-pub const TILE_FLIP_0_DEGREES: TileFlip = TileFlip {
+/// Geometric flip constants for coast tiles
+/// These represent the specific transformations needed for tile sprites
+pub const TILE_FLIP_NO_CHANGE: TileFlip = TileFlip {
     x: false,
     y: false,
     d: false,
 };
-pub const TILE_FLIP_90_DEGREES: TileFlip = TileFlip {
+pub const TILE_FLIP_VERTICAL_ONLY: TileFlip = TileFlip {
     x: false,
-    y: false,
-    d: true,
+    y: true,
+    d: false,
 };
-pub const TILE_FLIP_180_DEGREES: TileFlip = TileFlip {
+pub const TILE_FLIP_HORIZONTAL_ONLY: TileFlip = TileFlip {
+    x: true,
+    y: false,
+    d: false,
+};
+pub const TILE_FLIP_BOTH_AXES: TileFlip = TileFlip {
     x: true,
     y: true,
     d: false,
 };
-pub const TILE_FLIP_270_DEGREES: TileFlip = TileFlip {
+pub const TILE_FLIP_DIAGONAL_ONLY: TileFlip = TileFlip {
+    x: false,
+    y: false,
+    d: true,
+};
+pub const TILE_FLIP_DIAGONAL_AND_VERTICAL: TileFlip = TileFlip {
+    x: false,
+    y: true,
+    d: true,
+};
+pub const TILE_FLIP_DIAGONAL_AND_HORIZONTAL: TileFlip = TileFlip {
+    x: true,
+    y: false,
+    d: true,
+};
+pub const TILE_FLIP_ALL_AXES: TileFlip = TileFlip {
     x: true,
     y: true,
     d: true,
@@ -370,7 +391,7 @@ fn determine_coast_sprite_and_flip(
         4 => {
             // Island: Completely surrounded by ocean
             let island_sprite_index = tile_assets.get_index_for_terrain(&TerrainType::Plains); // Use island sprite if available
-            (island_sprite_index, TILE_FLIP_0_DEGREES)
+            (island_sprite_index, TILE_FLIP_NO_CHANGE)
         }
         3 => {
             // 3-side coast: Land with ocean on three sides
@@ -378,38 +399,45 @@ fn determine_coast_sprite_and_flip(
 
             // Determine flip based on which side is NOT ocean (the land connection)
             let tile_flip = if !ocean_neighbors.north {
-                TILE_FLIP_0_DEGREES // Land connection to north, no rotation needed
+                TILE_FLIP_DIAGONAL_ONLY // Land connection to north
             } else if !ocean_neighbors.east {
-                TILE_FLIP_90_DEGREES // Land connection to east, rotate 90°
+                TILE_FLIP_BOTH_AXES // Land connection to east
             } else if !ocean_neighbors.south {
-                TILE_FLIP_180_DEGREES // Land connection to south, rotate 180°
+                TILE_FLIP_ALL_AXES // Land connection to south
             } else if !ocean_neighbors.west {
-                TILE_FLIP_270_DEGREES // Land connection to west, rotate 270°
+                TILE_FLIP_NO_CHANGE // Land connection to west
             } else {
-                TILE_FLIP_0_DEGREES // Fallback
+                TILE_FLIP_NO_CHANGE // Fallback
             };
 
             (three_side_coast_index, tile_flip)
         }
         2 => {
             // 2-side coast: Land with ocean on two sides
+            // Sprite 9 is asymmetric/uneven, so we use specialized flip constants
+            // that work better with asymmetric tiles instead of standard rotations
             let two_side_coast_index = 9; // Based on comment: "2-side coast (index 9)"
 
-            // Determine flip based on which two sides have ocean
             let tile_flip = if ocean_neighbors.north && ocean_neighbors.east {
-                TILE_FLIP_0_DEGREES // Northeast corner
+                // Northeast corner: vertical flip moves South border to North
+                TILE_FLIP_VERTICAL_ONLY
             } else if ocean_neighbors.east && ocean_neighbors.south {
-                TILE_FLIP_90_DEGREES // Southeast corner
+                // Southeast corner: base orientation (matches sprite 9 design)
+                TILE_FLIP_NO_CHANGE
             } else if ocean_neighbors.south && ocean_neighbors.west {
-                TILE_FLIP_180_DEGREES // Southwest corner
+                // Southwest corner: horizontal flip moves East border to West
+                TILE_FLIP_HORIZONTAL_ONLY
             } else if ocean_neighbors.west && ocean_neighbors.north {
-                TILE_FLIP_270_DEGREES // Northwest corner
+                // Northwest corner: both flips move East→West and South→North
+                TILE_FLIP_BOTH_AXES
             } else if ocean_neighbors.north && ocean_neighbors.south {
-                TILE_FLIP_90_DEGREES // North-South strait
+                // North-South strait: symmetric case, use no flip
+                TILE_FLIP_NO_CHANGE
             } else if ocean_neighbors.east && ocean_neighbors.west {
-                TILE_FLIP_0_DEGREES // East-West strait
+                // East-West strait: symmetric case, use diagonal flip
+                TILE_FLIP_DIAGONAL_ONLY
             } else {
-                TILE_FLIP_0_DEGREES // Fallback for unexpected patterns
+                TILE_FLIP_NO_CHANGE // Fallback for unexpected patterns
             };
 
             (two_side_coast_index, tile_flip)
@@ -420,15 +448,15 @@ fn determine_coast_sprite_and_flip(
 
             // Determine flip based on which direction has ocean
             let tile_flip = if ocean_neighbors.north {
-                TILE_FLIP_180_DEGREES // Ocean to north, coast faces north
+                TILE_FLIP_BOTH_AXES // Ocean to north, coast faces north
             } else if ocean_neighbors.east {
-                TILE_FLIP_90_DEGREES // Ocean to east, coast faces east
+                TILE_FLIP_DIAGONAL_ONLY // Ocean to east, coast faces east
             } else if ocean_neighbors.south {
-                TILE_FLIP_0_DEGREES // Ocean to south, coast faces south (default)
+                TILE_FLIP_NO_CHANGE // Ocean to south, coast faces south (default)
             } else if ocean_neighbors.west {
-                TILE_FLIP_270_DEGREES // Ocean to west, coast faces west
+                TILE_FLIP_ALL_AXES // Ocean to west, coast faces west
             } else {
-                TILE_FLIP_0_DEGREES // Fallback
+                TILE_FLIP_NO_CHANGE // Fallback
             };
 
             (one_side_coast_index, tile_flip)
@@ -436,7 +464,7 @@ fn determine_coast_sprite_and_flip(
         _ => {
             // Fallback: No ocean neighbors (shouldn't happen in coast conversion)
             let default_coast_index = 8;
-            (default_coast_index, TILE_FLIP_0_DEGREES)
+            (default_coast_index, TILE_FLIP_NO_CHANGE)
         }
     }
 }
