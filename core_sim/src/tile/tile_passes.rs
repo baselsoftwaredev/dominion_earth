@@ -7,6 +7,31 @@ use bevy_ecs_tilemap::prelude::*;
 use bevy_ecs_tilemap::tiles::TileFlip;
 
 //=============================================================================
+// TILE ROTATION CONSTANTS
+//=============================================================================
+/// Standard tile flip configurations for clean 90-degree rotations
+pub const TILE_FLIP_0_DEGREES: TileFlip = TileFlip {
+    x: false,
+    y: false,
+    d: false,
+};
+pub const TILE_FLIP_90_DEGREES: TileFlip = TileFlip {
+    x: false,
+    y: false,
+    d: true,
+};
+pub const TILE_FLIP_180_DEGREES: TileFlip = TileFlip {
+    x: true,
+    y: true,
+    d: false,
+};
+pub const TILE_FLIP_270_DEGREES: TileFlip = TileFlip {
+    x: true,
+    y: true,
+    d: true,
+};
+
+//=============================================================================
 // WORLD TILE GENERATION - THREE-PASS SYSTEM
 //=============================================================================
 // This module handles world tile generation in three distinct passes:
@@ -218,12 +243,6 @@ pub fn update_coast_tiles_pass(
 // HELPER FUNCTIONS - Coast Generation Support
 //=============================================================================
 
-/// Determines if a terrain type should be converted to coast
-/// (Only land tiles, not ocean or existing coast)
-fn should_convert_to_coast(terrain: &TerrainType) -> bool {
-    !matches!(terrain, TerrainType::Ocean | TerrainType::Coast)
-}
-
 /// Container for ocean neighbor detection results
 #[derive(Debug)]
 struct OceanNeighbors {
@@ -335,42 +354,89 @@ fn is_ocean_at_position(
     terrain_grid[x as usize][y as usize] == TerrainType::Ocean
 }
 
-/// Determines the appropriate tile flip settings based on ocean neighbor patterns
-/// Following user's specification: "if 1 side ocean and its ocean neighbour is north flip the tile"
-fn determine_tile_flip(ocean_neighbors: &OceanNeighbors) -> TileFlip {
+/// Combined function that determines both the coast sprite index and tile flip
+/// based on ocean neighbor patterns. Uses ocean count as primary logic:
+/// - 4 ocean sides = island sprite
+/// - 3 ocean sides = 1-side coast sprite
+/// - 2 ocean sides = 2-side coast sprite
+/// - 1 ocean side = 1-side coast sprite
+fn determine_coast_sprite_and_flip(
+    ocean_neighbors: &OceanNeighbors,
+    tile_assets: &impl TileAssetProvider,
+) -> (u32, TileFlip) {
     let ocean_count = ocean_neighbors.count_ocean_sides();
 
-    // Special case: if exactly 1 ocean neighbor and it's to the north, flip the tile
-    if ocean_count == 1 && ocean_neighbors.north {
-        TileFlip {
-            x: false,
-            y: true, // Flip vertically when ocean is to the north
-            d: false,
+    match ocean_count {
+        4 => {
+            // Island: Completely surrounded by ocean
+            let island_sprite_index = tile_assets.get_index_for_terrain(&TerrainType::Plains); // Use island sprite if available
+            (island_sprite_index, TILE_FLIP_0_DEGREES)
         }
-    } else if ocean_count == 1 && ocean_neighbors.east {
-        TileFlip {
-            x: false,
-            y: false,
-            d: true,  // 90° clockwise rotation to face east
+        3 => {
+            // 3-side coast: Land with ocean on three sides
+            let three_side_coast_index = 1; // Based on comment: "3-side coast (index 1)"
+
+            // Determine flip based on which side is NOT ocean (the land connection)
+            let tile_flip = if !ocean_neighbors.north {
+                TILE_FLIP_0_DEGREES // Land connection to north, no rotation needed
+            } else if !ocean_neighbors.east {
+                TILE_FLIP_90_DEGREES // Land connection to east, rotate 90°
+            } else if !ocean_neighbors.south {
+                TILE_FLIP_180_DEGREES // Land connection to south, rotate 180°
+            } else if !ocean_neighbors.west {
+                TILE_FLIP_270_DEGREES // Land connection to west, rotate 270°
+            } else {
+                TILE_FLIP_0_DEGREES // Fallback
+            };
+
+            (three_side_coast_index, tile_flip)
         }
-    } else if ocean_count == 1 && ocean_neighbors.south {
-        TileFlip {
-            x: false,
-            y: false, // No flip needed when ocean is to the south
-            d: false,
+        2 => {
+            // 2-side coast: Land with ocean on two sides
+            let two_side_coast_index = 9; // Based on comment: "2-side coast (index 9)"
+
+            // Determine flip based on which two sides have ocean
+            let tile_flip = if ocean_neighbors.north && ocean_neighbors.east {
+                TILE_FLIP_0_DEGREES // Northeast corner
+            } else if ocean_neighbors.east && ocean_neighbors.south {
+                TILE_FLIP_90_DEGREES // Southeast corner
+            } else if ocean_neighbors.south && ocean_neighbors.west {
+                TILE_FLIP_180_DEGREES // Southwest corner
+            } else if ocean_neighbors.west && ocean_neighbors.north {
+                TILE_FLIP_270_DEGREES // Northwest corner
+            } else if ocean_neighbors.north && ocean_neighbors.south {
+                TILE_FLIP_90_DEGREES // North-South strait
+            } else if ocean_neighbors.east && ocean_neighbors.west {
+                TILE_FLIP_0_DEGREES // East-West strait
+            } else {
+                TILE_FLIP_0_DEGREES // Fallback for unexpected patterns
+            };
+
+            (two_side_coast_index, tile_flip)
         }
-    } else if ocean_count == 1 && ocean_neighbors.west {
-        TileFlip {
-            x: true,  // Flip horizontally when ocean is to the west
-            y: true,  // Also flip vertically to face east
-            d: true,
+        1 => {
+            // 1-side coast: Land with ocean on one side
+            let one_side_coast_index = 8; // Based on comment: "1-side coast (index 8)"
+
+            // Determine flip based on which direction has ocean
+            let tile_flip = if ocean_neighbors.north {
+                TILE_FLIP_180_DEGREES // Ocean to north, coast faces north
+            } else if ocean_neighbors.east {
+                TILE_FLIP_90_DEGREES // Ocean to east, coast faces east
+            } else if ocean_neighbors.south {
+                TILE_FLIP_0_DEGREES // Ocean to south, coast faces south (default)
+            } else if ocean_neighbors.west {
+                TILE_FLIP_270_DEGREES // Ocean to west, coast faces west
+            } else {
+                TILE_FLIP_0_DEGREES // Fallback
+            };
+
+            (one_side_coast_index, tile_flip)
         }
-    } else {
-        // Default: no flipping for other patterns
-        TileFlip {
-            x: false,
-            y: false,
-            d: false,
+        _ => {
+            // Fallback: No ocean neighbors (shouldn't happen in coast conversion)
+            let default_coast_index = 8;
+            (default_coast_index, TILE_FLIP_0_DEGREES)
         }
     }
 }
@@ -397,22 +463,18 @@ fn convert_land_to_coast_tile(
         ocean_direction_names.join(", ")
     );
 
-    // Determine which coast sprite to use based on ocean neighbor pattern
-    let coast_sprite_index = tile_assets.get_coast_index_for_ocean_sides(
-        ocean_neighbors.north,
-        ocean_neighbors.south,
-        ocean_neighbors.east,
-        ocean_neighbors.west,
-    );
+    // Determine both coast sprite index and flip settings in one call
+    let (coast_sprite_index, tile_flip) =
+        determine_coast_sprite_and_flip(ocean_neighbors, tile_assets);
 
     println!("  -> Using coast tile index: {}", coast_sprite_index);
 
-    // Determine flip settings based on ocean neighbor patterns
-    let tile_flip = determine_tile_flip(ocean_neighbors);
-
     // Log flip decision for debugging
-    if tile_flip.x || tile_flip.y {
-        println!("  -> Flipping tile: x={}, y={}", tile_flip.x, tile_flip.y);
+    if tile_flip.x || tile_flip.y || tile_flip.d {
+        println!(
+            "  -> Flipping tile: x={}, y={}, d={}",
+            tile_flip.x, tile_flip.y, tile_flip.d
+        );
     }
 
     // Update the tile entity with coast components
