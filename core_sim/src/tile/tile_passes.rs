@@ -305,7 +305,8 @@ pub fn update_shallow_coast_tiles_pass(
             world_map,
         );
     }
-}/// Converts an ocean tile to a shallow coast tile with sprite index 17
+}
+/// Converts an ocean tile to a shallow coast tile with sprite index 17
 fn convert_ocean_to_shallow_coast_tile(
     commands: &mut Commands,
     tile_entity: Entity,
