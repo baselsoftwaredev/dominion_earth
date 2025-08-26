@@ -62,6 +62,9 @@ RUST_LOG=ai_planner=debug cargo run -- --seed 1756118413
 
 # Monitor turn progression and system execution
 RUST_LOG=core_sim::systems=debug cargo run -- --seed 1756118413
+
+# Enable all debug logging for comprehensive output
+RUST_LOG=debug cargo run -- --seed 1756118413 --debug-logging
 ```
 
 Key debug output patterns to watch for:
@@ -70,6 +73,44 @@ Key debug output patterns to watch for:
 - AI coordinator decision generation and execution
 - Turn advancement and civilization state changes
 - Entity spawning and component assignments
+
+### Terminal-Based Debugging (Alternative to BRP)
+
+**When you want to verify solutions without using BRP**, add temporary logging directly in the code and read values in the terminal:
+
+```rust
+// Add temporary debug logging to verify your changes
+info!("DEBUG: Civilization {} has {} units", civ_id, unit_count);
+debug!("DEBUG: Coast tile at ({}, {}) converted to index {}", x, y, tile_index);
+warn!("DEBUG: AI decision result: {:?}", decision);
+
+// Use different log levels to filter output
+trace!("TRACE: Detailed step-by-step execution");
+debug!("DEBUG: Development debugging info");
+info!("INFO: Important state changes");
+warn!("WARN: Potential issues or verification");
+error!("ERROR: Critical problems");
+```
+
+**Run with appropriate log levels to see your debug output:**
+
+```bash
+# See only your INFO+ level debug messages
+RUST_LOG=info cargo run -- --seed 1756118413
+
+# See DEBUG+ level for detailed verification
+RUST_LOG=debug cargo run -- --seed 1756118413
+
+# Filter to specific modules
+RUST_LOG=core_sim::systems=debug cargo run -- --seed 1756118413
+```
+
+**Benefits of terminal debugging over BRP:**
+- No need to start app in background with sleep delays
+- Immediate feedback during development
+- Can add prints exactly where you need verification
+- Works with both GUI and headless modes
+- Easier for step-by-step algorithm verification
 
 ### Data-Driven Design
 
