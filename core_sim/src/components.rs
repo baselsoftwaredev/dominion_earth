@@ -374,6 +374,7 @@ pub enum TerrainType {
     Forest,
     Desert,
     Coast,
+    ShallowCoast,
     Ocean,
     River,
 }
@@ -397,6 +398,7 @@ impl Serialize for TerrainType {
             TerrainType::Forest => serializer.serialize_str("Forest"),
             TerrainType::Desert => serializer.serialize_str("Desert"),
             TerrainType::Coast => serializer.serialize_str("Coast"),
+            TerrainType::ShallowCoast => serializer.serialize_str("ShallowCoast"),
             TerrainType::Ocean => serializer.serialize_str("Ocean"),
             TerrainType::River => serializer.serialize_str("River"),
         }
@@ -416,6 +418,7 @@ impl<'de> Deserialize<'de> for TerrainType {
             "Forest" => Ok(TerrainType::Forest),
             "Desert" => Ok(TerrainType::Desert),
             "Coast" => Ok(TerrainType::Coast),
+            "ShallowCoast" => Ok(TerrainType::ShallowCoast),
             "Ocean" => Ok(TerrainType::Ocean),
             "River" => Ok(TerrainType::River),
             _ => Err(serde::de::Error::unknown_variant(
@@ -427,6 +430,7 @@ impl<'de> Deserialize<'de> for TerrainType {
                     "Forest",
                     "Desert",
                     "Coast",
+                    "ShallowCoast",
                     "Ocean",
                     "River",
                 ],

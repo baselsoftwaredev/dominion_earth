@@ -35,6 +35,7 @@ use crate::resources::WorldMap;
 use crate::tile::tile_assets::TileAssets;
 use crate::tile::tile_passes::{
     assign_tile_neighbors_pass, spawn_world_tiles_pass, update_coast_tiles_pass,
+    update_shallow_coast_tiles_pass,
 };
 use bevy::prelude::{Component, Entity};
 use bevy_ecs_tilemap::prelude::*;
@@ -70,6 +71,13 @@ pub fn setup_world_tiles(
     update_coast_tiles_pass(
         commands,
         tile_assets,
+        &tile_entities,
+        &mut terrain_types,
+        &map_size,
+        world_map,
+    );
+    update_shallow_coast_tiles_pass(
+        commands,
         &tile_entities,
         &mut terrain_types,
         &map_size,

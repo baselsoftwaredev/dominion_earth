@@ -13,6 +13,7 @@ pub struct TileAssets {
     pub forest_index: usize,
     pub desert_index: usize,
     pub coast_index: usize,
+    pub shallow_coast_index: usize,
     pub ocean_index: usize,
     pub river_index: usize,
     
@@ -35,6 +36,7 @@ impl TileAssetProvider for TileAssets {
             TerrainType::Forest => self.forest_index as u32,
             TerrainType::Desert => self.desert_index as u32,
             TerrainType::Coast => self.coast_index as u32,
+            TerrainType::ShallowCoast => self.shallow_coast_index as u32,
             TerrainType::Ocean => self.ocean_index as u32,
             TerrainType::River => self.river_index as u32,
         }
@@ -70,6 +72,7 @@ pub fn setup_tile_assets(
         forest_index: 0,           // Forest sprite index
         desert_index: 0,           // Desert sprite index
         coast_index: 8,            // Coast sprite index (fallback)
+        shallow_coast_index: 17,   // Shallow coast sprite index
         ocean_index: 16,           // Ocean sprite index
         river_index: 0,            // River sprite index
         

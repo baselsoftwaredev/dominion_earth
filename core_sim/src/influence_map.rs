@@ -174,6 +174,7 @@ impl InfluenceMap {
                         crate::TerrainType::Forest => 1.2,
                         crate::TerrainType::Desert => 0.3,
                         crate::TerrainType::Coast => 2.0,
+                        crate::TerrainType::ShallowCoast => 1.8,
                         crate::TerrainType::Ocean => 0.1,
                         crate::TerrainType::River => 1.8,
                     };

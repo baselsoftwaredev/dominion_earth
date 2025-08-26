@@ -250,6 +250,7 @@ fn generate_tile(x: u32, y: u32, width: u32, height: u32, rng: &mut impl Rng) ->
         TerrainType::Forest => (1.5, 0.25),
         TerrainType::Desert => (1.5, 0.0),
         TerrainType::Coast => (1.0, 0.0),
+        TerrainType::ShallowCoast => (1.0, 0.0),
         TerrainType::Ocean => (3.0, 0.0),
         TerrainType::River => (1.0, -0.25),
     };
@@ -343,6 +344,7 @@ fn place_resources(map: &mut WorldMap, rng: &mut impl Rng) {
                         }
                     }
                     TerrainType::Coast => GameResource::Fish,
+                    TerrainType::ShallowCoast => GameResource::Fish,
                     TerrainType::River => GameResource::Fish,
                     TerrainType::Ocean => continue,
                 });

@@ -260,9 +260,141 @@ pub fn update_coast_tiles_pass(
     }
 }
 
+/// **PASS 4: SHALLOW COAST CONVERSION**
+///
+/// Goes through ocean tiles and converts those with coast neighbors to shallow coast tiles.
+/// Uses sprite index 17 as specified by the user.
+pub fn update_shallow_coast_tiles_pass(
+    commands: &mut Commands,
+    tile_entities: &Vec<Vec<Entity>>,
+    terrain_types: &mut Vec<Vec<TerrainType>>,
+    map_dimensions: &TilemapSize,
+    world_map: &mut crate::resources::WorldMap,
+) {
+    // Collect all shallow coast conversions first to avoid borrowing conflicts
+    let mut shallow_coast_conversions = Vec::new();
+
+    for x_coord in 0..map_dimensions.x {
+        for y_coord in 0..map_dimensions.y {
+            let current_terrain = &terrain_types[x_coord as usize][y_coord as usize];
+
+            // Only process ocean tiles
+            if matches!(current_terrain, TerrainType::Ocean) {
+                // Check if this ocean tile has any coast neighbors
+                let coast_neighbors =
+                    detect_coast_neighbors(x_coord, y_coord, terrain_types, map_dimensions);
+
+                // If ocean tile has coast neighbors, convert to shallow coast
+                if coast_neighbors.has_any_coast() {
+                    shallow_coast_conversions.push((x_coord, y_coord, current_terrain.clone()));
+                }
+            }
+        }
+    }
+
+    // Now apply all the shallow coast conversions
+    for (x_coord, y_coord, _original_terrain) in shallow_coast_conversions {
+        let current_tile_entity = tile_entities[x_coord as usize][y_coord as usize];
+
+        convert_ocean_to_shallow_coast_tile(
+            commands,
+            current_tile_entity,
+            x_coord,
+            y_coord,
+            terrain_types,
+            world_map,
+        );
+    }
+}/// Converts an ocean tile to a shallow coast tile with sprite index 17
+fn convert_ocean_to_shallow_coast_tile(
+    commands: &mut Commands,
+    tile_entity: Entity,
+    x_coord: u32,
+    y_coord: u32,
+    terrain_grid: &mut Vec<Vec<TerrainType>>,
+    world_map: &mut crate::resources::WorldMap,
+) {
+    // Log the conversion for debugging
+    println!(
+        "Converting ocean tile at ({}, {}) to ShallowCoast",
+        x_coord, y_coord
+    );
+
+    // Update the tile entity with shallow coast components
+    // Using sprite index 17 as specified by the user
+    commands
+        .entity(tile_entity)
+        .insert(TileTextureIndex(17))
+        .insert(WorldTile {
+            grid_pos: Position::new(x_coord as i32, y_coord as i32),
+            terrain_type: TerrainType::ShallowCoast,
+        });
+
+    // Keep our terrain grid synchronized
+    terrain_grid[x_coord as usize][y_coord as usize] = TerrainType::ShallowCoast;
+
+    // Keep the world map resource synchronized for UI display
+    let world_position = Position::new(x_coord as i32, y_coord as i32);
+    if let Some(map_tile) = world_map.get_tile_mut(world_position) {
+        map_tile.terrain = TerrainType::ShallowCoast;
+    }
+}
+
 //=============================================================================
 // HELPER FUNCTIONS - Coast Generation Support
 //=============================================================================
+
+/// Container for coast neighbor detection results
+#[derive(Debug)]
+struct CoastNeighbors {
+    north: bool, // Is there coast to the north?
+    south: bool, // Is there coast to the south?
+    east: bool,  // Is there coast to the east?
+    west: bool,  // Is there coast to the west?
+}
+
+impl CoastNeighbors {
+    /// Returns true if this tile has any coast neighbors
+    fn has_any_coast(&self) -> bool {
+        self.north || self.south || self.east || self.west
+    }
+
+    /// Returns a list of direction names where coast exists
+    fn get_coast_direction_names(&self) -> Vec<&'static str> {
+        let mut directions = Vec::new();
+        if self.north {
+            directions.push(direction_names::NORTH);
+        }
+        if self.south {
+            directions.push(direction_names::SOUTH);
+        }
+        if self.east {
+            directions.push(direction_names::EAST);
+        }
+        if self.west {
+            directions.push(direction_names::WEST);
+        }
+        directions
+    }
+
+    /// Counts how many coast neighbors this tile has (1, 2, 3, or 4)
+    fn count_coast_sides(&self) -> u32 {
+        let mut count = 0;
+        if self.north {
+            count += 1;
+        }
+        if self.south {
+            count += 1;
+        }
+        if self.east {
+            count += 1;
+        }
+        if self.west {
+            count += 1;
+        }
+        count
+    }
+}
 
 /// Container for ocean neighbor detection results
 #[derive(Debug)]
@@ -319,6 +451,60 @@ impl OceanNeighbors {
 /// Helper function to check if a terrain type is land (not ocean)
 fn is_land_tile(terrain: &TerrainType) -> bool {
     !matches!(terrain, TerrainType::Ocean)
+}
+
+/// Checks all four cardinal directions around a tile position to detect coast neighbors
+///
+/// **Coordinate System Reminder:**
+/// - North: y + 1 (up on screen)
+/// - South: y - 1 (down on screen)  
+/// - East: x + 1 (right on screen)
+/// - West: x - 1 (left on screen)
+fn detect_coast_neighbors(
+    x_coord: u32,
+    y_coord: u32,
+    terrain_grid: &Vec<Vec<TerrainType>>,
+    map_dimensions: &TilemapSize,
+) -> CoastNeighbors {
+    CoastNeighbors {
+        north: is_coast_at_position(x_coord, y_coord + 1, terrain_grid, map_dimensions),
+        south: is_coast_at_position(
+            x_coord,
+            y_coord.saturating_sub(1),
+            terrain_grid,
+            map_dimensions,
+        ),
+        east: is_coast_at_position(x_coord + 1, y_coord, terrain_grid, map_dimensions),
+        west: is_coast_at_position(
+            x_coord.saturating_sub(1),
+            y_coord,
+            terrain_grid,
+            map_dimensions,
+        ),
+    }
+}
+
+/// Safely checks if there's coast at a specific position
+/// Returns false for out-of-bounds positions (treats map edges as non-coast)
+fn is_coast_at_position(
+    x: u32,
+    y: u32,
+    terrain_grid: &Vec<Vec<TerrainType>>,
+    map_dimensions: &TilemapSize,
+) -> bool {
+    // Check bounds first
+    if x >= map_dimensions.x || y >= map_dimensions.y {
+        return false; // Out of bounds = no coast
+    }
+
+    // Special case: y can underflow to very large number when subtracting
+    if y > 1000 {
+        // Reasonable check for underflow
+        return false;
+    }
+
+    // Check if the terrain at this position is coast
+    terrain_grid[x as usize][y as usize] == TerrainType::Coast
 }
 
 /// Checks all four cardinal directions around a tile position to detect ocean neighbors
