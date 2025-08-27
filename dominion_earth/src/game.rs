@@ -1,21 +1,10 @@
-use ai_planner::{ai_coordinator::AICoordinatorSystem};
+use ai_planner::ai_coordinator::AICoordinatorSystem;
 use bevy::prelude::*;
 use core_sim::{
     self,
     resources::{GameConfig, GameRng, WorldMap},
-    world_gen,
-    ActiveThisTurn,
-    Building,
-    BuildingType,
-    City,
-    CivId,
-    CivPersonality,
-    Civilization,
-    Economy,
-    Military,
-    MilitaryUnit,
-    Technologies,
-    UnitType,
+    world_gen, ActiveThisTurn, Building, BuildingType, Capital, CapitalAge, City, CivId,
+    CivPersonality, Civilization, Economy, Military, MilitaryUnit, Technologies, UnitType,
 };
 use rand::SeedableRng;
 
@@ -114,7 +103,7 @@ fn spawn_initial_civilizations(
         // Spawn civilization entity
         commands.spawn((civilization, position, ActiveThisTurn));
 
-        // Spawn capital city
+        // Spawn capital city with Capital component
         let city = City {
             name: format!("{} Capital", name),
             owner: civ_id,
@@ -127,7 +116,20 @@ fn spawn_initial_civilizations(
             }],
         };
 
-        commands.spawn((city, position));
+        let capital = Capital {
+            owner: civ_id,
+            age: CapitalAge::Neolithic,
+            sprite_index: CapitalAge::Neolithic.sprite_index(),
+            established_turn: 0, // Starting at turn 0
+        };
+
+        println!(
+            "DEBUG: Spawning capital for {} at {:?} with sprite index {}",
+            name, position, capital.sprite_index
+        );
+
+        // Spawn capital entity with both City and Capital components
+        commands.spawn((city, capital, position));
 
         // Claim starting territory
         if let Some(tile) = world_map.get_tile_mut(position) {

@@ -1,5 +1,5 @@
 use crate::components::direction_names;
-use crate::tile::tile_components::{TileAssetProvider, TileNeighbors, WorldTile};
+use crate::tile::tile_components::{TileAssetProvider, TileContents, TileNeighbors, WorldTile};
 use crate::{Position, TerrainType};
 use bevy::prelude::{Commands, Entity, Transform};
 use bevy::render::view::{InheritedVisibility, ViewVisibility, Visibility};
@@ -123,6 +123,8 @@ pub fn spawn_world_tiles_pass(
                         grid_pos: world_position,
                         terrain_type: terrain_at_position.clone(),
                     },
+                    // Track what entities are on this tile
+                    TileContents::default(),
                     // Bevy required components for rendering and transforms
                     Transform::default(),
                     Visibility::Inherited,

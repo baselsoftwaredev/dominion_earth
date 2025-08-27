@@ -108,6 +108,76 @@ pub struct TileNeighbors {
     pub west: Option<Entity>,
 }
 
+/// Component to track what entities are currently on this tile
+#[derive(Component, Default)]
+pub struct TileContents {
+    pub units: Vec<Entity>,
+    pub buildings: Vec<Entity>,
+    pub capitals: Vec<Entity>,
+    pub cities: Vec<Entity>,
+}
+
+impl TileContents {
+    pub fn add_unit(&mut self, entity: Entity) {
+        if !self.units.contains(&entity) {
+            self.units.push(entity);
+        }
+    }
+
+    pub fn add_building(&mut self, entity: Entity) {
+        if !self.buildings.contains(&entity) {
+            self.buildings.push(entity);
+        }
+    }
+
+    pub fn add_capital(&mut self, entity: Entity) {
+        if !self.capitals.contains(&entity) {
+            self.capitals.push(entity);
+        }
+    }
+
+    pub fn add_city(&mut self, entity: Entity) {
+        if !self.cities.contains(&entity) {
+            self.cities.push(entity);
+        }
+    }
+
+    pub fn remove_unit(&mut self, entity: Entity) {
+        self.units.retain(|&e| e != entity);
+    }
+
+    pub fn remove_building(&mut self, entity: Entity) {
+        self.buildings.retain(|&e| e != entity);
+    }
+
+    pub fn remove_capital(&mut self, entity: Entity) {
+        self.capitals.retain(|&e| e != entity);
+    }
+
+    pub fn remove_city(&mut self, entity: Entity) {
+        self.cities.retain(|&e| e != entity);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.units.is_empty()
+            && self.buildings.is_empty()
+            && self.capitals.is_empty()
+            && self.cities.is_empty()
+    }
+
+    pub fn has_capital(&self) -> bool {
+        !self.capitals.is_empty()
+    }
+
+    pub fn has_city(&self) -> bool {
+        !self.cities.is_empty()
+    }
+
+    pub fn has_units(&self) -> bool {
+        !self.units.is_empty()
+    }
+}
+
 #[derive(Component)]
 pub struct UnitSprite {
     pub unit_entity: Entity,

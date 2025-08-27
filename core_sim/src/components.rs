@@ -37,10 +37,22 @@ impl Position {
     pub fn adjacent_positions(&self) -> [Position; 4] {
         use crate::components::direction_offsets;
         [
-            Position::new(self.x + direction_offsets::NORTH.0, self.y + direction_offsets::NORTH.1), // North
-            Position::new(self.x + direction_offsets::SOUTH.0, self.y + direction_offsets::SOUTH.1), // South
-            Position::new(self.x + direction_offsets::EAST.0, self.y + direction_offsets::EAST.1),   // East
-            Position::new(self.x + direction_offsets::WEST.0, self.y + direction_offsets::WEST.1),   // West
+            Position::new(
+                self.x + direction_offsets::NORTH.0,
+                self.y + direction_offsets::NORTH.1,
+            ), // North
+            Position::new(
+                self.x + direction_offsets::SOUTH.0,
+                self.y + direction_offsets::SOUTH.1,
+            ), // South
+            Position::new(
+                self.x + direction_offsets::EAST.0,
+                self.y + direction_offsets::EAST.1,
+            ), // East
+            Position::new(
+                self.x + direction_offsets::WEST.0,
+                self.y + direction_offsets::WEST.1,
+            ), // West
         ]
     }
 
@@ -89,12 +101,12 @@ pub enum Direction {
 /// Direction constants for easy access
 pub mod directions {
     use super::Direction;
-    
+
     pub const NORTH: Direction = Direction::North;
     pub const SOUTH: Direction = Direction::South;
     pub const EAST: Direction = Direction::East;
     pub const WEST: Direction = Direction::West;
-    
+
     /// All directions as an array
     pub const ALL: [Direction; 4] = [NORTH, SOUTH, EAST, WEST];
 }
@@ -105,7 +117,7 @@ pub mod direction_names {
     pub const SOUTH: &str = "South";
     pub const EAST: &str = "East";
     pub const WEST: &str = "West";
-    
+
     /// All direction names as an array
     pub const ALL: [&str; 4] = [NORTH, SOUTH, EAST, WEST];
 }
@@ -120,7 +132,7 @@ pub mod direction_offsets {
     pub const EAST: (i32, i32) = (1, 0);
     /// (x, y) offset for West direction
     pub const WEST: (i32, i32) = (-1, 0);
-    
+
     /// All direction offsets as an array
     pub const ALL: [(i32, i32); 4] = [NORTH, SOUTH, EAST, WEST];
 }
@@ -130,7 +142,7 @@ impl Direction {
     pub fn all() -> [Direction; 4] {
         directions::ALL
     }
-    
+
     /// Get the string name for this direction
     pub fn name(&self) -> &'static str {
         match self {
@@ -326,6 +338,110 @@ pub struct City {
 impl Component for City {
     type Mutability = Mutable;
     const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
+/// Capital component for tracking civilization capitals through different ages
+#[derive(Debug, Clone)]
+pub struct Capital {
+    pub owner: CivId,
+    pub age: CapitalAge,
+    pub sprite_index: u32,
+    pub established_turn: u32,
+}
+
+// Manual Component implementation
+impl Component for Capital {
+    type Mutability = Mutable;
+    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
+}
+
+/// Ages that a capital can evolve through
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum CapitalAge {
+    Neolithic,
+    Bronze,
+    Iron,
+    Classical,
+    Medieval,
+    Renaissance,
+    Industrial,
+    Modern,
+    Information,
+    Future,
+}
+
+impl CapitalAge {
+    /// Get the sprite index for this capital age
+    pub fn sprite_index(&self) -> u32 {
+        match self {
+            CapitalAge::Neolithic => 3, // Use index 3 as requested
+            CapitalAge::Bronze => 5,    // You can assign these as you add more sprites
+            CapitalAge::Iron => 6,
+            CapitalAge::Classical => 7,
+            CapitalAge::Medieval => 8,
+            CapitalAge::Renaissance => 9,
+            CapitalAge::Industrial => 10,
+            CapitalAge::Modern => 11,
+            CapitalAge::Information => 12,
+            CapitalAge::Future => 13,
+        }
+    }
+
+    /// Get the next age for capital evolution
+    pub fn next_age(&self) -> Option<CapitalAge> {
+        match self {
+            CapitalAge::Neolithic => Some(CapitalAge::Bronze),
+            CapitalAge::Bronze => Some(CapitalAge::Iron),
+            CapitalAge::Iron => Some(CapitalAge::Classical),
+            CapitalAge::Classical => Some(CapitalAge::Medieval),
+            CapitalAge::Medieval => Some(CapitalAge::Renaissance),
+            CapitalAge::Renaissance => Some(CapitalAge::Industrial),
+            CapitalAge::Industrial => Some(CapitalAge::Modern),
+            CapitalAge::Modern => Some(CapitalAge::Information),
+            CapitalAge::Information => Some(CapitalAge::Future),
+            CapitalAge::Future => None, // Max evolution
+        }
+    }
+
+    /// Get the requirements for evolving to the next age
+    pub fn evolution_requirements(&self) -> CapitalEvolutionRequirements {
+        match self {
+            CapitalAge::Neolithic => CapitalEvolutionRequirements {
+                min_population: 2000,
+                required_technologies: vec!["Bronze Working".to_string()],
+                min_buildings: 2,
+                min_turn: 10,
+            },
+            CapitalAge::Bronze => CapitalEvolutionRequirements {
+                min_population: 4000,
+                required_technologies: vec!["Iron Working".to_string()],
+                min_buildings: 3,
+                min_turn: 25,
+            },
+            CapitalAge::Iron => CapitalEvolutionRequirements {
+                min_population: 8000,
+                required_technologies: vec!["Currency".to_string(), "Writing".to_string()],
+                min_buildings: 4,
+                min_turn: 50,
+            },
+            // Add more requirements as needed for other ages
+            _ => CapitalEvolutionRequirements {
+                min_population: 10000,
+                required_technologies: vec![],
+                min_buildings: 5,
+                min_turn: 100,
+            },
+        }
+    }
+}
+
+/// Requirements for capital evolution
+#[derive(Debug, Clone)]
+pub struct CapitalEvolutionRequirements {
+    pub min_population: u32,
+    pub required_technologies: Vec<String>,
+    pub min_buildings: usize,
+    pub min_turn: u32,
 }
 
 /// Building in a city

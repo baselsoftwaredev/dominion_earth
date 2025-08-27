@@ -52,33 +52,50 @@ pub fn setup_tilemap(
 }
 
 /// Spawn a unit/capital/city as a child of the correct tile entity in the tilemap
+/// Spawn a capital/unit/building at world coordinates aligned with tilemap positioning
 pub fn spawn_entity_on_tile(
-    mut commands: Commands,
-    tilemap_query: Query<&TileStorage>,
-    tilemap_id: TilemapId,
+    commands: &mut Commands,
     tile_assets: &TileAssets,
-    sprite_index: usize,
+    tile_storage: &TileStorage,
     position: Position,
-) {
+    sprite_index: usize,
+) -> Option<Entity> {
+    // Convert game position to tilemap position to verify tile exists
     let tile_pos = TilePos {
         x: position.x as u32,
         y: position.y as u32,
     };
-    if let Ok(tile_storage) = tilemap_query.get(tilemap_id.0) {
-        if let Some(tile_entity) = tile_storage.get(&tile_pos) {
-            commands.entity(tile_entity).with_children(|parent| {
-                parent.spawn((
-                    Sprite::from_atlas_image(
-                        tile_assets.sprite_sheet.clone(),
-                        TextureAtlas {
-                            layout: tile_assets.texture_atlas_layout.clone(),
-                            index: sprite_index,
-                        },
-                    ),
-                    Transform::from_translation(Vec3::new(0.0, 0.0, 1.0)), // Slightly above the tile
-                ));
-            });
-        }
+
+    // Verify the tile exists in storage
+    if tile_storage.get(&tile_pos).is_some() {
+        // Calculate world coordinates based on tile position and tile size
+        // bevy_ecs_tilemap uses 64x64 tiles, with tile center at (tile_size/2, tile_size/2)
+        let tile_size = 64.0;
+        let world_x = position.x as f32 * tile_size + tile_size / 2.0;
+        let world_y = position.y as f32 * tile_size + tile_size / 2.0;
+        let z = 100.0; // Much higher z-coordinate to ensure capitals render on top
+
+        // Spawn the sprite at world coordinates
+        let sprite_entity = commands
+            .spawn((
+                Sprite::from_atlas_image(
+                    tile_assets.sprite_sheet.clone(),
+                    TextureAtlas {
+                        layout: tile_assets.texture_atlas_layout.clone(),
+                        index: sprite_index,
+                    },
+                ),
+                Transform::from_xyz(world_x, world_y, z),
+            ))
+            .id();
+
+        println!("DEBUG: Spawned sprite at world coords ({}, {}, {}) for game position ({}, {}), sprite index: {}", 
+                 world_x, world_y, z, position.x, position.y, sprite_index);
+
+        Some(sprite_entity)
+    } else {
+        eprintln!("Warning: Could not find tile at position {:?}", position);
+        None
     }
 }
 
@@ -94,19 +111,21 @@ pub fn spawn_world_tiles(
 /// System to spawn all unit sprites on their respective tiles
 pub fn spawn_unit_sprites(
     mut commands: Commands,
-    tilemap_query: Query<&TileStorage>,
-    tilemap_id: Res<TilemapIdResource>,
     tile_assets: Res<TileAssets>,
     units: Query<(Entity, &Position), With<core_sim::components::MilitaryUnit>>,
+    tilemap_q: Query<&TileStorage, With<TilemapId>>,
 ) {
+    let Ok(tile_storage) = tilemap_q.get_single() else {
+        return;
+    };
+
     for (_, position) in units.iter() {
         spawn_entity_on_tile(
-            commands.reborrow(),
-            tilemap_query,
-            tilemap_id.0,
+            &mut commands,
             &tile_assets,
-            tile_assets.ancient_infantry_index,
+            tile_storage,
             *position,
+            tile_assets.ancient_infantry_index,
         );
     }
 }
@@ -114,22 +133,25 @@ pub fn spawn_unit_sprites(
 /// System to spawn all capital sprites on their respective tiles
 pub fn spawn_capital_sprites(
     mut commands: Commands,
-    tilemap_query: Query<&TileStorage>,
-    tilemap_id: Res<TilemapIdResource>,
     tile_assets: Res<TileAssets>,
-    civs: Query<(Entity, &core_sim::components::Civilization)>,
+    capitals: Query<(
+        &core_sim::components::Capital,
+        &core_sim::components::Position,
+    )>,
+    tilemap_q: Query<&TileStorage, With<TilemapId>>,
 ) {
-    for (_, civ) in civs.iter() {
-        if let Some(pos) = civ.capital {
-            spawn_entity_on_tile(
-                commands.reborrow(),
-                tilemap_query,
-                tilemap_id.0,
-                &tile_assets,
-                tile_assets.capital_ancient_index,
-                pos,
-            );
-        }
+    let Ok(tile_storage) = tilemap_q.get_single() else {
+        return;
+    };
+
+    for (capital, pos) in capitals.iter() {
+        spawn_entity_on_tile(
+            &mut commands,
+            &tile_assets,
+            tile_storage,
+            *pos,
+            capital.sprite_index as usize,
+        );
     }
 }
 
@@ -141,6 +163,36 @@ pub fn update_unit_sprites(
 ) {
     // Only process if there are actually changed units
     // Currently empty implementation - will be filled when unit movement is implemented
+}
+
+/// System to update capital sprites when they evolve
+pub fn update_capital_sprites(
+    mut commands: Commands,
+    tile_assets: Res<TileAssets>,
+    capitals: Query<
+        (
+            &core_sim::components::Capital,
+            &core_sim::components::Position,
+        ),
+        Changed<core_sim::components::Capital>,
+    >,
+    tilemap_q: Query<&TileStorage, With<TilemapId>>,
+) {
+    let Ok(tile_storage) = tilemap_q.get_single() else {
+        return;
+    };
+
+    for (capital, pos) in capitals.iter() {
+        // Remove old sprite and spawn new one with updated sprite index
+        // TODO: This is a simple approach - could be optimized to just update the texture index
+        spawn_entity_on_tile(
+            &mut commands,
+            &tile_assets,
+            tile_storage,
+            *pos,
+            capital.sprite_index as usize,
+        );
+    }
 }
 
 // System to render overlays (stub for future logic)

@@ -1,7 +1,7 @@
 use crate::{
     influence_map::{InfluenceMap, InfluenceType},
     resources::{ActiveCivTurn, CurrentTurn, GameRng, TurnPhase},
-    AIDecision, ActiveThisTurn, City, CivId, CivPersonality, Civilization, MilitaryUnit,
+    AIDecision, ActiveThisTurn, Capital, CapitalAge, City, CivId, CivPersonality, Civilization, MilitaryUnit,
     MovementOrder, Position, Territory, WorldMap,
 };
 use bevy_ecs::prelude::*;
@@ -419,7 +419,15 @@ pub fn spawn_civilizations_system(
             }],
         };
 
-        commands.spawn((city, position));
+        let capital = Capital {
+            owner: civ_id,
+            age: CapitalAge::Neolithic,
+            sprite_index: CapitalAge::Neolithic.sprite_index(),
+            established_turn: 0, // Starting at turn 0
+        };
+
+        // Spawn capital entity with both City and Capital components
+        commands.spawn((city, capital, position));
 
         // Claim starting territory
         if let Some(tile) = world_map.get_tile_mut(position) {
@@ -439,5 +447,49 @@ pub fn spawn_civilizations_system(
         };
 
         commands.spawn((initial_unit, position));
+    }
+}
+
+/// System for managing capital evolution through different ages
+pub fn capital_evolution_system(
+    mut capitals: Query<(&mut Capital, &City), With<Capital>>,
+    civilizations: Query<&Civilization>,
+    current_turn: Res<CurrentTurn>,
+) {
+    for (mut capital, city) in capitals.iter_mut() {
+        // Find the owning civilization to check technologies
+        if let Ok(civilization) = civilizations
+            .iter()
+            .find(|civ| civ.id == capital.owner)
+            .ok_or("Capital owner not found")
+        {
+            let requirements = capital.age.evolution_requirements();
+            
+            // Check if capital can evolve to next age
+            if let Some(next_age) = capital.age.next_age() {
+                let can_evolve = 
+                    // Population requirement
+                    city.population >= requirements.min_population &&
+                    // Turn requirement
+                    current_turn.0 >= capital.established_turn + requirements.min_turn &&
+                    // Buildings requirement
+                    city.buildings.len() >= requirements.min_buildings &&
+                    // Technology requirements
+                    requirements.required_technologies.iter().all(|tech| {
+                        *civilization.technologies.known.get(tech).unwrap_or(&false)
+                    });
+
+                if can_evolve {
+                    println!(
+                        "Capital of {} evolving from {:?} to {:?} at turn {}",
+                        civilization.name, capital.age, next_age, current_turn.0
+                    );
+                    
+                    capital.age = next_age.clone();
+                    capital.sprite_index = next_age.sprite_index();
+                    capital.established_turn = current_turn.0;
+                }
+            }
+        }
     }
 }

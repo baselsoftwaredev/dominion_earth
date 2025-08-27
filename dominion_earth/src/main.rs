@@ -115,7 +115,9 @@ fn main() {
                     input::select_tile_on_click,
                     game::game_update_system,
                     core_sim::systems::turn_based_system,
+                    core_sim::systems::capital_evolution_system,
                     rendering::update_unit_sprites,
+                    rendering::update_capital_sprites,
                 ),
             )
             .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);

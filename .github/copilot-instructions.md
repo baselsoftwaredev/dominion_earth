@@ -16,17 +16,17 @@ This is a modular Rust + Bevy 0.16 grand strategy game with a performance-optimi
 **Always use the default debug seed** for consistent debugging: `--seed 1756118413`
 
 ```bash
-# Standard development build
-cargo build --release
+# Standard development build (use debug for faster compilation)
+cargo build
 
 # Run with GUI and debug seed
-cargo run --release -- --seed 1756118413
+cargo run -- --seed 1756118413
 
-# Run headless simulation for performance testing
+# Run headless simulation for performance testing (use release only when needed)
 cargo run --release -- --headless --turns 200 --seed 1756118413
 
 # Enable debug logging for detailed output
-RUST_LOG=debug cargo run --release -- --seed 1756118413 --debug-logging
+RUST_LOG=debug cargo run -- --seed 1756118413 --debug-logging
 
 # Check available CLI options
 cargo run -- --help
@@ -106,6 +106,7 @@ RUST_LOG=core_sim::systems=debug cargo run -- --seed 1756118413
 ```
 
 **Benefits of terminal debugging over BRP:**
+
 - No need to start app in background with sleep delays
 - Immediate feedback during development
 - Can add prints exactly where you need verification
@@ -151,10 +152,11 @@ When extending AI, add new actions to the `AIAction` enum and implement scoring 
 
 ### Performance & Testing
 
+- **Use debug builds for development** - much faster compilation times
 - Release mode targets 200 turns in <2 seconds for headless simulation
 - Use `test_coast_logic.rs` pattern for isolated algorithm testing
 - Integration tests in `tests/` verify AI action compilation and execution
-- Profile with headless mode: `cargo run --release -- --headless --turns 200 --seed 1756118413`
+- Profile with headless mode: `cargo run --release -- --headless --turns 200 --seed 1756118413` (use release only for final performance testing)
 
 ### Bevy Remote Protocol (BRP) Development Workflow
 
