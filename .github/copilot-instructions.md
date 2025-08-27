@@ -6,7 +6,7 @@ This is a modular Rust + Bevy 0.16 grand strategy game with a performance-optimi
 
 - **core_sim/**: Pure ECS simulation engine using `bevy_ecs` (no graphics dependencies)
 - **ai_planner/**: Multi-layered AI system (Utility AI + GOAP + HTN planning)
-- **dominion_earth/**: Bevy frontend with 2D rendering, UI, and BRP debugging support
+- **dominion_earth/**: Bevy frontend with 2D rendering and UI
 - **assets/data/**: Game content defined in RON files (civilizations, units, technologies)
 
 ## Key Development Patterns
@@ -32,38 +32,13 @@ RUST_LOG=debug cargo run -- --seed 1756118413 --debug-logging
 cargo run -- --help
 ```
 
-### BRP Debugging Workflow (CRITICAL)
-
-**MANDATORY PATTERN**: BRP commands require the app to be running first with a sleep delay:
-
-```bash
-# Start app with BRP enabled in background, wait for startup, then query
-cargo run -- --enable-remote --seed 1756118413 & sleep 10 && curl -X POST http://localhost:15702/brp_extras/screenshot -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "brp_extras/screenshot", "params": {"path": "/tmp/coast_rotation_verification.png"}}'
-
-# Query entity count
-cargo run -- --enable-remote --seed 1756118413 & sleep 10 && curl -X POST http://localhost:15702/bevy/list -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "bevy/list"}' | jq '.result | length'
-
-# Query specific components
-cargo run -- --enable-remote --seed 1756118413 & sleep 10 && curl -X POST http://localhost:15702/bevy/query -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "bevy/query", "params": {"data": {"components": ["bevy_transform::components::transform::Transform"]}}}' | jq '.result | length'
-```
-
-**Why the sleep is required**: The Bevy app needs time to fully initialize the BRP server before accepting connections.
-
 ### Reading Debug Outputs
 
 Enable debug logging to see detailed information:
 
-```bash
-# See coast generation and tile neighbor logic
-RUST_LOG=debug cargo run -- --seed 1756118413 --debug-logging
-
-# View AI decision making process
-RUST_LOG=ai_planner=debug cargo run -- --seed 1756118413
-
-# Monitor turn progression and system execution
-RUST_LOG=core_sim::systems=debug cargo run -- --seed 1756118413
-
 # Enable all debug logging for comprehensive output
+
+```RUST
 RUST_LOG=debug cargo run -- --seed 1756118413 --debug-logging
 ```
 
@@ -73,45 +48,6 @@ Key debug output patterns to watch for:
 - AI coordinator decision generation and execution
 - Turn advancement and civilization state changes
 - Entity spawning and component assignments
-
-### Terminal-Based Debugging (Alternative to BRP)
-
-**When you want to verify solutions without using BRP**, add temporary logging directly in the code and read values in the terminal:
-
-```rust
-// Add temporary debug logging to verify your changes
-info!("DEBUG: Civilization {} has {} units", civ_id, unit_count);
-debug!("DEBUG: Coast tile at ({}, {}) converted to index {}", x, y, tile_index);
-warn!("DEBUG: AI decision result: {:?}", decision);
-
-// Use different log levels to filter output
-trace!("TRACE: Detailed step-by-step execution");
-debug!("DEBUG: Development debugging info");
-info!("INFO: Important state changes");
-warn!("WARN: Potential issues or verification");
-error!("ERROR: Critical problems");
-```
-
-**Run with appropriate log levels to see your debug output:**
-
-```bash
-# See only your INFO+ level debug messages
-RUST_LOG=info cargo run -- --seed 1756118413
-
-# See DEBUG+ level for detailed verification
-RUST_LOG=debug cargo run -- --seed 1756118413
-
-# Filter to specific modules
-RUST_LOG=core_sim::systems=debug cargo run -- --seed 1756118413
-```
-
-**Benefits of terminal debugging over BRP:**
-
-- No need to start app in background with sleep delays
-- Immediate feedback during development
-- Can add prints exactly where you need verification
-- Works with both GUI and headless modes
-- Easier for step-by-step algorithm verification
 
 ### Data-Driven Design
 
@@ -131,7 +67,6 @@ This project uses **bevy_ecs_tilemap** for efficient 2D tile rendering. Key docu
 - [bevy_ecs_tilemap docs](https://docs.rs/bevy_ecs_tilemap/latest/bevy_ecs_tilemap/)
 - Tilemap entities are separate from game logic entities
 - Tile indices correspond to sprite sheet positions in `assets/tiles/sprite-sheet.png`
-- Coast tiles use specific indices (8, 9, 1, 2) based on ocean neighbor patterns
 
 **Core ECS Principles**:
 
@@ -150,41 +85,88 @@ Three-layer AI approach in `ai_planner/`:
 
 When extending AI, add new actions to the `AIAction` enum and implement scoring in all three layers.
 
-### Performance & Testing
+## Gameplay Research & Inspiration
 
-- **Use debug builds for development** - much faster compilation times
-- Release mode targets 200 turns in <2 seconds for headless simulation
-- Use `test_coast_logic.rs` pattern for isolated algorithm testing
-- Integration tests in `tests/` verify AI action compilation and execution
-- Profile with headless mode: `cargo run --release -- --headless --turns 200 --seed 1756118413` (use release only for final performance testing)
+### 4X Game Repositories for Reference
 
-### Bevy Remote Protocol (BRP) Development Workflow
+When implementing gameplay features, study these open-source 4X games with similar mechanics to Civilization:
 
-**CRITICAL**: Always use the background + sleep pattern for BRP operations:
+- **[Unciv](https://github.com/yairm210/Unciv)** - Kotlin-based Civilization V clone with excellent turn-based mechanics
+- **[C7](https://github.com/C7-Game/Prototype)** - Modern 4X game prototype with innovative design patterns
+- **[OpenCiv1](https://github.com/rajko-horvat/OpenCiv1)** - Open source implementation of original Civilization
+- **[FreeOrion](https://github.com/freeorion/freeorion)** - Space-based 4X with complex AI and game systems
+- **[Freeciv21](https://github.com/longturn/freeciv21)** - Modern Qt-based Freeciv implementation
 
-1. **Start app in background**: `cargo run -- --enable-remote --seed 1756118413 &`
-2. **Wait for initialization**: `sleep 10` (app needs time to start BRP server)
-3. **Execute BRP commands**: Use curl with proper JSON-RPC format
+### Repository Analysis Tools
 
-Essential BRP operations:
+Use these DeepWiki MCP tools to study the referenced codebases:
 
 ```bash
-# Take screenshot for debugging
-curl -X POST http://localhost:15702/brp_extras/screenshot -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "brp_extras/screenshot", "params": {"path": "/tmp/debug_screenshot.png"}}'
+# Get repository structure and documentation topics
+mcp_deepwiki_read_wiki_structure("yairm210/Unciv")
 
-# List all registered components
-curl -X POST http://localhost:15702/bevy/list -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "bevy/list"}' | jq
+# Read specific documentation about gameplay systems
+mcp_deepwiki_read_wiki_contents("yairm210/Unciv")
 
-# Discover component format for spawning/modifying
-curl -X POST http://localhost:15702/brp_extras/discover_format -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "brp_extras/discover_format", "params": {"types": ["bevy_transform::components::transform::Transform"]}}'
+# Ask targeted questions about implementation details
+mcp_deepwiki_ask_question("yairm210/Unciv", "How does the AI system make tactical combat decisions?")
+mcp_deepwiki_ask_question("C7-Game/Prototype", "What data structures are used for tile-based world representation?")
+mcp_deepwiki_ask_question("freeorion/freeorion", "How is turn-based progression implemented with multiple players?")
 ```
+
+**Research Workflow:**
+
+1. Use `read_wiki_structure` to understand repository organization
+2. Use `read_wiki_contents` to study architectural decisions
+3. Use `ask_question` to get specific implementation guidance
+4. Adapt successful patterns to Dominion Earth's ECS architecture
+
+## VS Code Development Tools
+
+### Language Server Integration
+
+The project includes advanced VS Code tooling through MCP Bifrost for deep code analysis:
+
+#### Symbol Navigation
+
+- **`mcp_bifrost_find_usages`** - Find all references to functions, components, resources
+- **`mcp_bifrost_go_to_definition`** - Jump to symbol definitions instantly
+- **`mcp_bifrost_find_implementations`** - Discover ECS system implementations
+- **`mcp_bifrost_get_document_symbols`** - Outline all symbols in Rust files
+
+#### Code Intelligence
+
+- **`mcp_bifrost_get_hover_info`** - Get rich documentation on hover
+- **`mcp_bifrost_get_completions`** - Context-aware Rust auto-completions
+- **`mcp_bifrost_get_signature_help`** - Function parameter hints and overloads
+- **`mcp_bifrost_get_code_actions`** - Quick fixes, refactors, and Rust improvements
+
+#### Refactoring & Analysis
+
+- **`mcp_bifrost_get_rename_locations`** - Safe cross-project rename analysis
+- **`mcp_bifrost_rename`** - Perform symbol renames across the workspace
+- **`mcp_bifrost_get_call_hierarchy`** - See function call relationships in ECS systems
+- **`mcp_bifrost_get_type_hierarchy`** - Visualize trait and struct inheritance
+
+#### Advanced Features
+
+- **`mcp_bifrost_get_semantic_tokens`** - Enhanced Rust syntax highlighting
+- **`mcp_bifrost_get_code_lens`** - Inline insights (references, tests, etc.)
+- **`mcp_bifrost_get_selection_range`** - Smart selection expansion for code blocks
+- **`mcp_bifrost_get_workspace_symbols`** - Search symbols across entire Rust workspace
+
+**Development Workflow:**
+
+1. Use `get_workspace_symbols` to find existing ECS components/systems
+2. Use `find_usages` to understand how game mechanics are implemented
+3. Use `get_call_hierarchy` to trace system execution flow
+4. Use `rename` for safe refactoring across the modular architecture
 
 ### Code Organization
 
 - **Avoid** putting graphics code in `core_sim` - keep it pure ECS
 - **Use** workspace dependencies in `Cargo.toml` for version consistency
 - **Follow** turn-based system ordering: AI decisions → execution → world updates
-- **Test** new algorithms in standalone files (like `test_coast_logic.rs`) before integration
 - **Always use** the debug seed `--seed 1756118413` for reproducible testing
 
 ### Common Gotchas
@@ -192,6 +174,4 @@ curl -X POST http://localhost:15702/brp_extras/discover_format -H "Content-Type:
 - RON file syntax requires trailing commas in arrays/tuples
 - `core_sim::Resource` conflicts with `bevy_ecs::Resource` - use qualified imports
 - Headless mode requires different plugin setup than GUI mode
-- BRP requires `"bevy_remote"` and `"png"` features enabled in Bevy
-- **BRP commands fail without the sleep delay** - app startup takes time
 - Tilemap rendering requires proper sprite sheet tile indices (see coast logic for examples)

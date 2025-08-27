@@ -82,7 +82,7 @@ pub fn setup_tile_assets(
         coast_3_side_index: 1,     // 3 side coast (ocean to north, east, south pattern)
         island_index: 10,          // Island (ocean on all 4 sides) - TODO: Set actual index
         
-        capital_ancient_index: 8,  // Capital sprite index
+        capital_ancient_index: 3,  // Capital sprite index
         ancient_infantry_index: 9, // Infantry sprite index
     };
     commands.insert_resource(tile_assets);

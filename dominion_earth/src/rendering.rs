@@ -57,6 +57,11 @@ pub fn spawn_entity_on_tile(
     commands: &mut Commands,
     tile_assets: &TileAssets,
     tile_storage: &TileStorage,
+    map_size: &TilemapSize,
+    tile_size: &TilemapTileSize,
+    grid_size: &TilemapGridSize,
+    map_type: &TilemapType,
+    anchor: &TilemapAnchor,
     position: Position,
     sprite_index: usize,
 ) -> Option<Entity> {
@@ -67,15 +72,13 @@ pub fn spawn_entity_on_tile(
     };
 
     // Verify the tile exists in storage
-    if tile_storage.get(&tile_pos).is_some() {
-        // Calculate world coordinates based on tile position and tile size
-        // bevy_ecs_tilemap uses 64x64 tiles, with tile center at (tile_size/2, tile_size/2)
-        let tile_size = 64.0;
-        let world_x = position.x as f32 * tile_size + tile_size / 2.0;
-        let world_y = position.y as f32 * tile_size + tile_size / 2.0;
-        let z = 100.0; // Much higher z-coordinate to ensure capitals render on top
+    if let Some(_tile_entity) = tile_storage.get(&tile_pos) {
+        // Calculate world position properly using bevy_ecs_tilemap's coordinate system
+        let tile_center =
+            tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+        let world_pos = tile_center.extend(10.0); // Higher z-coordinate to render on top of tiles
 
-        // Spawn the sprite at world coordinates
+        // Spawn the sprite at the calculated world coordinates
         let sprite_entity = commands
             .spawn((
                 Sprite::from_atlas_image(
@@ -85,12 +88,12 @@ pub fn spawn_entity_on_tile(
                         index: sprite_index,
                     },
                 ),
-                Transform::from_xyz(world_x, world_y, z),
+                Transform::from_translation(world_pos),
             ))
             .id();
 
-        println!("DEBUG: Spawned sprite at world coords ({}, {}, {}) for game position ({}, {}), sprite index: {}", 
-                 world_x, world_y, z, position.x, position.y, sprite_index);
+        println!("DEBUG: Spawned sprite at world coords ({:.2}, {:.2}, {:.2}) for tile position ({}, {}), sprite index: {}", 
+                 world_pos.x, world_pos.y, world_pos.z, position.x, position.y, sprite_index);
 
         Some(sprite_entity)
     } else {
@@ -113,9 +116,20 @@ pub fn spawn_unit_sprites(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
     units: Query<(Entity, &Position), With<core_sim::components::MilitaryUnit>>,
-    tilemap_q: Query<&TileStorage, With<TilemapId>>,
+    tilemap_q: Query<
+        (
+            &TileStorage,
+            &TilemapSize,
+            &TilemapTileSize,
+            &TilemapGridSize,
+            &TilemapType,
+            &TilemapAnchor,
+        ),
+        With<TilemapId>,
+    >,
 ) {
-    let Ok(tile_storage) = tilemap_q.get_single() else {
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
+    else {
         return;
     };
 
@@ -124,6 +138,11 @@ pub fn spawn_unit_sprites(
             &mut commands,
             &tile_assets,
             tile_storage,
+            map_size,
+            tile_size,
+            grid_size,
+            map_type,
+            anchor,
             *position,
             tile_assets.ancient_infantry_index,
         );
@@ -138,17 +157,46 @@ pub fn spawn_capital_sprites(
         &core_sim::components::Capital,
         &core_sim::components::Position,
     )>,
-    tilemap_q: Query<&TileStorage, With<TilemapId>>,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
 ) {
-    let Ok(tile_storage) = tilemap_q.get_single() else {
+    let capital_count = capitals.iter().count();
+    println!(
+        "DEBUG: spawn_capital_sprites called with {} capitals",
+        capital_count
+    );
+
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
+    else {
+        println!("DEBUG: Could not get tilemap components");
         return;
     };
 
+    println!(
+        "DEBUG: Got tilemap components, map size: {}x{}",
+        map_size.x, map_size.y
+    );
+
     for (capital, pos) in capitals.iter() {
+        println!(
+            "DEBUG: Processing capital at position ({}, {}) with sprite index {}",
+            pos.x, pos.y, capital.sprite_index
+        );
         spawn_entity_on_tile(
             &mut commands,
             &tile_assets,
             tile_storage,
+            map_size,
+            tile_size,
+            grid_size,
+            map_type,
+            anchor,
             *pos,
             capital.sprite_index as usize,
         );
@@ -176,9 +224,17 @@ pub fn update_capital_sprites(
         ),
         Changed<core_sim::components::Capital>,
     >,
-    tilemap_q: Query<&TileStorage, With<TilemapId>>,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
 ) {
-    let Ok(tile_storage) = tilemap_q.get_single() else {
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
+    else {
         return;
     };
 
@@ -189,6 +245,11 @@ pub fn update_capital_sprites(
             &mut commands,
             &tile_assets,
             tile_storage,
+            map_size,
+            tile_size,
+            grid_size,
+            map_type,
+            anchor,
             *pos,
             capital.sprite_index as usize,
         );

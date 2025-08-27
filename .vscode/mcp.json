@@ -5,6 +5,14 @@
       "command": "bevy_brp_mcp",
       "args": [],
       "env": {}
+    },
+    "deepwiki": {
+      "type": "sse",
+      "url": "https://mcp.deepwiki.com/sse"
+    },
+    "Bifrost": {
+      "command": "npx",
+      "args": ["-y", "supergateway", "--sse", "http://localhost:8008/sse"],
     }
   }
 }
