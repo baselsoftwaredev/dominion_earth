@@ -1,5 +1,7 @@
 use crate::components::direction_names;
-use crate::tile::tile_components::{TileAssetProvider, TileContents, TileNeighbors, WorldTile};
+use crate::tile::tile_components::{
+    TileAssetProvider, TileCapabilities, TileContents, TileNeighbors, WorldTile,
+};
 use crate::{Position, TerrainType};
 use bevy::prelude::{Commands, Entity, Transform};
 use bevy::render::view::{InheritedVisibility, ViewVisibility, Visibility};
@@ -122,6 +124,7 @@ pub fn spawn_world_tiles_pass(
                     WorldTile {
                         grid_pos: world_position,
                         terrain_type: terrain_at_position.clone(),
+                        capabilities: TileCapabilities::from_terrain(&terrain_at_position),
                     },
                     // Track what entities are on this tile
                     TileContents::default(),
@@ -331,6 +334,7 @@ fn convert_ocean_to_shallow_coast_tile(
         .insert(WorldTile {
             grid_pos: Position::new(x_coord as i32, y_coord as i32),
             terrain_type: TerrainType::ShallowCoast,
+            capabilities: TileCapabilities::water(), // Shallow coast is water, not buildable
         });
 
     // Keep our terrain grid synchronized
@@ -702,6 +706,7 @@ fn convert_land_to_coast_tile(
         .insert(WorldTile {
             grid_pos: Position::new(x_coord as i32, y_coord as i32),
             terrain_type: TerrainType::Coast,
+            capabilities: TileCapabilities::coastal(), // Coast tiles are buildable (converted from land)
         });
 
     // Keep our terrain grid synchronized

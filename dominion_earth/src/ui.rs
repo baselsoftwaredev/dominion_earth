@@ -75,7 +75,8 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use core_sim::{
     resources::{CurrentTurn, WorldMap},
-    Civilization, Position,
+    components::{Capital, MilitaryUnit},
+    Civilization, Position, CivId,
 };
 
 /// Main UI system that orchestrates all UI components
@@ -89,6 +90,9 @@ pub fn ui_system(
     selected_tile: Res<SelectedTile>,
     mut last_logged_tile: ResMut<LastLoggedTile>,
     world_tile_query: Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
+    // Queries for structures on tiles
+    capitals: Query<(&Capital, &Position, &CivId)>,
+    units: Query<(&MilitaryUnit, &Position, &CivId)>,
 ) {
     if let Ok(ctx) = contexts.ctx_mut() {
         // Render main game panel (left sidebar)
@@ -101,6 +105,8 @@ pub fn ui_system(
             &world_tile_query,
             &civs,
             &world_map,
+            &capitals,
+            &units,
         );
 
         // Render statistics panel (bottom)
@@ -114,13 +120,15 @@ pub fn ui_system(
 /// Renders the main game information panel on the left side
 fn render_game_panel(
     ctx: &egui::Context,
-    current_turn: &CurrentTurn,
+    current_turn: &core_sim::resources::CurrentTurn,
     game_state: &mut GameState,
     selected_tile: &SelectedTile,
     last_logged_tile: &mut LastLoggedTile,
     world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
-    civs: &Query<&Civilization>,
-    world_map: &WorldMap,
+    civs: &Query<&core_sim::Civilization>,
+    world_map: &Res<core_sim::resources::WorldMap>,
+    capitals: &Query<(&Capital, &Position, &CivId)>,
+    units: &Query<(&MilitaryUnit, &Position, &CivId)>,
 ) {
     egui::SidePanel::left("game_panel")
         .resizable(true)
@@ -134,7 +142,7 @@ fn render_game_panel(
             render_turn_info(ui, current_turn, game_state);
             ui.separator();
 
-            render_selected_tile_info(ui, selected_tile, last_logged_tile, world_tile_query, world_map);
+            render_selected_tile_info(ui, selected_tile, last_logged_tile, world_tile_query, world_map, capitals, units);
 
             render_civilizations_list(ui, civs);
 
@@ -168,6 +176,8 @@ fn render_selected_tile_info(
     last_logged_tile: &mut LastLoggedTile,
     world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     world_map: &WorldMap,
+    capitals: &Query<(&Capital, &Position, &CivId)>,
+    units: &Query<(&MilitaryUnit, &Position, &CivId)>,
 ) {
     ui.heading("Selected Tile Info");
     
@@ -193,13 +203,6 @@ fn render_selected_tile_info(
                 // Collect neighbor information
                 neighbors_info = collect_neighbor_info(tile_neighbors, world_tile_query);
                 
-                // Display neighbors in UI
-                ui.separator();
-                ui.label("Neighbors:");
-                for (direction, terrain) in &neighbors_info {
-                    ui.label(format!("  {}: {:?}", direction, terrain));
-                }
-                
                 found_ecs = true;
                 break;
             }
@@ -207,6 +210,53 @@ fn render_selected_tile_info(
         
         if !found_ecs {
             ui.label("No ECS tile data found.");
+        }
+        
+        // Check for structures on this tile
+        ui.separator();
+        ui.label("Structures:");
+        let mut found_structures = false;
+        
+        // Debug: Log all capitals found by the query (only once per tile selection)
+        if should_log {
+            println!("UI DEBUG: Checking for structures at tile ({}, {})", pos.x, pos.y);
+            println!("UI DEBUG: Found {} capitals in query:", capitals.iter().count());
+            for (_capital, capital_pos, civ_id) in capitals.iter() {
+                println!("  Capital at ({}, {}) for Civ {}", capital_pos.x, capital_pos.y, civ_id.0);
+            }
+            println!("UI DEBUG: Found {} units in query:", units.iter().count());
+            for (unit, unit_pos, civ_id) in units.iter() {
+                println!("  {:?} at ({}, {}) for Civ {}", unit.unit_type, unit_pos.x, unit_pos.y, civ_id.0);
+            }
+        }
+        
+        // Check for capitals
+        for (_capital, capital_pos, civ_id) in capitals.iter() {
+            if capital_pos.x == pos.x && capital_pos.y == pos.y {
+                ui.label(format!("  🏛️ Capital (Civ {})", civ_id.0));
+                found_structures = true;
+            }
+        }
+        
+        // Check for military units
+        for (unit, unit_pos, civ_id) in units.iter() {
+            if unit_pos.x == pos.x && unit_pos.y == pos.y {
+                ui.label(format!("  ⚔️ {:?} (Civ {})", unit.unit_type, civ_id.0));
+                found_structures = true;
+            }
+        }
+        
+        if !found_structures {
+            ui.label("  (none)");
+        }
+        
+        if found_ecs {
+            // Display neighbors in UI
+            ui.separator();
+            ui.label("Neighbors:");
+            for (direction, terrain) in &neighbors_info {
+                ui.label(format!("  {}: {:?}", direction, terrain));
+            }
         }
         
         // Show data from WorldMap resource for comparison

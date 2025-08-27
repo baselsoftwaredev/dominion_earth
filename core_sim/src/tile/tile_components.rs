@@ -9,6 +9,70 @@ pub enum DefaultViewPoint {
     West,
     NorthWest,
 }
+
+/// Component that defines what capabilities a tile has
+/// This is set based on the original terrain before any conversions (like coast conversion)
+#[derive(Component, Debug, Clone, PartialEq, Eq)]
+pub struct TileCapabilities {
+    pub buildable: bool,      // Can build cities, capitals, improvements
+    pub walkable: bool,       // Can units move through this tile
+    pub naval: bool,          // Can naval units move through this tile
+    pub resource_yield: bool, // Can produce resources
+}
+
+impl TileCapabilities {
+    /// Creates capabilities for land-based terrain types
+    pub fn land() -> Self {
+        Self {
+            buildable: true,
+            walkable: true,
+            naval: false,
+            resource_yield: true,
+        }
+    }
+
+    /// Creates capabilities for water-based terrain types
+    pub fn water() -> Self {
+        Self {
+            buildable: false,
+            walkable: false,
+            naval: true,
+            resource_yield: false,
+        }
+    }
+
+    /// Creates capabilities for coastal terrain (converted from land)
+    pub fn coastal() -> Self {
+        Self {
+            buildable: true,      // Still buildable since it was originally land
+            walkable: true,       // Still walkable for land units
+            naval: true,          // Also accessible to naval units
+            resource_yield: true, // Can still produce resources
+        }
+    }
+
+    /// Creates capabilities for mountainous terrain
+    pub fn mountains() -> Self {
+        Self {
+            buildable: false, // Can't build on mountains
+            walkable: true,   // Can move through but with movement penalty
+            naval: false,
+            resource_yield: true, // Mountains can have resources
+        }
+    }
+
+    /// Determines capabilities based on the original terrain type (before any conversions)
+    pub fn from_terrain(terrain: &TerrainType) -> Self {
+        use crate::TerrainType::*;
+        match terrain {
+            Plains | Hills | Forest | Desert => Self::land(),
+            Mountains => Self::mountains(),
+            Ocean | ShallowCoast => Self::water(),
+            Coast => Self::coastal(), // Coast tiles were originally land, so they remain buildable
+            River => Self::water(),   // Rivers are not buildable
+        }
+    }
+}
 /// System to update tile asset index when terrain changes
 pub fn update_tile_asset_on_terrain_change(
     mut events: EventReader<TileTerrainChanged>,
@@ -98,6 +162,7 @@ use crate::{CivId, Position, TerrainType};
 pub struct WorldTile {
     pub grid_pos: Position,
     pub terrain_type: TerrainType,
+    pub capabilities: TileCapabilities, // Added capabilities based on original terrain
 }
 
 #[derive(Component, Clone)]

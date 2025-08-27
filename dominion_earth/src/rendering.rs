@@ -165,6 +165,7 @@ pub fn spawn_capital_sprites(
         &TilemapType,
         &TilemapAnchor,
     )>,
+    tile_q: Query<&WorldTile>,
 ) {
     let capital_count = capitals.iter().count();
     println!(
@@ -188,18 +189,55 @@ pub fn spawn_capital_sprites(
             "DEBUG: Processing capital at position ({}, {}) with sprite index {}",
             pos.x, pos.y, capital.sprite_index
         );
-        spawn_entity_on_tile(
-            &mut commands,
-            &tile_assets,
-            tile_storage,
-            map_size,
-            tile_size,
-            grid_size,
-            map_type,
-            anchor,
-            *pos,
-            capital.sprite_index as usize,
-        );
+
+        // Convert game position to tilemap position to check terrain
+        let tile_pos = TilePos {
+            x: pos.x as u32,
+            y: pos.y as u32,
+        };
+
+        // Get the tile entity to check its capabilities
+        if let Some(tile_entity) = tile_storage.get(&tile_pos) {
+            if let Ok(world_tile) = tile_q.get(tile_entity) {
+                // Only spawn capitals on buildable tiles (regardless of visual terrain type)
+                if world_tile.capabilities.buildable {
+                    println!(
+                        "DEBUG: Spawning capital on buildable {:?} tile at ({}, {})",
+                        world_tile.terrain_type, pos.x, pos.y
+                    );
+                    spawn_entity_on_tile(
+                        &mut commands,
+                        &tile_assets,
+                        tile_storage,
+                        map_size,
+                        tile_size,
+                        grid_size,
+                        map_type,
+                        anchor,
+                        *pos,
+                        capital.sprite_index as usize,
+                    );
+                } else {
+                    println!(
+                        "DEBUG: Skipping capital spawn on non-buildable {:?} tile at ({}, {}) - capabilities: buildable={}, walkable={}, naval={}",
+                        world_tile.terrain_type, pos.x, pos.y,
+                        world_tile.capabilities.buildable,
+                        world_tile.capabilities.walkable,
+                        world_tile.capabilities.naval
+                    );
+                }
+            } else {
+                println!(
+                    "DEBUG: Could not get WorldTile component for tile at ({}, {})",
+                    pos.x, pos.y
+                );
+            }
+        } else {
+            println!(
+                "DEBUG: Tile not found in storage at position ({}, {})",
+                pos.x, pos.y
+            );
+        }
     }
 }
 
