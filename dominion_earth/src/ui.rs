@@ -76,7 +76,7 @@ use bevy_egui::{egui, EguiContexts};
 use core_sim::{
     resources::{CurrentTurn, WorldMap},
     components::{Capital, MilitaryUnit},
-    Civilization, Position, CivId,
+    Civilization, Position,
 };
 
 /// Main UI system that orchestrates all UI components
@@ -91,8 +91,8 @@ pub fn ui_system(
     mut last_logged_tile: ResMut<LastLoggedTile>,
     world_tile_query: Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     // Queries for structures on tiles
-    capitals: Query<(&Capital, &Position, &CivId)>,
-    units: Query<(&MilitaryUnit, &Position, &CivId)>,
+    capitals: Query<(&Capital, &Position)>,
+    units: Query<(&MilitaryUnit, &Position)>,
 ) {
     if let Ok(ctx) = contexts.ctx_mut() {
         // Render main game panel (left sidebar)
@@ -127,8 +127,8 @@ fn render_game_panel(
     world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     civs: &Query<&core_sim::Civilization>,
     world_map: &Res<core_sim::resources::WorldMap>,
-    capitals: &Query<(&Capital, &Position, &CivId)>,
-    units: &Query<(&MilitaryUnit, &Position, &CivId)>,
+    capitals: &Query<(&Capital, &Position)>,
+    units: &Query<(&MilitaryUnit, &Position)>,
 ) {
     egui::SidePanel::left("game_panel")
         .resizable(true)
@@ -176,8 +176,8 @@ fn render_selected_tile_info(
     last_logged_tile: &mut LastLoggedTile,
     world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     world_map: &WorldMap,
-    capitals: &Query<(&Capital, &Position, &CivId)>,
-    units: &Query<(&MilitaryUnit, &Position, &CivId)>,
+    capitals: &Query<(&Capital, &Position)>,
+    units: &Query<(&MilitaryUnit, &Position)>,
 ) {
     ui.heading("Selected Tile Info");
     
@@ -221,27 +221,27 @@ fn render_selected_tile_info(
         if should_log {
             println!("UI DEBUG: Checking for structures at tile ({}, {})", pos.x, pos.y);
             println!("UI DEBUG: Found {} capitals in query:", capitals.iter().count());
-            for (_capital, capital_pos, civ_id) in capitals.iter() {
-                println!("  Capital at ({}, {}) for Civ {}", capital_pos.x, capital_pos.y, civ_id.0);
+            for (capital, capital_pos) in capitals.iter() {
+                println!("  Capital at ({}, {}) for Civ {}", capital_pos.x, capital_pos.y, capital.owner.0);
             }
             println!("UI DEBUG: Found {} units in query:", units.iter().count());
-            for (unit, unit_pos, civ_id) in units.iter() {
-                println!("  {:?} at ({}, {}) for Civ {}", unit.unit_type, unit_pos.x, unit_pos.y, civ_id.0);
+            for (unit, unit_pos) in units.iter() {
+                println!("  {:?} at ({}, {}) for Civ {}", unit.unit_type, unit_pos.x, unit_pos.y, unit.owner.0);
             }
         }
         
         // Check for capitals
-        for (_capital, capital_pos, civ_id) in capitals.iter() {
+        for (capital, capital_pos) in capitals.iter() {
             if capital_pos.x == pos.x && capital_pos.y == pos.y {
-                ui.label(format!("  🏛️ Capital (Civ {})", civ_id.0));
+                ui.label(format!("  🏛️ Capital (Civ {})", capital.owner.0));
                 found_structures = true;
             }
         }
         
         // Check for military units
-        for (unit, unit_pos, civ_id) in units.iter() {
+        for (unit, unit_pos) in units.iter() {
             if unit_pos.x == pos.x && unit_pos.y == pos.y {
-                ui.label(format!("  ⚔️ {:?} (Civ {})", unit.unit_type, civ_id.0));
+                ui.label(format!("  ⚔️ {:?} (Civ {})", unit.unit_type, unit.owner.0));
                 found_structures = true;
             }
         }

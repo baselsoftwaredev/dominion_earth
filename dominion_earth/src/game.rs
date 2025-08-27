@@ -71,9 +71,28 @@ fn spawn_initial_civilizations(
     rng: &mut rand_pcg::Pcg64,
 ) {
     let starting_positions = world_gen::get_starting_positions();
+    let mut spawned_count = 0;
 
     for (i, (name, position, color)) in starting_positions.into_iter().take(20).enumerate() {
         let civ_id = CivId(i as u32);
+
+        // Check if the position is on a buildable tile
+        let is_buildable = if let Some(tile) = world_map.get_tile(position) {
+            match tile.terrain {
+                core_sim::TerrainType::Plains | core_sim::TerrainType::Coast => true,
+                _ => false,
+            }
+        } else {
+            false
+        };
+
+        if !is_buildable {
+            println!(
+                "DEBUG: Skipping {} capital spawn - position ({}, {}) is not on buildable terrain",
+                name, position.x, position.y
+            );
+            continue;
+        }
 
         // Create civilization with random personality
         use rand::Rng;
@@ -124,7 +143,7 @@ fn spawn_initial_civilizations(
         };
 
         println!(
-            "DEBUG: Spawning capital for {} at {:?} with sprite index {}",
+            "DEBUG: Spawning capital for {} at {:?} with sprite index {} (buildable terrain)",
             name, position, capital.sprite_index
         );
 
@@ -149,9 +168,13 @@ fn spawn_initial_civilizations(
         };
 
         commands.spawn((initial_unit, position));
+        spawned_count += 1;
     }
 
-    println!("Spawned 20 civilizations");
+    println!(
+        "Spawned {} civilizations on buildable terrain",
+        spawned_count
+    );
 }
 
 /// Main game update system - optimized to only update when necessary
