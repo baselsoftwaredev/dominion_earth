@@ -1,11 +1,5 @@
 {
   "servers": {
-    "brp": {
-      "type": "stdio",
-      "command": "bevy_brp_mcp",
-      "args": [],
-      "env": {}
-    },
     "deepwiki": {
       "type": "sse",
       "url": "https://mcp.deepwiki.com/sse"

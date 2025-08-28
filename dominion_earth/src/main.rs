@@ -1,5 +1,4 @@
 mod game;
-mod headless;
 mod input;
 mod rendering;
 mod ui;
@@ -19,10 +18,6 @@ use core_sim::{
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    /// Run in headless mode (no graphics)
-    #[arg(long)]
-    headless: bool,
-
     /// Enable auto-advance (AI turns run automatically)
     #[arg(long, default_value_t = false)]
     auto_advance: bool,
@@ -47,21 +42,17 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
 
-    if cli.headless {
-        // Run headless simulation for testing
-        headless::run_headless_simulation(cli.seed);
-    } else {
-        // Run full Bevy application
-        let mut app = App::new();
+    // Run full Bevy application
+    let mut app = App::new();
 
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Dominion Earth".to_string(),
-                resolution: (1200.0, 800.0).into(),
-                ..default()
-            }),
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "Dominion Earth".to_string(),
+            resolution: (1200.0, 800.0).into(),
             ..default()
-        }))
+        }),
+        ..default()
+    }))
         .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(bevy_ecs_tilemap::TilemapPlugin)
         .add_plugins(FramepacePlugin);
@@ -125,7 +116,6 @@ fn main() {
             .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
 
         app.run();
-    }
 }
 
 fn setup_camera(mut commands: Commands) {

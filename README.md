@@ -7,14 +7,14 @@ A turn-based, 2D grand strategy game prototype built with Rust and Bevy 0.16. Ex
 - **AI-Driven Gameplay**: ~40 civilizations with unique personalities using Utility AI + GOAP/HTN planning
 - **Real Earth Map**: Civilizations placed in historically accurate starting locations
 - **Data-Driven Design**: All game content defined in RON/JSON asset files
-- **Performance Optimized**: Headless simulation targets 200 turns in <2 seconds (release mode)
+- **Performance Optimized**: Efficient real-time simulation with GUI rendering
 - **Deterministic Simulation**: Reproducible gameplay with seeded random number generation
 - **Modular Architecture**: Separate crates for core simulation, AI planning, and Bevy frontend
 
 ## 🏗️ Architecture
 
 ```
-dominion_earth/          # Main Bevy application (GUI + headless)
+dominion_earth/          # Main Bevy application (GUI)
 ├── core_sim/            # Pure ECS simulation engine
 ├── ai_planner/          # AI decision-making system
 └── assets/data/         # Game content (RON files)
@@ -53,11 +53,6 @@ cargo build --release
 # Run with GUI (default)
 cargo run --release
 
-# Run headless simulation for performance testing
-cargo run --release -- --headless
-
-# Run specific simulation scenarios
-cargo run --release -- --headless --turns 200 --civs 40
 ```
 
 ### Development
@@ -238,18 +233,13 @@ RUST_LOG=dominion_earth::ai=debug,core_sim=info cargo run
 
 ### Performance Benchmarks
 
-The headless mode includes built-in performance testing:
+The game includes built-in performance monitoring:
 
 ```bash
-# Test 200 turns with timing
-cargo run --release -- --headless --turns 200
-
-# Test with different civilization counts
-cargo run --release -- --headless --turns 100 --civs 20
-cargo run --release -- --headless --turns 100 --civs 40
+# Test with debug logging enabled
 ```
 
-Target performance: **200 turns in <2 seconds** (release mode)
+Target performance: **Efficient real-time simulation** with GUI rendering
 
 ### Unit Tests
 
@@ -341,9 +331,9 @@ cargo build
 **Performance Issues**:
 
 ```bash
-# Ensure release mode for performance testing
+# Ensure release mode for optimal performance
 cargo build --release
-cargo run --release -- --headless
+cargo run --release
 ```
 
 **Asset Loading Errors**:
@@ -381,7 +371,7 @@ RUST_LOG=debug cargo run 2>&1 | tee debug.log
 
 - **ECS Pattern**: Chosen for performance and modularity
 - **Data-Driven**: Enables easy modding and balancing
-- **Separate Simulation**: Allows headless testing and alternative frontends
+- **Separate Simulation**: Allows modular testing and alternative development workflows
 - **Multi-layered AI**: Provides sophisticated but predictable behavior
 
 ## 📋 Roadmap

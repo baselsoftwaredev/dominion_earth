@@ -10,7 +10,7 @@ This is a turn-based, 4-directional tile-based grand strategy game built with Ru
 - `ai_planner/`: Multi-layered AI system (Utility AI + GOAP + HTN)
 - `dominion_earth/`: Bevy frontend with 2D rendering and UI
 
-**Key Design Pattern:** Clean separation between game logic and presentation enables headless performance testing and modular development.
+**Key Design Pattern:** Clean separation between game logic and presentation enables modular development and testing.
 
 ## Current Build Status
 
@@ -127,13 +127,7 @@ personality: (
 
 ## Performance & Testing
 
-**Headless Mode:**
-
-```bash
-cargo run --release -- --headless --turns 200
-```
-
-**Performance Target:** 200 turns in <2 seconds (release mode)
+**Performance Target:** Efficient real-time simulation with GUI rendering
 
 **Deterministic Simulation:** Uses `GameRng` resource with seeded `rand_pcg` for reproducible results
 
@@ -143,7 +137,7 @@ cargo run --release -- --headless --turns 200
 - `core_sim/src/components.rs`: All ECS components with manual implementations
 - `core_sim/src/systems.rs`: System coordination and game loop
 - `ai_planner/src/ai_coordinator.rs`: Multi-layer AI decision making
-- `dominion_earth/src/main.rs`: Bevy app setup with headless/GUI modes
+- `dominion_earth/src/main.rs`: Bevy app setup and GUI configuration
 - `dominion_earth/assets/data/civilizations.ron`: Civ definitions and personalities
 
 ## Common Development Patterns
@@ -161,7 +155,7 @@ cargo run --release -- --headless --turns 200
 - **Remember** RON syntax uses parentheses, not braces
 - **Ensure** all movement logic respects 4-directional constraint
 - **Verify** `From` trait implementations exist for `SimError` variants
-- **Test** changes with both `cargo run` and `cargo run -- --headless`
+- **Test** changes with `cargo run` for GUI functionality
 
 ## Current Technical Debt
 

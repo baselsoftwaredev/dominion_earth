@@ -22,9 +22,6 @@ cargo build
 # Run with GUI and debug seed
 cargo run -- --seed 1756118413
 
-# Run headless simulation for performance testing (use release only when needed)
-cargo run --release -- --headless --turns 200 --seed 1756118413
-
 # Enable debug logging for detailed output
 RUST_LOG=debug cargo run -- --seed 1756118413 --debug-logging
 
@@ -70,7 +67,7 @@ This project uses **bevy_ecs_tilemap** for efficient 2D tile rendering. Key docu
 
 **Core ECS Principles**:
 
-- **core_sim** is pure ECS - no graphics dependencies, designed for headless performance
+- **core_sim** is pure ECS - no graphics dependencies, designed for performance
 - Components live in `core_sim/src/components.rs` with clear separation (Position, CivId, Unit types)
 - Systems in `core_sim/src/systems/` follow turn-based patterns (AI planning → execution → world update)
 - Use `bevy_ecs::Resource` for global state, avoid direct field access
@@ -173,5 +170,4 @@ The project includes advanced VS Code tooling through MCP Bifrost for deep code 
 
 - RON file syntax requires trailing commas in arrays/tuples
 - `core_sim::Resource` conflicts with `bevy_ecs::Resource` - use qualified imports
-- Headless mode requires different plugin setup than GUI mode
 - Tilemap rendering requires proper sprite sheet tile indices (see coast logic for examples)
