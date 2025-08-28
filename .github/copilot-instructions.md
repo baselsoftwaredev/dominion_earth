@@ -61,7 +61,9 @@ This project uses **bevy_ecs_tilemap** for efficient 2D tile rendering. Key docu
 **Core ECS Principles**:
 
 - **core_sim** is pure ECS - no graphics dependencies, designed for performance
-- Components live in `core_sim/src/components.rs` with clear separation (Position, CivId, Unit types)
+- **Components** organized in modular structure:
+  - `core_sim/src/components/` - Modular component files (position, civilization, military, city, terrain, diplomacy, ai, orders)
+  - All components use manual `Component` trait implementations (no `#[derive(Component)]`)
 - Systems in `core_sim/src/systems/` follow turn-based patterns (AI planning → execution → world update)
 - Use `bevy_ecs::Resource` for global state, avoid direct field access
 
@@ -126,9 +128,12 @@ mcp_deepwiki_ask_question("freeorion/freeorion", "How is turn-based progression 
 - **Use** workspace dependencies in `Cargo.toml` for version consistency
 - **Follow** turn-based system ordering: AI decisions → execution → world updates
 - **Always use** the debug seed `--seed 1756118413` for reproducible testing
+- **Component Organization**: Prefer modular `components/` folder over monolithic `components.rs`
 
 ### Common Gotchas
 
 - RON file syntax requires trailing commas in arrays/tuples
 - `core_sim::Resource` conflicts with `bevy_ecs::Resource` - use qualified imports
 - Tilemap rendering requires proper sprite sheet tile indices (see coast logic for examples)
+- Manual `Component` trait implementations required (no `#[derive(Component)]`)
+- Import conflicts between modular and legacy component files - prefer modular imports
