@@ -1,6 +1,6 @@
+use crate::debug_utils::{DebugLogging, DebugUtils};
 use ai_planner::ai_coordinator::AICoordinatorSystem;
 use bevy::prelude::*;
-use crate::debug_utils::{DebugLogging, DebugUtils};
 use core_sim::{
     self,
     resources::{GameConfig, GameRng, WorldMap},
@@ -136,7 +136,12 @@ fn spawn_initial_civilizations(
             established_turn: 0, // Starting at turn 0
         };
 
-        DebugUtils::log_capital_spawn_success(&debug_logging, &name, &position, capital.sprite_index as usize);
+        DebugUtils::log_capital_spawn_success(
+            &debug_logging,
+            &name,
+            &position,
+            capital.sprite_index as usize,
+        );
 
         // Spawn capital entity with both City and Capital components
         commands.spawn((city, capital, position));

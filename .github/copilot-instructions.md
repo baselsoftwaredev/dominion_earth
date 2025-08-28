@@ -39,13 +39,6 @@ Enable debug logging to see detailed information:
 RUST_LOG=debug cargo run -- --seed 1756118413 --debug-logging
 ```
 
-Key debug output patterns to watch for:
-
-- Coast tile conversions and tile index assignments
-- AI coordinator decision generation and execution
-- Turn advancement and civilization state changes
-- Entity spawning and component assignments
-
 ### Data-Driven Design
 
 All game content lives in `dominion_earth/assets/data/*.ron`:
@@ -119,38 +112,6 @@ mcp_deepwiki_ask_question("freeorion/freeorion", "How is turn-based progression 
 4. Adapt successful patterns to Dominion Earth's ECS architecture
 
 ## VS Code Development Tools
-
-### Language Server Integration
-
-The project includes advanced VS Code tooling through MCP Bifrost for deep code analysis:
-
-#### Symbol Navigation
-
-- **`mcp_bifrost_find_usages`** - Find all references to functions, components, resources
-- **`mcp_bifrost_go_to_definition`** - Jump to symbol definitions instantly
-- **`mcp_bifrost_find_implementations`** - Discover ECS system implementations
-- **`mcp_bifrost_get_document_symbols`** - Outline all symbols in Rust files
-
-#### Code Intelligence
-
-- **`mcp_bifrost_get_hover_info`** - Get rich documentation on hover
-- **`mcp_bifrost_get_completions`** - Context-aware Rust auto-completions
-- **`mcp_bifrost_get_signature_help`** - Function parameter hints and overloads
-- **`mcp_bifrost_get_code_actions`** - Quick fixes, refactors, and Rust improvements
-
-#### Refactoring & Analysis
-
-- **`mcp_bifrost_get_rename_locations`** - Safe cross-project rename analysis
-- **`mcp_bifrost_rename`** - Perform symbol renames across the workspace
-- **`mcp_bifrost_get_call_hierarchy`** - See function call relationships in ECS systems
-- **`mcp_bifrost_get_type_hierarchy`** - Visualize trait and struct inheritance
-
-#### Advanced Features
-
-- **`mcp_bifrost_get_semantic_tokens`** - Enhanced Rust syntax highlighting
-- **`mcp_bifrost_get_code_lens`** - Inline insights (references, tests, etc.)
-- **`mcp_bifrost_get_selection_range`** - Smart selection expansion for code blocks
-- **`mcp_bifrost_get_workspace_symbols`** - Search symbols across entire Rust workspace
 
 **Development Workflow:**
 

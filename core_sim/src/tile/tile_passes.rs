@@ -674,7 +674,12 @@ fn convert_land_to_coast_tile(
 ) {
     // Debug log the conversion using core debug utilities
     let ocean_direction_names = ocean_neighbors.get_ocean_direction_names();
-    CoreDebugUtils::log_coast_conversion(x_coord, y_coord, original_terrain, &ocean_direction_names);
+    CoreDebugUtils::log_coast_conversion(
+        x_coord,
+        y_coord,
+        original_terrain,
+        &ocean_direction_names,
+    );
 
     // Determine both coast sprite index and flip settings in one call
     let (coast_sprite_index, tile_flip) =

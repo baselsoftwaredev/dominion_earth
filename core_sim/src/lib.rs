@@ -1,5 +1,3 @@
-use bevy_ecs::component::Mutable;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub mod components;
@@ -33,7 +31,7 @@ pub use resources::{
 #[derive(Debug, Clone)]
 pub struct GameState {
     pub turn: u32,
-    pub civilizations: HashMap<CivId, CivilizationData>,
+    pub civilizations: HashMap<CivId, components::ai::CivilizationData>,
     pub current_player: Option<CivId>,
 }
 
@@ -50,19 +48,11 @@ impl Default for GameState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct CivId(pub u32);
-
-// Manual Component implementation
-impl bevy_ecs::component::Component for CivId {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
-}
-
-impl From<u32> for CivId {
-    fn from(id: u32) -> Self {
-        CivId(id)
-    }
+/// Errors related to civilization operations
+#[derive(Debug, Clone, PartialEq)]
+pub enum CivError {
+    /// Civilization with given ID not found
+    CivNotFound(CivId),
 }
 
 /// Core simulation error types

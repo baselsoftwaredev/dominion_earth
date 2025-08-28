@@ -1,7 +1,7 @@
 use crate::TerrainType;
 
 /// Debug utilities for the core simulation
-/// 
+///
 /// This module provides centralized debug logging that respects both RUST_LOG and DEBUG_LOGGING environment variables.
 /// These utilities can be used across all packages in the workspace.
 pub struct CoreDebugUtils;
@@ -20,7 +20,12 @@ impl CoreDebugUtils {
     }
 
     /// Log tile conversion operations
-    pub fn log_tile_conversion(x: u32, y: u32, from_terrain: &TerrainType, to_terrain: &TerrainType) {
+    pub fn log_tile_conversion(
+        x: u32,
+        y: u32,
+        from_terrain: &TerrainType,
+        to_terrain: &TerrainType,
+    ) {
         if Self::is_debug_enabled() {
             println!(
                 "Converting tile at ({}, {}) from {:?} to {:?}",
@@ -32,19 +37,24 @@ impl CoreDebugUtils {
     /// Log ocean to shallow coast conversion
     pub fn log_shallow_coast_conversion(x: u32, y: u32) {
         if Self::is_debug_enabled() {
-            println!(
-                "Converting ocean tile at ({}, {}) to ShallowCoast",
-                x, y
-            );
+            println!("Converting ocean tile at ({}, {}) to ShallowCoast", x, y);
         }
     }
 
     /// Log land to coast conversion with ocean neighbors
-    pub fn log_coast_conversion(x: u32, y: u32, original_terrain: &TerrainType, ocean_directions: &[&str]) {
+    pub fn log_coast_conversion(
+        x: u32,
+        y: u32,
+        original_terrain: &TerrainType,
+        ocean_directions: &[&str],
+    ) {
         if Self::is_debug_enabled() {
             println!(
                 "Converting land tile at ({}, {}) from {:?} to Coast. Ocean neighbors: {}",
-                x, y, original_terrain, ocean_directions.join(", ")
+                x,
+                y,
+                original_terrain,
+                ocean_directions.join(", ")
             );
         }
     }
@@ -59,15 +69,17 @@ impl CoreDebugUtils {
     /// Log tile flip operations
     pub fn log_tile_flip(x: bool, y: bool, d: bool) {
         if Self::is_debug_enabled() && (x || y || d) {
-            println!(
-                "  -> Flipping tile: x={}, y={}, d={}",
-                x, y, d
-            );
+            println!("  -> Flipping tile: x={}, y={}, d={}", x, y, d);
         }
     }
 
     /// Log neighbor analysis for debugging
-    pub fn log_neighbor_analysis(x: u32, y: u32, terrain: &TerrainType, neighbors: &[(&str, Option<TerrainType>)]) {
+    pub fn log_neighbor_analysis(
+        x: u32,
+        y: u32,
+        terrain: &TerrainType,
+        neighbors: &[(&str, Option<TerrainType>)],
+    ) {
         if Self::is_debug_enabled() {
             println!("=== TILE NEIGHBOR ANALYSIS ===");
             println!("Center tile at ({}, {}): {:?}", x, y, terrain);
@@ -98,20 +110,14 @@ impl CoreDebugUtils {
     /// Log turn order initialization
     pub fn log_turn_order_init(civ_count: usize) {
         if Self::is_debug_enabled() {
-            println!(
-                "Initialized turn order with {} civilizations",
-                civ_count
-            );
+            println!("Initialized turn order with {} civilizations", civ_count);
         }
     }
 
     /// Log civilization turn activation
     pub fn log_civ_turn_active(turn: u32, civ_name: &str, civ_id: &str) {
         if Self::is_debug_enabled() {
-            println!(
-                "Turn {}: {} ({}) is now active",
-                turn, civ_name, civ_id
-            );
+            println!("Turn {}: {} ({}) is now active", turn, civ_name, civ_id);
         }
     }
 
