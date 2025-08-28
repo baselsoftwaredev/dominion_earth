@@ -128,12 +128,49 @@ mcp_deepwiki_ask_question("freeorion/freeorion", "How is turn-based progression 
 - **Use** workspace dependencies in `Cargo.toml` for version consistency
 - **Follow** turn-based system ordering: AI decisions → execution → world updates
 - **Always use** the debug seed `--seed 1756118413` for reproducible testing
-- **Component Organization**: Prefer modular `components/` folder over monolithic `components.rs`
+- **Component Organization**: Use modular `components/`
 
-### Common Gotchas
+### File Structure & Refactoring Guidelines
 
-- RON file syntax requires trailing commas in arrays/tuples
-- `core_sim::Resource` conflicts with `bevy_ecs::Resource` - use qualified imports
-- Tilemap rendering requires proper sprite sheet tile indices (see coast logic for examples)
-- Manual `Component` trait implementations required (no `#[derive(Component)]`)
-- Import conflicts between modular and legacy component files - prefer modular imports
+**When files become too large:**
+
+- Refactor large files into their own folder with multiple smaller files
+- Split functionality by logical domains (e.g., `combat/mod.rs`, `combat/damage.rs`, `combat/targeting.rs`)
+- Use `mod.rs` files to re-export public APIs from the folder modules
+- Keep individual files under ~300-500 lines when possible
+
+**Code Readability Best Practices:**
+
+- **Avoid nested loops and complex if conditions** - use early returns and guard clauses
+- **Use early inverse if statements** to reduce nesting depth:
+
+  ```rust
+  // Preferred: Early return pattern
+  if !condition {
+      return;
+  }
+  // Main logic here
+
+  // Avoid: Nested conditions
+  if condition {
+      // Long nested block
+  }
+  ```
+
+- **Extract loop logic into dedicated functions** for better readability:
+
+  ```rust
+  // Preferred: Extract complex loops
+  fn process_entities(entities: &[Entity]) {
+      for entity in entities {
+          process_single_entity(entity);
+      }
+  }
+
+  fn process_single_entity(entity: &Entity) {
+      // Complex logic here
+  }
+  ```
+
+- **Keep functions focused** - each function should do one thing well
+- **Use descriptive function names** that explain the operation being performed
