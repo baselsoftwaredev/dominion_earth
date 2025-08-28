@@ -115,13 +115,15 @@ fn initialize_headless_game(seed: Option<u64>) -> GameState {
     });
     let mut rng = rand_pcg::Pcg64::seed_from_u64(random_seed);
 
-    if seed.is_some() {
+    if seed.is_some() && std::env::var("RUST_LOG").is_ok() {
         println!("Using custom random seed: {}", random_seed);
     }
-    println!(
-        "Generating headless world with random seed: {}",
-        random_seed
-    );
+    if std::env::var("RUST_LOG").is_ok() {
+        println!(
+            "Generating headless world with random seed: {}",
+            random_seed
+        );
+    }
 
     // Generate world
     let _world_map = world_gen::generate_island_map(100, 50, &mut rng);

@@ -249,6 +249,7 @@ pub struct GameConfig {
     pub ai_difficulty: AIDifficulty,
     pub world_size: WorldSize,
     pub random_seed: u64,
+    pub debug_logging: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -281,6 +282,7 @@ impl Default for GameConfig {
             ai_difficulty: AIDifficulty::Normal,
             world_size: WorldSize::Medium,
             random_seed,
+            debug_logging: false,
         }
     }
 }

@@ -1,4 +1,5 @@
-use crate::ui::{DebugLogging, SelectedTile};
+use crate::debug_utils::{DebugLogging, DebugUtils};
+use crate::ui::SelectedTile;
 use bevy::prelude::*;
 use core_sim::components::Position;
 use core_sim::tile::tile_components::{TileNeighbors, WorldTile};
@@ -34,30 +35,24 @@ fn display_neighbor_info(
     world_tile: &WorldTile,
     neighbors: &TileNeighbors,
     tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
+    debug_logging: &DebugLogging,
 ) {
     let pos = world_tile.grid_pos;
-    println!(
-        "=== DEBUG LOGGING: Tile ({}, {}) Neighbors ===",
-        pos.x, pos.y
-    );
-    println!(
-        "DEBUG LOG - Center tile: {:?}",
-        world_tile.terrain_type
-    );
+    DebugUtils::log_neighbors_header(debug_logging, pos.x, pos.y, &format!("{:?}", world_tile.terrain_type));
 
     // Show North neighbor
-    display_single_neighbor("North", neighbors.north, tile_query);
+    display_single_neighbor("North", neighbors.north, tile_query, debug_logging);
 
     // Show South neighbor
-    display_single_neighbor("South", neighbors.south, tile_query);
+    display_single_neighbor("South", neighbors.south, tile_query, debug_logging);
 
     // Show East neighbor
-    display_single_neighbor("East", neighbors.east, tile_query);
+    display_single_neighbor("East", neighbors.east, tile_query, debug_logging);
 
     // Show West neighbor
-    display_single_neighbor("West", neighbors.west, tile_query);
+    display_single_neighbor("West", neighbors.west, tile_query, debug_logging);
 
-    println!("===============================");
+    DebugUtils::log_neighbors_footer(debug_logging);
 }
 
 /// Display information for a single neighbor
@@ -65,19 +60,20 @@ fn display_single_neighbor(
     direction: &str,
     neighbor_entity: Option<Entity>,
     tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
+    debug_logging: &DebugLogging,
 ) {
     if let Some(entity) = neighbor_entity {
         if let Ok((_, tile, _)) = tile_query.get(entity) {
-            println!(
-                "{}: {:?} at ({}, {})",
+            DebugUtils::log_single_neighbor(
+                debug_logging,
                 direction,
-                tile.terrain_type,
-                tile.grid_pos.x,
-                tile.grid_pos.y
+                Some(&format!("{:?}", tile.terrain_type)),
+                Some(tile.grid_pos.x),
+                Some(tile.grid_pos.y),
             );
         }
     } else {
-        println!("{}: OutOfBounds", direction);
+        DebugUtils::log_single_neighbor(debug_logging, direction, None, None, None);
     }
 }
 
@@ -91,21 +87,17 @@ fn process_tile_selection(
 ) {
     // Check if tile exists in world map
     if world_map.get_tile(position).is_some() {
-        if debug_logging.0 {
-            println!("Tile exists in world map.");
-        }
+        DebugUtils::log_info(debug_logging, "Tile exists in world map.");
         selected_tile.position = Some(position);
 
         // Find the tile entity and show neighbor information
         if let Some((_, world_tile, neighbors)) = find_tile_entity(position, tile_query) {
             if debug_logging.0 {
-                display_neighbor_info(world_tile, neighbors, tile_query);
+                display_neighbor_info(world_tile, neighbors, tile_query, debug_logging);
             }
         }
     } else {
-        if debug_logging.0 {
-            println!("No tile data found at this position.");
-        }
+        DebugUtils::log_info(debug_logging, "No tile data found at this position.");
         selected_tile.position = None;
     }
 }
@@ -138,7 +130,7 @@ pub fn select_tile_on_click(
 
     match cursor_to_tile_position(cursor_pos, camera, camera_transform) {
         Ok(position) => {
-            println!("Tile clicked: ({}, {})", position.x, position.y);
+            DebugUtils::log_tile_click(&debug_logging, position.x, position.y);
             process_tile_selection(
                 position,
                 &world_map,
@@ -148,9 +140,7 @@ pub fn select_tile_on_click(
             );
         }
         Err(error_msg) => {
-            if debug_logging.0 {
-                println!("{}", error_msg);
-            }
+            DebugUtils::log_info(&debug_logging, error_msg);
             selected_tile.position = None;
         }
     }
@@ -164,30 +154,17 @@ pub fn handle_input(
     mut game_state: ResMut<GameState>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
     time: Res<Time>,
+    debug_logging: Res<DebugLogging>,
 ) {
     // Game controls
     if keyboard_input.just_pressed(KeyCode::KeyP) {
         game_state.paused = !game_state.paused;
-        println!(
-            "Game {}",
-            if game_state.paused {
-                "paused"
-            } else {
-                "resumed"
-            }
-        );
+        DebugUtils::log_game_state_change(&debug_logging, "paused", game_state.paused);
     }
 
     if keyboard_input.just_pressed(KeyCode::KeyA) {
         game_state.auto_advance = !game_state.auto_advance;
-        println!(
-            "Auto-advance {}",
-            if game_state.auto_advance {
-                "enabled"
-            } else {
-                "disabled"
-            }
-        );
+        DebugUtils::log_game_state_change(&debug_logging, "auto-advance", game_state.auto_advance);
     }
 
     if keyboard_input.just_pressed(KeyCode::Equal)
@@ -198,7 +175,7 @@ pub fn handle_input(
         game_state
             .turn_timer
             .set_duration(std::time::Duration::from_secs_f32(2.0 / speed));
-        println!("Simulation speed: {:.1}x", speed);
+        DebugUtils::log_simulation_speed(&debug_logging, speed);
     }
 
     if keyboard_input.just_pressed(KeyCode::Minus)
@@ -209,7 +186,7 @@ pub fn handle_input(
         game_state
             .turn_timer
             .set_duration(std::time::Duration::from_secs_f32(2.0 / speed));
-        println!("Simulation speed: {:.1}x", speed);
+        DebugUtils::log_simulation_speed(&debug_logging, speed);
     }
 
     // Camera controls

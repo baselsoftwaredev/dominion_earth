@@ -3,15 +3,6 @@ pub struct SelectedTile {
     pub position: Option<Position>,
 }
 
-#[derive(Resource, Clone)]
-pub struct DebugLogging(pub bool);
-
-impl Default for DebugLogging {
-    fn default() -> Self {
-        Self(false)
-    }
-}
-
 #[derive(Resource, Default, Clone)]
 pub struct LastLoggedTile {
     pub position: Option<Position>,
@@ -71,6 +62,7 @@ pub struct TerrainCounts {
 //     };
 // }
 use crate::game::GameState;
+use crate::debug_utils::{DebugUtils, DebugLogging};
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts};
 use core_sim::{
@@ -89,6 +81,7 @@ pub fn ui_system(
     civs: Query<&Civilization>,
     selected_tile: Res<SelectedTile>,
     mut last_logged_tile: ResMut<LastLoggedTile>,
+    debug_logging: Res<DebugLogging>,
     world_tile_query: Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     // Queries for structures on tiles
     capitals: Query<(&Capital, &Position)>,
@@ -102,6 +95,7 @@ pub fn ui_system(
             &mut game_state,
             &selected_tile,
             &mut last_logged_tile,
+            &debug_logging,
             &world_tile_query,
             &civs,
             &world_map,
@@ -124,6 +118,7 @@ fn render_game_panel(
     game_state: &mut GameState,
     selected_tile: &SelectedTile,
     last_logged_tile: &mut LastLoggedTile,
+    debug_logging: &DebugLogging,
     world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     civs: &Query<&core_sim::Civilization>,
     world_map: &Res<core_sim::resources::WorldMap>,
@@ -142,7 +137,7 @@ fn render_game_panel(
             render_turn_info(ui, current_turn, game_state);
             ui.separator();
 
-            render_selected_tile_info(ui, selected_tile, last_logged_tile, world_tile_query, world_map, capitals, units);
+            render_selected_tile_info(ui, selected_tile, last_logged_tile, debug_logging, world_tile_query, world_map, capitals, units);
 
             render_civilizations_list(ui, civs);
 
@@ -174,6 +169,7 @@ fn render_selected_tile_info(
     ui: &mut egui::Ui,
     selected_tile: &SelectedTile,
     last_logged_tile: &mut LastLoggedTile,
+    debug_logging: &DebugLogging,
     world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     world_map: &WorldMap,
     capitals: &Query<(&Capital, &Position)>,
@@ -219,15 +215,13 @@ fn render_selected_tile_info(
         
         // Debug: Log all capitals found by the query (only once per tile selection)
         if should_log {
-            println!("UI DEBUG: Checking for structures at tile ({}, {})", pos.x, pos.y);
-            println!("UI DEBUG: Found {} capitals in query:", capitals.iter().count());
-            for (capital, capital_pos) in capitals.iter() {
-                println!("  Capital at ({}, {}) for Civ {}", capital_pos.x, capital_pos.y, capital.owner.0);
-            }
-            println!("UI DEBUG: Found {} units in query:", units.iter().count());
-            for (unit, unit_pos) in units.iter() {
-                println!("  {:?} at ({}, {}) for Civ {}", unit.unit_type, unit_pos.x, unit_pos.y, unit.owner.0);
-            }
+            DebugUtils::log_tile_check(debug_logging, &pos);
+            
+            let capitals_vec: Vec<_> = capitals.iter().collect();
+            DebugUtils::log_capitals(debug_logging, &capitals_vec);
+            
+            let units_vec: Vec<_> = units.iter().collect();
+            DebugUtils::log_units(debug_logging, &units_vec);
         }
         
         // Check for capitals
@@ -270,22 +264,13 @@ fn render_selected_tile_info(
         
         // Log comparison for debugging (only once per tile selection)
         if found_ecs && should_log {
-            println!("=== UI DISPLAY: Tile ({}, {}) Data ===", pos.x, pos.y);
-            println!("UI DISPLAY - ECS Terrain: {:?}", ecs_terrain.as_ref().unwrap());
-            
-            // Print neighbor terrain types
-            println!("UI DISPLAY - Neighbors:");
-            for (direction, terrain) in &neighbors_info {
-                println!("  {}: {:?}", direction, terrain);
-            }
-            
-            if let Some(ref wm_terrain) = worldmap_terrain {
-                println!("UI DISPLAY - WorldMap Terrain: {:?}", wm_terrain);
-                if ecs_terrain.as_ref().unwrap() != wm_terrain {
-                    println!("⚠️  TERRAIN MISMATCH: ECS={:?} vs WorldMap={:?}", ecs_terrain.as_ref().unwrap(), wm_terrain);
-                }
-            }
-            println!("=====================================");
+            DebugUtils::log_terrain_comparison(
+                debug_logging,
+                &pos,
+                ecs_terrain.as_ref(),
+                worldmap_terrain.as_ref(),
+                &neighbors_info,
+            );
         }
         
         ui.separator();

@@ -1,5 +1,6 @@
 use ai_planner::ai_coordinator::AICoordinatorSystem;
 use bevy::prelude::*;
+use crate::debug_utils::{DebugLogging, DebugUtils};
 use core_sim::{
     self,
     resources::{GameConfig, GameRng, WorldMap},
@@ -40,13 +41,11 @@ pub fn setup_game(
     // mut influence_map: ResMut<InfluenceMap>,
     mut rng: ResMut<GameRng>,
     game_config: Res<GameConfig>,
+    debug_logging: Res<DebugLogging>,
 ) {
     // Initialize the random number generator with configured seed
     rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
-    println!(
-        "Generating world with random seed: {}",
-        game_config.random_seed
-    );
+    DebugUtils::log_world_generation(&debug_logging, game_config.random_seed);
 
     // Generate the world map (reduced size for better performance)
     *world_map = world_gen::generate_island_map(50, 25, &mut rng.0);
@@ -57,18 +56,16 @@ pub fn setup_game(
     // influence_map.add_layer(InfluenceType::Threat);
 
     // Spawn initial civilizations
-    spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0);
+    spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0, &debug_logging);
 
-    println!(
-        "Game world initialized with {} x {} map (reduced size for performance)",
-        world_map.width, world_map.height
-    );
+    DebugUtils::log_world_generation_complete(&debug_logging, world_map.width, world_map.height);
 }
 
 fn spawn_initial_civilizations(
     commands: &mut Commands,
     world_map: &mut WorldMap,
     rng: &mut rand_pcg::Pcg64,
+    debug_logging: &DebugLogging,
 ) {
     let starting_positions = world_gen::get_starting_positions();
     let mut spawned_count = 0;
@@ -87,10 +84,7 @@ fn spawn_initial_civilizations(
         };
 
         if !is_buildable {
-            println!(
-                "DEBUG: Skipping {} capital spawn - position ({}, {}) is not on buildable terrain",
-                name, position.x, position.y
-            );
+            DebugUtils::log_capital_spawn_skip(&debug_logging, &name, position.x, position.y);
             continue;
         }
 
@@ -142,10 +136,7 @@ fn spawn_initial_civilizations(
             established_turn: 0, // Starting at turn 0
         };
 
-        println!(
-            "DEBUG: Spawning capital for {} at {:?} with sprite index {} (buildable terrain)",
-            name, position, capital.sprite_index
-        );
+        DebugUtils::log_capital_spawn_success(&debug_logging, &name, &position, capital.sprite_index as usize);
 
         // Spawn capital entity with both City and Capital components
         commands.spawn((city, capital, position));
@@ -171,10 +162,7 @@ fn spawn_initial_civilizations(
         spawned_count += 1;
     }
 
-    println!(
-        "Spawned {} civilizations on buildable terrain",
-        spawned_count
-    );
+    DebugUtils::log_civilization_spawn(&debug_logging, spawned_count);
 }
 
 /// Main game update system - optimized to only update when necessary

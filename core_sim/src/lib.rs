@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub mod components;
+pub mod debug_utils;
 pub mod influence_map;
 pub mod pathfinding;
 pub mod resources;
@@ -18,6 +19,7 @@ pub mod world_gen;
 pub mod tile;
 
 pub use components::*;
+pub use debug_utils::CoreDebugUtils;
 // Import specific items from resources to avoid Resource trait conflict
 pub use resources::{
     DiplomaticEvent,

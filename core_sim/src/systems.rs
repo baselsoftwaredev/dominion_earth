@@ -1,4 +1,5 @@
 use crate::{
+    debug_utils::CoreDebugUtils,
     influence_map::{InfluenceMap, InfluenceType},
     resources::{ActiveCivTurn, CurrentTurn, GameRng, TurnPhase},
     AIDecision, ActiveThisTurn, Capital, CapitalAge, City, CivId, CivPersonality, Civilization, MilitaryUnit,
@@ -34,10 +35,7 @@ pub fn turn_based_system(
     // Initialize civilization list if empty
     if active_civ_turn.civs_per_turn.is_empty() {
         active_civ_turn.civs_per_turn = civs.iter().map(|(_, civ)| civ.id).collect();
-        println!(
-            "Initialized turn order with {} civilizations",
-            active_civ_turn.civs_per_turn.len()
-        );
+        CoreDebugUtils::log_turn_order_init(active_civ_turn.civs_per_turn.len());
     }
 
     if active_civ_turn.civs_per_turn.is_empty() {
@@ -57,10 +55,7 @@ pub fn turn_based_system(
             for (entity, civ) in civs.iter() {
                 if civ.id == current_civ_id {
                     commands.entity(entity).insert(ActiveThisTurn);
-                    println!(
-                        "Turn {}: {} ({:?}) is now active",
-                        current_turn.0, civ.name, civ.id
-                    );
+                    CoreDebugUtils::log_civ_turn_active(current_turn.0, &civ.name, &format!("{:?}", civ.id));
                     break;
                 }
             }
@@ -91,10 +86,7 @@ pub fn turn_based_system(
                             if let Some(new_pos) = valid_moves.choose(&mut rng.0) {
                                 *pos = *new_pos;
                                 unit.position = *new_pos;
-                                println!(
-                                    "  Unit {} owned by Civ {} moved to ({}, {})",
-                                    unit.id, unit.owner.0, new_pos.x, new_pos.y
-                                );
+                                CoreDebugUtils::log_unit_movement(unit.id, unit.owner.0, new_pos.x, new_pos.y);
                             }
                         }
                     }
@@ -112,8 +104,7 @@ pub fn turn_based_system(
                 // All civilizations have had their turn, advance the game turn
                 active_civ_turn.current_civ_index = 0;
                 current_turn.0 += 1;
-                println!("=== Turn {} Complete ===", current_turn.0 - 1);
-                println!("=== Starting Turn {} ===", current_turn.0);
+                CoreDebugUtils::log_turn_complete(current_turn.0 - 1, current_turn.0);
             }
 
             active_civ_turn.turn_phase = TurnPhase::Planning;
@@ -138,7 +129,7 @@ pub fn advance_turn(
     // Advance turn counter
     current_turn.0 += 1;
 
-    println!("Advanced to turn {}", current_turn.0);
+    CoreDebugUtils::log_turn_advance(current_turn.0);
 }
 
 /// System to mark civilizations as active for the current turn
@@ -480,9 +471,11 @@ pub fn capital_evolution_system(
                     });
 
                 if can_evolve {
-                    println!(
-                        "Capital of {} evolving from {:?} to {:?} at turn {}",
-                        civilization.name, capital.age, next_age, current_turn.0
+                    CoreDebugUtils::log_capital_evolution(
+                        &civilization.name, 
+                        &format!("{:?}", capital.age), 
+                        &format!("{:?}", next_age), 
+                        current_turn.0
                     );
                     
                     capital.age = next_age.clone();

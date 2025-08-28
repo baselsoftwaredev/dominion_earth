@@ -4,6 +4,7 @@ mod input;
 mod rendering;
 mod ui;
 pub mod unit_assets;
+mod debug_utils;
 
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
@@ -82,12 +83,13 @@ fn main() {
                     config.random_seed = seed;
                     println!("Using custom random seed: {}", seed);
                 }
+                config.debug_logging = cli.debug_logging;
                 config
             })
             .init_resource::<GameRng>()
             .init_resource::<WorldMap>()
             .insert_resource(game::GameState::with_auto_advance(cli.auto_advance))
-            .insert_resource(ui::DebugLogging(cli.debug_logging))
+            .insert_resource(debug_utils::DebugLogging(cli.debug_logging))
             .init_resource::<ui::SelectedTile>()
             .init_resource::<ui::LastLoggedTile>()
             .init_resource::<ui::TerrainCounts>()

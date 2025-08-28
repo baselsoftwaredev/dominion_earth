@@ -1,6 +1,6 @@
-use core_sim::tile::tile_components::TileNeighbors;
-use core_sim::tile::tile_components::{DefaultViewPoint, WorldTile};
+use core_sim::tile::tile_components::WorldTile;
 
+use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::tile::tile_assets::TileAssets;
@@ -64,6 +64,7 @@ pub fn spawn_entity_on_tile(
     anchor: &TilemapAnchor,
     position: Position,
     sprite_index: usize,
+    debug_logging: &DebugLogging,
 ) -> Option<Entity> {
     // Convert game position to tilemap position to verify tile exists
     let tile_pos = TilePos {
@@ -92,7 +93,7 @@ pub fn spawn_entity_on_tile(
             ))
             .id();
 
-        println!("DEBUG: Spawned sprite at world coords ({:.2}, {:.2}, {:.2}) for tile position ({}, {}), sprite index: {}", 
+        crate::debug_log!(debug_logging, "DEBUG: Spawned sprite at world coords ({:.2}, {:.2}, {:.2}) for tile position ({}, {}), sprite index: {}", 
                  world_pos.x, world_pos.y, world_pos.z, position.x, position.y, sprite_index);
 
         Some(sprite_entity)
@@ -127,6 +128,7 @@ pub fn spawn_unit_sprites(
         ),
         With<TilemapId>,
     >,
+    debug_logging: Res<DebugLogging>,
 ) {
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
@@ -145,6 +147,7 @@ pub fn spawn_unit_sprites(
             anchor,
             *position,
             tile_assets.ancient_infantry_index,
+            &debug_logging,
         );
     }
 }
@@ -166,28 +169,35 @@ pub fn spawn_capital_sprites(
         &TilemapAnchor,
     )>,
     tile_q: Query<&WorldTile>,
+    debug_logging: Res<DebugLogging>,
 ) {
     let capital_count = capitals.iter().count();
-    println!(
+    crate::debug_log!(
+        debug_logging,
         "DEBUG: spawn_capital_sprites called with {} capitals",
         capital_count
     );
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
-        println!("DEBUG: Could not get tilemap components");
+        crate::debug_log!(debug_logging, "DEBUG: Could not get tilemap components");
         return;
     };
 
-    println!(
+    crate::debug_log!(
+        debug_logging,
         "DEBUG: Got tilemap components, map size: {}x{}",
-        map_size.x, map_size.y
+        map_size.x,
+        map_size.y
     );
 
     for (capital, pos) in capitals.iter() {
-        println!(
+        crate::debug_log!(
+            debug_logging,
             "DEBUG: Processing capital at position ({}, {}) with sprite index {}",
-            pos.x, pos.y, capital.sprite_index
+            pos.x,
+            pos.y,
+            capital.sprite_index
         );
 
         // Convert game position to tilemap position
@@ -199,9 +209,12 @@ pub fn spawn_capital_sprites(
         // Get the tile entity to log terrain type for debugging
         if let Some(tile_entity) = tile_storage.get(&tile_pos) {
             if let Ok(world_tile) = tile_q.get(tile_entity) {
-                println!(
+                crate::debug_log!(
+                    debug_logging,
                     "DEBUG: Spawning capital on {:?} tile at ({}, {})",
-                    world_tile.terrain_type, pos.x, pos.y
+                    world_tile.terrain_type,
+                    pos.x,
+                    pos.y
                 );
             }
         }
@@ -218,6 +231,7 @@ pub fn spawn_capital_sprites(
             anchor,
             *pos,
             capital.sprite_index as usize,
+            &debug_logging,
         );
     }
 }
@@ -251,6 +265,7 @@ pub fn update_capital_sprites(
         &TilemapType,
         &TilemapAnchor,
     )>,
+    debug_logging: Res<DebugLogging>,
 ) {
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
@@ -271,6 +286,7 @@ pub fn update_capital_sprites(
             anchor,
             *pos,
             capital.sprite_index as usize,
+            &debug_logging,
         );
     }
 }

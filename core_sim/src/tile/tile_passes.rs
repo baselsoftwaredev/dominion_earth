@@ -1,4 +1,5 @@
 use crate::components::direction_names;
+use crate::debug_utils::CoreDebugUtils;
 use crate::tile::tile_components::{
     TileAssetProvider, TileCapabilities, TileContents, TileNeighbors, WorldTile,
 };
@@ -320,11 +321,8 @@ fn convert_ocean_to_shallow_coast_tile(
     terrain_grid: &mut Vec<Vec<TerrainType>>,
     world_map: &mut crate::resources::WorldMap,
 ) {
-    // Log the conversion for debugging
-    println!(
-        "Converting ocean tile at ({}, {}) to ShallowCoast",
-        x_coord, y_coord
-    );
+    // Debug log the conversion using core debug utilities
+    CoreDebugUtils::log_shallow_coast_conversion(x_coord, y_coord);
 
     // Update the tile entity with shallow coast components
     // Using sprite index 17 as specified by the user
@@ -674,29 +672,16 @@ fn convert_land_to_coast_tile(
     terrain_grid: &mut Vec<Vec<TerrainType>>,
     world_map: &mut crate::resources::WorldMap,
 ) {
-    // Log the conversion for debugging
+    // Debug log the conversion using core debug utilities
     let ocean_direction_names = ocean_neighbors.get_ocean_direction_names();
-    println!(
-        "Converting land tile at ({}, {}) from {:?} to Coast. Ocean neighbors: {}",
-        x_coord,
-        y_coord,
-        original_terrain,
-        ocean_direction_names.join(", ")
-    );
+    CoreDebugUtils::log_coast_conversion(x_coord, y_coord, original_terrain, &ocean_direction_names);
 
     // Determine both coast sprite index and flip settings in one call
     let (coast_sprite_index, tile_flip) =
         determine_coast_sprite_and_flip(ocean_neighbors, tile_assets);
 
-    println!("  -> Using coast tile index: {}", coast_sprite_index);
-
-    // Log flip decision for debugging
-    if tile_flip.x || tile_flip.y || tile_flip.d {
-        println!(
-            "  -> Flipping tile: x={}, y={}, d={}",
-            tile_flip.x, tile_flip.y, tile_flip.d
-        );
-    }
+    CoreDebugUtils::log_coast_sprite_selection(coast_sprite_index);
+    CoreDebugUtils::log_tile_flip(tile_flip.x, tile_flip.y, tile_flip.d);
 
     // Update the tile entity with coast components
     commands
