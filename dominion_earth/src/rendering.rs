@@ -64,6 +64,7 @@ pub fn spawn_entity_on_tile(
     anchor: &TilemapAnchor,
     position: Position,
     sprite_index: usize,
+    z_offset: f32,
     debug_logging: &DebugLogging,
 ) -> Option<Entity> {
     // Convert game position to tilemap position to verify tile exists
@@ -77,7 +78,7 @@ pub fn spawn_entity_on_tile(
         // Calculate world position properly using bevy_ecs_tilemap's coordinate system
         let tile_center =
             tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
-        let world_pos = tile_center.extend(10.0); // Higher z-coordinate to render on top of tiles
+        let world_pos = tile_center.extend(z_offset); // Use custom z-offset for different entity types
 
         // Spawn the sprite at the calculated world coordinates
         let sprite_entity = commands
@@ -116,26 +117,69 @@ pub fn spawn_world_tiles(
 pub fn spawn_unit_sprites(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
-    units: Query<(Entity, &Position), With<core_sim::components::MilitaryUnit>>,
-    tilemap_q: Query<
-        (
-            &TileStorage,
-            &TilemapSize,
-            &TilemapTileSize,
-            &TilemapGridSize,
-            &TilemapType,
-            &TilemapAnchor,
-        ),
-        With<TilemapId>,
-    >,
+    units: Query<(
+        &core_sim::components::MilitaryUnit,
+        &core_sim::components::Position,
+    )>,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
     debug_logging: Res<DebugLogging>,
 ) {
+    let unit_count = units.iter().count();
+    crate::debug_log!(
+        debug_logging,
+        "DEBUG: spawn_unit_sprites called with {} units",
+        unit_count
+    );
+
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
+        crate::debug_log!(
+            debug_logging,
+            "DEBUG: Could not get tilemap components for units"
+        );
         return;
     };
 
-    for (_, position) in units.iter() {
+    crate::debug_log!(
+        debug_logging,
+        "DEBUG: Got tilemap components for units, map size: {}x{}",
+        map_size.x,
+        map_size.y
+    );
+
+    for (unit, position) in units.iter() {
+        crate::debug_log!(
+            debug_logging,
+            "DEBUG: Processing unit {:?} at position ({}, {})",
+            unit.unit_type,
+            position.x,
+            position.y
+        );
+
+        // Get sprite index based on unit type
+        let sprite_index = match unit.unit_type {
+            core_sim::UnitType::Infantry => tile_assets.ancient_infantry_index,
+            core_sim::UnitType::Cavalry => tile_assets.ancient_infantry_index, // TODO: Add cavalry sprite
+            core_sim::UnitType::Archer => tile_assets.ancient_infantry_index, // TODO: Add archer sprite
+            core_sim::UnitType::Siege => tile_assets.ancient_infantry_index, // TODO: Add siege sprite
+            core_sim::UnitType::Naval => tile_assets.ancient_infantry_index, // TODO: Add naval sprite
+        };
+
+        crate::debug_log!(
+            debug_logging,
+            "DEBUG: Spawning unit sprite with index {} at ({}, {})",
+            sprite_index,
+            position.x,
+            position.y
+        );
+
         spawn_entity_on_tile(
             &mut commands,
             &tile_assets,
@@ -146,7 +190,8 @@ pub fn spawn_unit_sprites(
             map_type,
             anchor,
             *position,
-            tile_assets.ancient_infantry_index,
+            sprite_index,
+            15.0, // Units render above capitals
             &debug_logging,
         );
     }
@@ -231,6 +276,7 @@ pub fn spawn_capital_sprites(
             anchor,
             *pos,
             capital.sprite_index as usize,
+            10.0, // Capitals render above terrain but below units
             &debug_logging,
         );
     }
@@ -239,11 +285,82 @@ pub fn spawn_capital_sprites(
 /// System to update unit sprites (stub for future logic)
 /// Optimized to only run when units actually change
 pub fn update_unit_sprites(
+    mut commands: Commands,
+    tile_assets: Res<TileAssets>,
     // Only query for units that have changed position or other components
-    _units: Query<(), (With<core_sim::MilitaryUnit>, Changed<core_sim::Position>)>,
+    units: Query<
+        (
+            &core_sim::components::MilitaryUnit,
+            &core_sim::components::Position,
+        ),
+        (With<core_sim::MilitaryUnit>, Changed<core_sim::Position>),
+    >,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    debug_logging: Res<DebugLogging>,
 ) {
     // Only process if there are actually changed units
-    // Currently empty implementation - will be filled when unit movement is implemented
+    let changed_unit_count = units.iter().count();
+    if changed_unit_count == 0 {
+        return;
+    }
+
+    crate::debug_log!(
+        debug_logging,
+        "DEBUG: update_unit_sprites called with {} changed units",
+        changed_unit_count
+    );
+
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
+    else {
+        crate::debug_log!(
+            debug_logging,
+            "DEBUG: Could not get tilemap components for unit updates"
+        );
+        return;
+    };
+
+    for (unit, position) in units.iter() {
+        crate::debug_log!(
+            debug_logging,
+            "DEBUG: Updating unit {:?} sprite at position ({}, {})",
+            unit.unit_type,
+            position.x,
+            position.y
+        );
+
+        // Get sprite index based on unit type
+        let sprite_index = match unit.unit_type {
+            core_sim::UnitType::Infantry => tile_assets.ancient_infantry_index,
+            core_sim::UnitType::Cavalry => tile_assets.ancient_infantry_index, // TODO: Add cavalry sprite
+            core_sim::UnitType::Archer => tile_assets.ancient_infantry_index, // TODO: Add archer sprite
+            core_sim::UnitType::Siege => tile_assets.ancient_infantry_index, // TODO: Add siege sprite
+            core_sim::UnitType::Naval => tile_assets.ancient_infantry_index, // TODO: Add naval sprite
+        };
+
+        // Remove old sprite and spawn new one with updated position/sprite index
+        // TODO: This is a simple approach - could be optimized to just update the position
+        spawn_entity_on_tile(
+            &mut commands,
+            &tile_assets,
+            tile_storage,
+            map_size,
+            tile_size,
+            grid_size,
+            map_type,
+            anchor,
+            *position,
+            sprite_index,
+            15.0, // Units render above capitals
+            &debug_logging,
+        );
+    }
 }
 
 /// System to update capital sprites when they evolve
@@ -286,6 +403,7 @@ pub fn update_capital_sprites(
             anchor,
             *pos,
             capital.sprite_index as usize,
+            10.0, // Capitals render above terrain but below units
             &debug_logging,
         );
     }
