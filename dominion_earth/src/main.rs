@@ -11,7 +11,6 @@ use crate::constants::{network, window};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_brp_extras::BrpExtrasPlugin;
-use bevy_framepace::FramepacePlugin;
 use clap::Parser;
 use core_sim::{
     influence_map::InfluenceMap,
@@ -57,8 +56,7 @@ fn main() {
         ..default()
     }))
     .add_plugins(bevy_egui::EguiPlugin::default())
-    .add_plugins(bevy_ecs_tilemap::TilemapPlugin)
-    .add_plugins(FramepacePlugin);
+    .add_plugins(bevy_ecs_tilemap::TilemapPlugin);
 
     if cli.enable_remote {
         println!("Enabling Bevy Remote Protocol on port {}", cli.remote_port);
@@ -69,7 +67,7 @@ fn main() {
         .init_resource::<ui::SelectedTile>()
         .init_resource::<CurrentTurn>()
         .init_resource::<ActiveCivTurn>()
-        .insert_resource(WinitSettings::desktop_app())
+        .insert_resource(WinitSettings::game())
         .insert_resource({
             let mut config = GameConfig::default();
             if let Some(seed) = cli.seed {
