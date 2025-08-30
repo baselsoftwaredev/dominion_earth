@@ -129,9 +129,10 @@ pub fn spawn_unit_sprites(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
     units: Query<(
+        Entity,
         &core_sim::components::MilitaryUnit,
         &core_sim::components::Position,
-    )>,
+    ), Without<core_sim::components::SpriteEntityReference>>,
     tilemap_q: Query<(
         &TileStorage,
         &TilemapSize,
@@ -165,7 +166,7 @@ pub fn spawn_unit_sprites(
         map_size.y
     );
 
-    for (unit, position) in units.iter() {
+    for (unit_entity, unit, position) in units.iter() {
         crate::debug_log!(
             debug_logging,
             "DEBUG: Processing unit {:?} at position ({}, {})",
@@ -174,13 +175,12 @@ pub fn spawn_unit_sprites(
             position.y
         );
 
-        // Get sprite index based on unit type
         let sprite_index = match unit.unit_type {
             core_sim::UnitType::Infantry => tile_assets.ancient_infantry_index,
-            core_sim::UnitType::Cavalry => tile_assets.ancient_infantry_index, // TODO: Add cavalry sprite
-            core_sim::UnitType::Archer => tile_assets.ancient_infantry_index, // TODO: Add archer sprite
-            core_sim::UnitType::Siege => tile_assets.ancient_infantry_index, // TODO: Add siege sprite
-            core_sim::UnitType::Naval => tile_assets.ancient_infantry_index, // TODO: Add naval sprite
+            core_sim::UnitType::Cavalry => tile_assets.ancient_infantry_index,
+            core_sim::UnitType::Archer => tile_assets.ancient_infantry_index,
+            core_sim::UnitType::Siege => tile_assets.ancient_infantry_index,
+            core_sim::UnitType::Naval => tile_assets.ancient_infantry_index,
         };
 
         crate::debug_log!(
@@ -191,7 +191,7 @@ pub fn spawn_unit_sprites(
             position.y
         );
 
-        spawn_entity_on_tile(
+        if let Some(sprite_entity) = spawn_entity_on_tile(
             &mut commands,
             &tile_assets,
             tile_storage,
@@ -202,9 +202,13 @@ pub fn spawn_unit_sprites(
             anchor,
             *position,
             sprite_index,
-            z_layers::UNIT_Z, // Units render above capitals
+            z_layers::UNIT_Z,
             &debug_logging,
-        );
+        ) {
+            commands.entity(unit_entity).insert(
+                core_sim::components::SpriteEntityReference::create_new_reference(sprite_entity)
+            );
+        }
     }
 }
 
@@ -293,31 +297,16 @@ pub fn spawn_capital_sprites(
     }
 }
 
-/// System to update unit sprites (stub for future logic)
-/// Optimized to only run when units actually change
+/// System to update unit sprites by moving existing sprite entities
+/// Only processes units that have actually changed position
 pub fn update_unit_sprites(
-    mut commands: Commands,
+    mut transform_q: Query<&mut Transform>,
     tile_assets: Res<TileAssets>,
-    // Only query for units that have changed position or other components
-    units: Query<
-        (
-            &core_sim::components::MilitaryUnit,
-            &core_sim::components::Position,
-        ),
-        (With<core_sim::MilitaryUnit>, Changed<core_sim::Position>),
-    >,
-    tilemap_q: Query<(
-        &TileStorage,
-        &TilemapSize,
-        &TilemapTileSize,
-        &TilemapGridSize,
-        &TilemapType,
-        &TilemapAnchor,
-    )>,
+    query: Query<(Entity, &core_sim::Position, &core_sim::MilitaryUnit, &core_sim::components::rendering::SpriteEntityReference), Changed<core_sim::Position>>,
     debug_logging: Res<DebugLogging>,
 ) {
     // Only process if there are actually changed units
-    let changed_unit_count = units.iter().count();
+    let changed_unit_count = query.iter().count();
     if changed_unit_count == 0 {
         return;
     }
@@ -328,50 +317,43 @@ pub fn update_unit_sprites(
         changed_unit_count
     );
 
-    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
-    else {
+    for (_entity, position, unit, sprite_reference) in query.iter() {
         crate::debug_log!(
             debug_logging,
-            "DEBUG: Could not get tilemap components for unit updates"
-        );
-        return;
-    };
-
-    for (unit, position) in units.iter() {
-        crate::debug_log!(
-            debug_logging,
-            "DEBUG: Updating unit {:?} sprite at position ({}, {})",
+            "DEBUG: Moving unit {:?} sprite at position ({}, {})",
             unit.unit_type,
             position.x,
             position.y
         );
 
-        // Get sprite index based on unit type
-        let sprite_index = match unit.unit_type {
-            core_sim::UnitType::Infantry => tile_assets.ancient_infantry_index,
-            core_sim::UnitType::Cavalry => tile_assets.ancient_infantry_index, // TODO: Add cavalry sprite
-            core_sim::UnitType::Archer => tile_assets.ancient_infantry_index, // TODO: Add archer sprite
-            core_sim::UnitType::Siege => tile_assets.ancient_infantry_index, // TODO: Add siege sprite
-            core_sim::UnitType::Naval => tile_assets.ancient_infantry_index, // TODO: Add naval sprite
-        };
-
-        // Remove old sprite and spawn new one with updated position/sprite index
-        // TODO: This is a simple approach - could be optimized to just update the position
-        spawn_entity_on_tile(
-            &mut commands,
-            &tile_assets,
-            tile_storage,
-            map_size,
-            tile_size,
-            grid_size,
-            map_type,
-            anchor,
-            *position,
-            sprite_index,
-            z_layers::UNIT_Z, // Units render above capitals
-            &debug_logging,
-        );
+        if let Ok(mut transform) = transform_q.get_mut(sprite_reference.sprite_entity) {
+            let new_world_position = calculate_sprite_world_position(position, &tile_assets);
+            transform.translation = new_world_position;
+            
+            crate::debug_log!(
+                debug_logging,
+                "DEBUG: Successfully moved sprite to world position ({}, {}, {})",
+                new_world_position.x,
+                new_world_position.y,
+                new_world_position.z
+            );
+        } else {
+            crate::debug_log!(
+                debug_logging,
+                "WARN: Could not find sprite entity for unit at position ({}, {})",
+                position.x,
+                position.y
+            );
+        }
     }
+}
+
+fn calculate_sprite_world_position(position: &core_sim::Position, _tile_assets: &TileAssets) -> Vec3 {
+    Vec3::new(
+        position.x as f32 * tile_size::TILE_WIDTH,
+        position.y as f32 * tile_size::TILE_HEIGHT,
+        z_layers::UNIT_Z,
+    )
 }
 
 /// System to update capital sprites when they evolve
