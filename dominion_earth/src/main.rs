@@ -116,7 +116,7 @@ fn main() {
                 rendering::update_unit_sprites,
                 rendering::update_capital_sprites,
                 rendering::update_animated_capital_sprites, // Add animated capital sprite system
-                rendering::render_civilization_borders, // Add civilization border gizmos
+                rendering::render_civilization_borders,     // Add civilization border gizmos
             ),
         )
         .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
