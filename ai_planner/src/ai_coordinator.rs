@@ -1,3 +1,4 @@
+use crate::constants::coordinator::{cooldowns, costs, military, territory};
 use crate::{AICoordinator, AIAction};
 use core_sim::{
     CivId, GameState, 
@@ -24,14 +25,14 @@ impl AICoordinatorSystem {
     pub fn generate_turn_decisions(&mut self, game_state: &GameState) -> HashMap<CivId, Vec<AIAction>> {
         // Update cooldowns
         for cooldown in self.turn_cooldown.values_mut() {
-            *cooldown = cooldown.saturating_sub(1);
+            *cooldown = cooldown.saturating_sub(cooldowns::COOLDOWN_DECREMENT);
         }
 
         let mut decisions = HashMap::new();
 
         for &civ_id in game_state.civilizations.keys() {
             // Check if this civ can make decisions this turn
-            if self.turn_cooldown.get(&civ_id).unwrap_or(&0) > &0 {
+            if self.turn_cooldown.get(&civ_id).unwrap_or(&cooldowns::NO_COOLDOWN) > &cooldowns::NO_COOLDOWN {
                 continue;
             }
 
@@ -43,9 +44,9 @@ impl AICoordinatorSystem {
                     
                     // Set cooldown based on number of actions taken
                     let cooldown = match actions.len() {
-                        0..=1 => 0,
-                        2..=3 => 1,
-                        _ => 2,
+                        cooldowns::MIN_ACTIONS_NO_COOLDOWN..=cooldowns::MAX_ACTIONS_NO_COOLDOWN => cooldowns::NO_COOLDOWN,
+                        cooldowns::MIN_ACTIONS_SHORT_COOLDOWN..=cooldowns::MAX_ACTIONS_SHORT_COOLDOWN => cooldowns::SHORT_COOLDOWN_DURATION,
+                        _ => cooldowns::LONG_COOLDOWN_DURATION,
                     };
                     self.turn_cooldown.insert(civ_id, cooldown);
                 }
@@ -123,7 +124,7 @@ impl AICoordinatorSystem {
                 if let Some(civ_data) = game_state.civilizations.get_mut(&civ_id) {
                     let territory = core_sim::Territory {
                         owner: civ_id,
-                        control_strength: 1.0,
+                        control_strength: territory::DEFAULT_CONTROL_STRENGTH,
                         terrain_type: tile.terrain.clone(),
                     };
                     civ_data.territories.push((target_position, territory));
@@ -160,7 +161,7 @@ impl AICoordinatorSystem {
         game_state: &mut GameState,
     ) -> ExecutionResult {
         if let Some(civ_data) = game_state.civilizations.get_mut(&civ_id) {
-            let cost = 50.0; // Base research cost
+            let cost = costs::BASE_RESEARCH_COST; // Base research cost
             
             if civ_data.civilization.economy.gold >= cost {
                 civ_data.civilization.economy.gold -= cost;
@@ -192,7 +193,7 @@ impl AICoordinatorSystem {
         game_state: &mut GameState,
     ) -> ExecutionResult {
         if let Some(civ_data) = game_state.civilizations.get_mut(&civ_id) {
-            let cost = 30.0; // Base unit cost
+            let cost = costs::BASE_UNIT_COST; // Base unit cost
             
             if civ_data.civilization.economy.gold >= cost {
                 civ_data.civilization.economy.gold -= cost;
@@ -202,13 +203,13 @@ impl AICoordinatorSystem {
                     owner: civ_id,
                     unit_type: unit_type.clone(),
                     position,
-                    strength: 10.0,
-                    movement_remaining: 2,
-                    experience: 0.0,
+                    strength: military::DEFAULT_UNIT_STRENGTH,
+                    movement_remaining: military::DEFAULT_UNIT_MOVEMENT,
+                    experience: military::DEFAULT_UNIT_EXPERIENCE,
                 };
                 
                 civ_data.civilization.military.units.push(unit);
-                civ_data.civilization.military.total_strength += 10.0;
+                civ_data.civilization.military.total_strength += military::DEFAULT_UNIT_STRENGTH;
                 
                 ExecutionResult::Success {
                     civ_id,

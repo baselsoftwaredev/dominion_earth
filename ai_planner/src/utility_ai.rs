@@ -1,4 +1,5 @@
 use core_sim::{CivId, CivilizationData, GameState, Position, UnitType, BuildingType, GameResource as Resource};
+use crate::constants::utility::{defaults, economy, expansion, thresholds};
 use crate::AIAction;
 
 /// Utility-based AI for immediate decision making
@@ -26,7 +27,7 @@ impl UtilityAI {
         for utility_function in &self.utility_functions {
             let utility_score = utility_function.evaluate(civ_id, civ_data, game_state);
             
-            if utility_score > 0.3 { // Threshold for considering an action
+            if utility_score > thresholds::ACTION_CONSIDERATION_THRESHOLD { // Threshold for considering an action
                 if let Some(action) = utility_function.create_action(civ_id, civ_data, game_state, utility_score) {
                     evaluated_actions.push(action);
                 }
@@ -66,15 +67,15 @@ impl UtilityAI {
                     
                     // TODO: Replace with actual world_map integration
                     // Check if there are available adjacent territories
-                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
-                    let available_tiles = 4; // Stub value
+                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y));
+                    let available_tiles = expansion::AVAILABLE_TILES_STUB; // Stub value
                     
-                    land_hunger * (available_tiles as f32 / 8.0).min(1.0)
+                    land_hunger * (available_tiles as f32 / expansion::MAX_EXPANSION_FACTOR).min(thresholds::MAX_UTILITY_SCORE)
                 }),
                 Box::new(|_civ_id, civ_data, _game_state, utility| {
                     // TODO: Replace with actual world_map integration
-                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
-                    let available_positions = vec![Position::new(50, 26)]; // Stub value
+                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y));
+                    let available_positions = vec![Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y + defaults::DEFAULT_EXPANSION_Y_OFFSET)]; // Stub value
                     
                     if let Some(&target) = available_positions.first() {
                         Some(AIAction::Expand {
@@ -95,7 +96,7 @@ impl UtilityAI {
                     let economy = &civ_data.civilization.economy;
                     
                     // Higher utility if we have research capacity
-                    let research_capacity = (economy.gold / 100.0).min(1.0);
+                    let research_capacity = (economy.gold / economy::GOLD_TO_RESEARCH_DIVISOR).min(thresholds::MAX_UTILITY_SCORE);
                     tech_focus * research_capacity
                 }),
                 Box::new(|_civ_id, civ_data, _game_state, utility| {
@@ -122,19 +123,19 @@ impl UtilityAI {
                     let military = &civ_data.civilization.military;
                     
                     // Calculate threat level from nearby civilizations
-                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
+                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y));
                     let nearby_threat = game_state.civilizations.values()
                         .filter(|other_civ| other_civ.civilization.id != civ_data.civilization.id)
                         .map(|other_civ| {
                             if let Some(other_capital) = other_civ.civilization.capital {
                                 let distance = capital.distance_to(&other_capital);
-                                if distance < 20.0 {
+                                if distance < expansion::PROXIMITY_THRESHOLD {
                                     other_civ.civilization.military.total_strength / (distance + 1.0)
                                 } else {
-                                    0.0
+                                    thresholds::MIN_UTILITY_SCORE
                                 }
                             } else {
-                                0.0
+                                thresholds::MIN_UTILITY_SCORE
                             }
                         })
                         .sum::<f32>();

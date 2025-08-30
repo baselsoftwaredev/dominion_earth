@@ -1,3 +1,4 @@
+pub mod constants;
 pub mod utility_ai;
 pub mod goap;
 pub mod htn_planner;

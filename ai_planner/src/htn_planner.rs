@@ -1,4 +1,5 @@
 use core_sim::{CivId, GameState, Position, UnitType, BuildingType, DiplomaticAction, GameResource as Resource};
+use crate::constants::htn::{defaults, diplomacy, military, priorities};
 use crate::{AIAction, HTNTask};
 use std::collections::HashMap;
 
@@ -119,28 +120,28 @@ impl HTNPlanner {
         game_state: &GameState,
     ) -> Option<AIAction> {
         let civ_data = game_state.civilizations.get(&civ_id)?;
-        let capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
+        let capital = civ_data.civilization.capital.unwrap_or(Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y));
 
         match action_type {
             PrimitiveActionType::BuildArmy => {
                 Some(AIAction::BuildUnit {
                     unit_type: UnitType::Infantry,
                     position: capital,
-                    priority: 0.8,
+                    priority: priorities::ESTABLISH_CITY_PRIORITY,
                 })
             }
             PrimitiveActionType::ExpandTerritory => {
                 // TODO: Replace with actual world_map integration
                 // Find expansion target - using stub implementation
                 Some(AIAction::Expand {
-                    target_position: Position::new(capital.x + 1, capital.y),
-                    priority: 0.7,
+                    target_position: Position::new(capital.x + defaults::EXPANSION_X_OFFSET, capital.y),
+                    priority: priorities::BUILD_UNIT_PRIORITY,
                 })
             }
             PrimitiveActionType::ResearchTechnology => {
                 Some(AIAction::Research {
                     technology: "Iron Working".to_string(),
-                    priority: 0.6,
+                    priority: priorities::RESEARCH_TECH_PRIORITY,
                 })
             }
             PrimitiveActionType::EstablishTrade => {
@@ -166,7 +167,7 @@ impl HTNPlanner {
             PrimitiveActionType::FormAlliance => {
                 // Find potential ally
                 let best_candidate = None;
-                let _best_relation = -100.0;
+                let _best_relation = diplomacy::INITIAL_WORST_RELATION;
 
                 // TODO: Replace with actual diplomatic_state integration
                 /*
@@ -180,7 +181,7 @@ impl HTNPlanner {
                     };
 
                     if let Some(other) = other_civ {
-                        if relation.relation_value > best_relation && relation.relation_value > 20.0 {
+                        if relation.relation_value > best_relation && relation.relation_value > diplomacy::ALLIANCE_THRESHOLD {
                             best_relation = relation.relation_value;
                             best_candidate = Some(other);
                         }
@@ -192,7 +193,7 @@ impl HTNPlanner {
                     Some(AIAction::Diplomacy {
                         target: ally,
                         action: DiplomaticAction::ProposeAlliance,
-                        priority: 0.7,
+                        priority: priorities::DIPLOMACY_PRIORITY,
                     })
                 } else {
                     None
@@ -206,7 +207,7 @@ impl HTNPlanner {
                 for other_civ in game_state.civilizations.values() {
                     if other_civ.civilization.id != civ_id {
                         let military_strength = other_civ.civilization.military.total_strength;
-                        if military_strength < weakest_strength && military_strength < civ_data.civilization.military.total_strength * 0.7 {
+                        if military_strength < weakest_strength && military_strength < civ_data.civilization.military.total_strength * military::STRENGTH_WEAKNESS_THRESHOLD {
                             weakest_strength = military_strength;
                             weakest_enemy = Some(other_civ.civilization.id);
                         }

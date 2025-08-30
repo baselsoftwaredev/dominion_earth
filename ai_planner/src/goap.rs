@@ -1,3 +1,4 @@
+use crate::constants::goap::{defaults, goals, planning};
 use crate::{AIAction, StrategicGoal};
 use core_sim::{
     BuildingType, CivId, DiplomaticAction, GameResource as Resource, GameState, Position, UnitType,
@@ -15,7 +16,7 @@ impl GOAPPlanner {
     pub fn new() -> Self {
         Self {
             actions: Self::create_goap_actions(),
-            _max_planning_depth: 10,
+            _max_planning_depth: planning::MAX_PLANNING_DEPTH,
         }
     }
 
@@ -88,18 +89,18 @@ impl GOAPPlanner {
 
         match goal {
             StrategicGoal::ExpandTerritory => {
-                let current_territory = current_state.get("territory_count").unwrap_or(0.0);
-                goal_state.set("territory_count", current_territory + 3.0);
+                let current_territory = current_state.get("territory_count").unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                goal_state.set("territory_count", current_territory + goals::TERRITORY_EXPANSION_TARGET);
             }
             StrategicGoal::AdvanceTechnology => {
-                let current_tech = current_state.get("technology_level").unwrap_or(0.0);
-                goal_state.set("technology_level", current_tech + 2.0);
+                let current_tech = current_state.get("technology_level").unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                goal_state.set("technology_level", current_tech + goals::TECHNOLOGY_ADVANCEMENT_TARGET);
             }
             StrategicGoal::DevelopEconomy => {
-                let current_income = current_state.get("income").unwrap_or(0.0);
-                goal_state.set("income", current_income * 1.5);
-                let current_trade = current_state.get("trade_routes").unwrap_or(0.0);
-                goal_state.set("trade_routes", current_trade + 2.0);
+                let current_income = current_state.get("income").unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                goal_state.set("income", current_income * goals::INCOME_MULTIPLIER);
+                let current_trade = current_state.get("trade_routes").unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                goal_state.set("trade_routes", current_trade + goals::TRADE_ROUTES_TARGET);
             }
             StrategicGoal::BuildMilitary => {
                 let current_military = current_state.get("military_strength").unwrap_or(0.0);
