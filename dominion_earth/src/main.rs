@@ -93,11 +93,13 @@ fn main() {
                 core_sim::tile::tile_assets::setup_tile_assets,
                 unit_assets::setup_unit_assets,
                 game::setup_game,
-                rendering::spawn_world_tiles
+                rendering::tilemap::setup_tilemap
                     .after(core_sim::tile::tile_assets::setup_tile_assets)
                     .after(game::setup_game),
-                rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
-                rendering::spawn_animated_capital_tiles.after(rendering::spawn_world_tiles),
+                rendering::tilemap::spawn_world_tiles.after(rendering::tilemap::setup_tilemap),
+                rendering::units::spawn_unit_sprites.after(rendering::tilemap::spawn_world_tiles),
+                rendering::capitals::spawn_animated_capital_tiles
+                    .after(rendering::tilemap::spawn_world_tiles),
             ),
         )
         .add_systems(
@@ -109,10 +111,10 @@ fn main() {
                 game::game_update_system,
                 core_sim::systems::turn_based_system,
                 core_sim::systems::capital_evolution_system,
-                rendering::update_unit_sprites,
-                rendering::update_capital_sprites,
-                rendering::update_animated_capital_sprites,
-                rendering::render_civilization_borders,
+                rendering::units::update_unit_sprites,
+                rendering::capitals::update_capital_sprites,
+                rendering::capitals::update_animated_capital_sprites,
+                rendering::borders::render_civilization_borders,
             ),
         )
         .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
