@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 pub mod components;
+pub mod constants;
 pub mod debug_utils;
 pub mod influence_map;
 pub mod pathfinding;

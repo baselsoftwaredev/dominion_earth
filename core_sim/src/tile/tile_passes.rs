@@ -1,4 +1,5 @@
 use crate::components::direction_names;
+use crate::constants::{coordinates, tile_passes};
 use crate::debug_utils::CoreDebugUtils;
 use crate::tile::tile_components::{
     TileAssetProvider, TileCapabilities, TileContents, TileNeighbors, WorldTile,
@@ -165,25 +166,25 @@ pub fn assign_tile_neighbors_pass(
             let current_tile = tile_entities[x_coord as usize][y_coord as usize];
 
             // Find neighbor entities in each direction (with boundary checks)
-            let neighbor_to_north = if (y_coord + 1) < map_dimensions.y {
+            let neighbor_to_north = if (y_coord + tile_passes::NEIGHBOR_OFFSET) < map_dimensions.y {
                 Some(tile_entities[x_coord as usize][(y_coord + 1) as usize])
             } else {
                 None // No neighbor beyond north edge
             };
 
-            let neighbor_to_south = if y_coord > 0 {
+            let neighbor_to_south = if y_coord > coordinates::MIN_COORDINATE as u32 {
                 Some(tile_entities[x_coord as usize][(y_coord - 1) as usize])
             } else {
                 None // No neighbor beyond south edge
             };
 
-            let neighbor_to_east = if (x_coord + 1) < map_dimensions.x {
+            let neighbor_to_east = if (x_coord + tile_passes::NEIGHBOR_OFFSET) < map_dimensions.x {
                 Some(tile_entities[(x_coord + 1) as usize][y_coord as usize])
             } else {
                 None // No neighbor beyond east edge
             };
 
-            let neighbor_to_west = if x_coord > 0 {
+            let neighbor_to_west = if x_coord > coordinates::MIN_COORDINATE as u32 {
                 Some(tile_entities[(x_coord - 1) as usize][y_coord as usize])
             } else {
                 None // No neighbor beyond west edge

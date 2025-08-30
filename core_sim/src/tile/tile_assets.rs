@@ -1,4 +1,5 @@
 use crate::components::TerrainType;
+use crate::constants::{sprite_indices, texture_atlas};
 use crate::tile::tile_components::TileAssetProvider;
 use bevy::prelude::*;
 
@@ -54,36 +55,39 @@ pub fn setup_tile_assets(
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     // Load the sprite sheet
-    let sprite_sheet = asset_server.load("tiles/sprite-sheet.png");
+    let sprite_sheet = asset_server.load(texture_atlas::SPRITE_SHEET_PATH);
 
     // Create texture atlas layout
-    // Texture atlas is 3 rows x 8 columns (24 total sprites)
-    // For now, assuming 64x64 pixel tiles
-    let layout = TextureAtlasLayout::from_grid(UVec2::new(64, 64), 8, 3, None, None);
+    let layout = TextureAtlasLayout::from_grid(
+        UVec2::new(texture_atlas::TILE_SIZE_PIXELS, texture_atlas::TILE_SIZE_PIXELS),
+        texture_atlas::ATLAS_COLUMNS,
+        texture_atlas::ATLAS_ROWS,
+        None,
+        None,
+    );
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
 
     let tile_assets = TileAssets {
         sprite_sheet,
         texture_atlas_layout,
-        // TODO: Update these indices to match your sprite sheet!
-        plains_index: 0,         // Plains sprite index
-        hills_index: 0,          // Hills sprite index
-        mountains_index: 0,      // Mountains sprite index
-        forest_index: 0,         // Forest sprite index
-        desert_index: 0,         // Desert sprite index
-        coast_index: 8,          // Coast sprite index (fallback)
-        shallow_coast_index: 17, // Shallow coast sprite index
-        ocean_index: 16,         // Ocean sprite index
-        river_index: 0,          // River sprite index
+        plains_index: sprite_indices::PLAINS,
+        hills_index: sprite_indices::HILLS,
+        mountains_index: sprite_indices::MOUNTAINS,
+        forest_index: sprite_indices::FOREST,
+        desert_index: sprite_indices::DESERT,
+        coast_index: sprite_indices::COAST_FALLBACK,
+        shallow_coast_index: sprite_indices::SHALLOW_COAST,
+        ocean_index: sprite_indices::OCEAN,
+        river_index: sprite_indices::RIVER,
 
-        // Simple coast variations (rotated/flipped as needed)
-        coast_1_side_index: 8, // 1 side coast (ocean to south pattern)
-        coast_2_side_index: 9, // 2 side coast (ocean to east and south pattern)
-        coast_3_side_index: 1, // 3 side coast (ocean to north, east, south pattern)
-        island_index: 2,       // Island (ocean on all 4 sides) - TODO: Set actual index
+        // Coast variations
+        coast_1_side_index: sprite_indices::COAST_1_SIDE,
+        coast_2_side_index: sprite_indices::COAST_2_SIDE,
+        coast_3_side_index: sprite_indices::COAST_3_SIDE,
+        island_index: sprite_indices::ISLAND,
 
-        capital_ancient_index: 3,   // Capital sprite index
-        ancient_infantry_index: 10, // Infantry sprite index - trying index 10
+        capital_ancient_index: sprite_indices::CAPITAL_ANCIENT,
+        ancient_infantry_index: sprite_indices::ANCIENT_INFANTRY,
     };
     commands.insert_resource(tile_assets);
 }

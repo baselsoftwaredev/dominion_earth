@@ -1,4 +1,5 @@
 use crate::{CivId, DiplomaticRelation, Position, TerrainType};
+use crate::constants::{coordinates, economy, game_flow, map_generation, movement_directions, terrain_stats};
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -14,9 +15,9 @@ pub struct WorldMap {
 impl Default for WorldMap {
     fn default() -> Self {
         Self {
-            width: 100,
-            height: 50,
-            tiles: vec![vec![MapTile::default(); 50]; 100],
+            width: map_generation::DEFAULT_MAP_WIDTH,
+            height: map_generation::DEFAULT_MAP_HEIGHT,
+            tiles: vec![vec![MapTile::default(); map_generation::DEFAULT_MAP_HEIGHT as usize]; map_generation::DEFAULT_MAP_WIDTH as usize],
         }
     }
 }
@@ -31,7 +32,7 @@ impl WorldMap {
     }
 
     pub fn get_tile(&self, pos: Position) -> Option<&MapTile> {
-        if pos.x >= 0 && pos.y >= 0 && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
+        if pos.x >= coordinates::MIN_COORDINATE && pos.y >= coordinates::MIN_COORDINATE && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
             Some(&self.tiles[pos.x as usize][pos.y as usize])
         } else {
             None
@@ -39,7 +40,7 @@ impl WorldMap {
     }
 
     pub fn get_tile_mut(&mut self, pos: Position) -> Option<&mut MapTile> {
-        if pos.x >= 0 && pos.y >= 0 && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
+        if pos.x >= coordinates::MIN_COORDINATE && pos.y >= coordinates::MIN_COORDINATE && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
             Some(&mut self.tiles[pos.x as usize][pos.y as usize])
         } else {
             None
@@ -47,19 +48,11 @@ impl WorldMap {
     }
 
     pub fn neighbors(&self, pos: Position) -> Vec<Position> {
-        // 4-directional movement only: North, South, East, West
-        let directions = [
-            (0, 1),  // North
-            (0, -1), // South
-            (1, 0),  // East
-            (-1, 0), // West
-        ];
-
-        directions
+        movement_directions::ALL_DIRECTIONS
             .iter()
             .map(|(dx, dy)| Position::new(pos.x + dx, pos.y + dy))
             .filter(|p| {
-                p.x >= 0 && p.y >= 0 && (p.x as u32) < self.width && (p.y as u32) < self.height
+                p.x >= coordinates::MIN_COORDINATE && p.y >= coordinates::MIN_COORDINATE && (p.x as u32) < self.width && (p.y as u32) < self.height
             })
             .collect()
     }
@@ -82,8 +75,8 @@ impl Default for MapTile {
             owner: None,
             city: None,
             resource: None,
-            movement_cost: 1.0,
-            defense_bonus: 0.0,
+            movement_cost: terrain_stats::BASE_MOVEMENT_COST,
+            defense_bonus: terrain_stats::BASE_DEFENSE_BONUS,
         }
     }
 }
@@ -111,14 +104,14 @@ pub struct GlobalEconomy {
 impl Default for GlobalEconomy {
     fn default() -> Self {
         let mut resource_prices = HashMap::new();
-        resource_prices.insert(Resource::Iron, 10.0);
-        resource_prices.insert(Resource::Gold, 50.0);
-        resource_prices.insert(Resource::Horses, 20.0);
-        resource_prices.insert(Resource::Wheat, 5.0);
-        resource_prices.insert(Resource::Fish, 3.0);
-        resource_prices.insert(Resource::Stone, 8.0);
-        resource_prices.insert(Resource::Wood, 6.0);
-        resource_prices.insert(Resource::Spices, 25.0);
+        resource_prices.insert(Resource::Iron, economy::IRON_BASE_PRICE);
+        resource_prices.insert(Resource::Gold, economy::GOLD_BASE_PRICE);
+        resource_prices.insert(Resource::Horses, economy::HORSES_BASE_PRICE);
+        resource_prices.insert(Resource::Wheat, economy::WHEAT_BASE_PRICE);
+        resource_prices.insert(Resource::Fish, economy::FISH_BASE_PRICE);
+        resource_prices.insert(Resource::Stone, economy::STONE_BASE_PRICE);
+        resource_prices.insert(Resource::Wood, economy::WOOD_BASE_PRICE);
+        resource_prices.insert(Resource::Spices, economy::SPICES_BASE_PRICE);
 
         Self {
             trade_routes: Vec::new(),
@@ -212,7 +205,7 @@ pub struct CurrentTurn(pub u32);
 
 impl Default for CurrentTurn {
     fn default() -> Self {
-        CurrentTurn(1)
+        CurrentTurn(game_flow::STARTING_TURN)
     }
 }
 
@@ -234,7 +227,7 @@ pub enum TurnPhase {
 impl Default for ActiveCivTurn {
     fn default() -> Self {
         Self {
-            current_civ_index: 0,
+            current_civ_index: game_flow::STARTING_CIV_INDEX,
             civs_per_turn: Vec::new(),
             turn_phase: TurnPhase::Planning,
         }
@@ -277,7 +270,7 @@ impl Default for GameConfig {
             .as_secs();
 
         Self {
-            max_turns: 500,
+            max_turns: game_flow::DEFAULT_MAX_TURNS,
             turn_time_limit: None,
             ai_difficulty: AIDifficulty::Normal,
             world_size: WorldSize::Medium,

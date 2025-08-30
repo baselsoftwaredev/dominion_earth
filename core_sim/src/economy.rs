@@ -1,4 +1,5 @@
 use crate::{CivId, Position, Economy, GameResource, GlobalEconomy, TradeRoute, Building, BuildingType, City};
+use crate::constants::economy;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
@@ -34,14 +35,14 @@ impl EconomicSystem {
         buildings: &bevy_ecs::system::Query<(&Building, &Position)>,
     ) {
         let mut base_production = HashMap::new();
-        base_production.insert(GameResource::Gold, 10.0);
-        base_production.insert(GameResource::Wheat, 5.0);
+        base_production.insert(GameResource::Gold, economy::BASE_GOLD_PRODUCTION);
+        base_production.insert(GameResource::Wheat, economy::BASE_WHEAT_PRODUCTION);
 
         // Add production from cities
         for (city, _position) in cities.iter() {
             if city.owner == *civ_id {
                 for (resource, amount) in &city.resource_yields {
-                    *base_production.entry(resource.clone()).or_insert(0.0) += amount;
+                    *base_production.entry(resource.clone()).or_insert(economy::DEFAULT_RESOURCE_AMOUNT) += amount;
                 }
             }
         }
@@ -51,7 +52,7 @@ impl EconomicSystem {
             if building.owner == *civ_id {
                 let building_production = Self::get_building_production(&building.building_type);
                 for (resource, amount) in building_production {
-                    *base_production.entry(resource).or_insert(0.0) += amount;
+                    *base_production.entry(resource).or_insert(economy::DEFAULT_RESOURCE_AMOUNT) += amount;
                 }
             }
         }

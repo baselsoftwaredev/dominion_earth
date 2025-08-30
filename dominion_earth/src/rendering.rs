@@ -409,16 +409,6 @@ pub fn update_capital_sprites(
     }
 }
 
-// System to render overlays (stub for future logic)
-// pub fn render_world_overlays() {
-//     // Implement logic to render overlays if needed
-// }
-
-// Example usage for units, capitals, cities:
-// spawn_entity_on_tile(commands, tilemap_query, tilemap_id, unit_assets.ancient_infantry.clone(), unit_position, 1.0);
-// spawn_entity_on_tile(commands, tilemap_query, tilemap_id, tile_assets.capital_ancient.clone(), capital_position, 2.0);
-// spawn_entity_on_tile(commands, tilemap_query, tilemap_id, city_asset, city_position, 3.0);
-
 // /// Generate a unique color for each civilization based on their ID
 // fn get_civ_color(civ_id: &CivId) -> Color {
 //     // Simple hash-based color generation for consistent colors per civilization

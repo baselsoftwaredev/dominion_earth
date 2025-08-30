@@ -1,4 +1,5 @@
 use crate::{
+    constants::{map_generation, terrain_stats},
     resources::MapTile, resources::Resource as GameResource, Position, TerrainType, WorldMap,
 };
 use rand::Rng;
@@ -39,8 +40,8 @@ fn initialize_ocean_map(map: &mut WorldMap) {
                     owner: None,
                     city: None,
                     resource: None,
-                    movement_cost: 3.0,
-                    defense_bonus: 0.0,
+                    movement_cost: terrain_stats::OCEAN_MOVEMENT_COST,
+                    defense_bonus: terrain_stats::OCEAN_DEFENSE_BONUS,
                 };
             }
         }
@@ -49,15 +50,15 @@ fn initialize_ocean_map(map: &mut WorldMap) {
 
 /// STEP 2: Generate plain land masses only (no hills or other terrain types)
 fn generate_plain_landmasses(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
-    // Generate 3-5 large islands with smaller satellite islands
-    let num_major_islands = rng.gen_range(3..=5);
+    // Generate major islands with smaller satellite islands
+    let num_major_islands = rng.gen_range(map_generation::MAJOR_ISLANDS_MIN..=map_generation::MAJOR_ISLANDS_MAX);
 
     for _ in 0..num_major_islands {
         generate_plain_island_cluster(map, width, height, rng);
     }
 
     // Add scattered small islands
-    let num_small_islands = rng.gen_range(8..15);
+    let num_small_islands = rng.gen_range(map_generation::SMALL_ISLANDS_MIN..map_generation::SMALL_ISLANDS_MAX);
     for _ in 0..num_small_islands {
         generate_small_plain_island(map, width, height, rng);
     }
@@ -68,15 +69,15 @@ fn generate_plain_landmasses(map: &mut WorldMap, width: u32, height: u32, rng: &
 
 fn generate_plain_island_cluster(map: &mut WorldMap, width: u32, height: u32, rng: &mut impl Rng) {
     // Pick a random center for the main island
-    let center_x = rng.gen_range(width / 6..5 * width / 6);
-    let center_y = rng.gen_range(height / 6..5 * height / 6);
+    let center_x = rng.gen_range(width / map_generation::ISLAND_CENTER_MARGIN..(map_generation::ISLAND_CENTER_MARGIN - 1) * width / map_generation::ISLAND_CENTER_MARGIN);
+    let center_y = rng.gen_range(height / map_generation::ISLAND_CENTER_MARGIN..(map_generation::ISLAND_CENTER_MARGIN - 1) * height / map_generation::ISLAND_CENTER_MARGIN);
 
     // Generate main island
-    let main_radius = rng.gen_range(8..15);
+    let main_radius = rng.gen_range(map_generation::MAJOR_ISLAND_RADIUS_MIN..map_generation::MAJOR_ISLAND_RADIUS_MAX);
     generate_plain_island_at(map, center_x, center_y, main_radius, rng);
 
-    // Generate 2-4 satellite islands around the main one
-    let num_satellites = rng.gen_range(2..=4);
+    // Generate satellite islands around the main one
+    let num_satellites = rng.gen_range(map_generation::SATELLITE_ISLANDS_MIN..=map_generation::SATELLITE_ISLANDS_MAX);
     for _ in 0..num_satellites {
         let angle = rng.gen::<f32>() * 2.0 * std::f32::consts::PI;
         let distance = rng.gen_range(15..25) as f32;
@@ -141,7 +142,7 @@ fn generate_plain_island_at(
 }
 
 fn smooth_plain_landmasses(map: &mut WorldMap) {
-    let mut changes = Vec::new();
+    let changes = Vec::new();
 
     // Convert isolated land tiles to ocean (simple smoothing)
     // for x in 1..(map.width - 1) {
@@ -178,9 +179,9 @@ fn smooth_plain_landmasses(map: &mut WorldMap) {
     for (pos, new_terrain) in changes {
         if let Some(tile) = map.get_tile_mut(pos) {
             let (movement_cost, defense_bonus) = match new_terrain {
-                TerrainType::Ocean => (3.0, 0.0),
-                TerrainType::Plains => (1.0, 0.0),
-                _ => (1.0, 0.0),
+                TerrainType::Ocean => (terrain_stats::OCEAN_MOVEMENT_COST, terrain_stats::OCEAN_DEFENSE_BONUS),
+                TerrainType::Plains => (terrain_stats::BASE_MOVEMENT_COST, terrain_stats::BASE_DEFENSE_BONUS),
+                _ => (terrain_stats::BASE_MOVEMENT_COST, terrain_stats::BASE_DEFENSE_BONUS),
             };
 
             tile.terrain = new_terrain;
