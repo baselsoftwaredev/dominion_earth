@@ -1,11 +1,12 @@
 mod constants;
+mod debug_utils;
 mod game;
 mod input;
 mod rendering;
 mod ui;
 pub mod unit_assets;
-mod debug_utils;
 
+use crate::constants::{network, window};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_brp_extras::BrpExtrasPlugin;
@@ -15,7 +16,6 @@ use core_sim::{
     influence_map::InfluenceMap,
     resources::{ActiveCivTurn, CurrentTurn, GameConfig, GameRng, WorldMap},
 };
-use crate::constants::{network, window};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -55,69 +55,70 @@ fn main() {
         }),
         ..default()
     }))
-        .add_plugins(bevy_egui::EguiPlugin::default())
-        .add_plugins(bevy_ecs_tilemap::TilemapPlugin)
-        .add_plugins(FramepacePlugin);
+    .add_plugins(bevy_egui::EguiPlugin::default())
+    .add_plugins(bevy_ecs_tilemap::TilemapPlugin)
+    .add_plugins(FramepacePlugin);
 
-        // Conditionally add remote protocol plugins
-        if cli.enable_remote {
-            println!("Enabling Bevy Remote Protocol on port {}", cli.remote_port);
-            app.add_plugins(BrpExtrasPlugin::with_port(cli.remote_port));
-        }
+    // Conditionally add remote protocol plugins
+    if cli.enable_remote {
+        println!("Enabling Bevy Remote Protocol on port {}", cli.remote_port);
+        app.add_plugins(BrpExtrasPlugin::with_port(cli.remote_port));
+    }
 
-        app.init_resource::<ui::TerrainCounts>()
-            .init_resource::<ui::SelectedTile>()
-            .init_resource::<CurrentTurn>()
-            .init_resource::<ActiveCivTurn>()
-            .insert_resource(WinitSettings::desktop_app())
-            .insert_resource({
-                let mut config = GameConfig::default();
-                if let Some(seed) = cli.seed {
-                    config.random_seed = seed;
-                    println!("Using custom random seed: {}", seed);
-                }
-                config.debug_logging = cli.debug_logging;
-                config
-            })
-            .init_resource::<GameRng>()
-            .init_resource::<WorldMap>()
-            .insert_resource(game::GameState::with_auto_advance(cli.auto_advance))
-            .insert_resource(debug_utils::DebugLogging(cli.debug_logging))
-            .init_resource::<ui::SelectedTile>()
-            .init_resource::<ui::LastLoggedTile>()
-            .init_resource::<ui::TerrainCounts>()
-            .init_resource::<core_sim::resources::TurnAdvanceRequest>()
-            .init_resource::<InfluenceMap>()
-            .add_systems(
-                Startup,
-                (
-                    setup_camera,
-                    core_sim::tile::tile_assets::setup_tile_assets,
-                    unit_assets::setup_unit_assets,
-                    game::setup_game,
-                    rendering::spawn_world_tiles
-                        .after(core_sim::tile::tile_assets::setup_tile_assets)
-                        .after(game::setup_game),
-                    rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
-                    rendering::spawn_capital_sprites.after(rendering::spawn_world_tiles),
-                ),
-            )
-            .add_systems(
-                Update,
-                (
-                    input::handle_input,
-                    input::handle_mouse_input,
-                    input::select_tile_on_click,
-                    game::game_update_system,
-                    core_sim::systems::turn_based_system,
-                    core_sim::systems::capital_evolution_system,
-                    rendering::update_unit_sprites,
-                    rendering::update_capital_sprites,
-                ),
-            )
-            .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
+    app.init_resource::<ui::TerrainCounts>()
+        .init_resource::<ui::SelectedTile>()
+        .init_resource::<CurrentTurn>()
+        .init_resource::<ActiveCivTurn>()
+        .insert_resource(WinitSettings::desktop_app())
+        .insert_resource({
+            let mut config = GameConfig::default();
+            if let Some(seed) = cli.seed {
+                config.random_seed = seed;
+                println!("Using custom random seed: {}", seed);
+            }
+            config.debug_logging = cli.debug_logging;
+            config
+        })
+        .init_resource::<GameRng>()
+        .init_resource::<WorldMap>()
+        .insert_resource(game::GameState::with_auto_advance(cli.auto_advance))
+        .insert_resource(debug_utils::DebugLogging(cli.debug_logging))
+        .init_resource::<ui::SelectedTile>()
+        .init_resource::<ui::LastLoggedTile>()
+        .init_resource::<ui::TerrainCounts>()
+        .init_resource::<core_sim::resources::TurnAdvanceRequest>()
+        .init_resource::<InfluenceMap>()
+        .add_systems(
+            Startup,
+            (
+                setup_camera,
+                core_sim::tile::tile_assets::setup_tile_assets,
+                unit_assets::setup_unit_assets,
+                game::setup_game,
+                rendering::spawn_world_tiles
+                    .after(core_sim::tile::tile_assets::setup_tile_assets)
+                    .after(game::setup_game),
+                rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
+                rendering::spawn_capital_sprites.after(rendering::spawn_world_tiles),
+            ),
+        )
+        .add_systems(
+            Update,
+            (
+                input::handle_input,
+                input::handle_mouse_input,
+                input::select_tile_on_click,
+                game::game_update_system,
+                core_sim::systems::turn_based_system,
+                core_sim::systems::capital_evolution_system,
+                rendering::update_unit_sprites,
+                rendering::update_capital_sprites,
+                rendering::render_civilization_borders, // Add civilization border gizmos
+            ),
+        )
+        .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
 
-        app.run();
+    app.run();
 }
 
 fn setup_camera(mut commands: Commands) {

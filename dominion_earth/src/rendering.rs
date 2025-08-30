@@ -32,13 +32,13 @@ pub fn setup_tilemap(
     );
 
     // Configure tilemap for square rendering (can switch to isometric later)
-    let tile_size = TilemapTileSize { 
-        x: tile_size::TILE_WIDTH, 
-        y: tile_size::TILE_HEIGHT 
+    let tile_size = TilemapTileSize {
+        x: tile_size::TILE_WIDTH,
+        y: tile_size::TILE_HEIGHT,
     };
-    let grid_size = TilemapGridSize { 
-        x: tile_size::GRID_WIDTH, 
-        y: tile_size::GRID_HEIGHT 
+    let grid_size = TilemapGridSize {
+        x: tile_size::GRID_WIDTH,
+        y: tile_size::GRID_HEIGHT,
     };
     let map_type = TilemapType::Square;
 
@@ -54,9 +54,9 @@ pub fn setup_tilemap(
         texture: TilemapTexture::Single(tile_assets.sprite_sheet.clone()),
         tile_size,
         transform: Transform::from_translation(Vec3::new(
-            transform::DEFAULT_X, 
-            transform::DEFAULT_Y, 
-            transform::DEFAULT_Z
+            transform::DEFAULT_X,
+            transform::DEFAULT_Y,
+            transform::DEFAULT_Z,
         )),
         ..Default::default()
     });
@@ -420,161 +420,169 @@ pub fn update_capital_sprites(
     }
 }
 
-// /// Generate a unique color for each civilization based on their ID
-// fn get_civ_color(civ_id: &CivId) -> Color {
-//     // Simple hash-based color generation for consistent colors per civilization
-//     let hash = civ_id.0.wrapping_mul(31);
-
-//     // Convert hash to HSV for better color distribution
-//     let hue = (hash % 360) as f32;
-//     let saturation = 0.7;
-//     let value = 0.9;
-
-//     // Convert HSV to RGB
-//     let c = value * saturation;
-//     let x = c * (1.0 - ((hue / 60.0) % 2.0 - 1.0).abs());
-//     let m = value - c;
-
-//     let (r, g, b) = if hue < 60.0 {
-//         (c, x, 0.0)
-//     } else if hue < 120.0 {
-//         (x, c, 0.0)
-//     } else if hue < 180.0 {
-//         (0.0, c, x)
-//     } else if hue < 240.0 {
-//         (0.0, x, c)
-//     } else if hue < 300.0 {
-//         (x, 0.0, c)
-//     } else {
-//         (c, 0.0, x)
-//     };
-
-//     Color::srgb(r + m, g + m, b + m)
-// }
-
-// Final pass to ensure all coast viewpoints are correctly assigned after all setup is complete
-// TODO: Replace with TileFlip-based system when default_view_point is removed
-/*
-pub fn finalize_coast_viewpoints(
-    mut commands: Commands,
-    tile_query: Query<(Entity, &WorldTile, &TileNeighbors)>,
-    mut world_map: ResMut<core_sim::resources::WorldMap>,
-    debug_logging: Res<crate::ui::DebugLogging>,
+/// System to render civilization borders using gizmos around units and capitals
+pub fn render_civilization_borders(
+    mut gizmos: Gizmos,
+    units: Query<(
+        &core_sim::components::military::MilitaryUnit,
+        &core_sim::components::position::Position,
+    )>,
+    capitals: Query<(
+        &core_sim::components::city::Capital,
+        &core_sim::components::position::Position,
+    )>,
+    civilizations: Query<&core_sim::components::civilization::Civilization>,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    debug_logging: Res<DebugLogging>,
 ) {
-    if debug_logging.0 {
-        println!("=== FINALIZING COAST VIEWPOINTS ===");
-    }
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
+    else {
+        return;
+    };
 
-    // Collect all coast tiles that need viewpoint updates
-    let mut updates = Vec::new();
+    // Render unit borders
+    for (unit, position) in units.iter() {
+        if let Some(civ) = civilizations.iter().find(|civ| civ.id == unit.owner) {
+            let world_pos = calculate_world_position_for_gizmo(
+                *position, map_size, tile_size, grid_size, map_type, anchor,
+            );
+            let border_color = Color::srgb(civ.color[0], civ.color[1], civ.color[2]);
 
-    for (entity, world_tile, neighbors) in tile_query.iter() {
-        if world_tile.terrain_type == core_sim::TerrainType::Coast {
-            // Re-calculate viewpoint based on current neighbors
-            // Coast tiles should face toward the land (not toward ocean)
+            // Draw a rectangle border around the unit using line segments
+            let half_width = tile_size.x * 0.45;
+            let half_height = tile_size.y * 0.45;
+            let center = world_pos.truncate();
 
-            // Check all neighbors to find land directions
-            let mut land_directions = Vec::new();
-            let mut neighbor_debug = Vec::new();
+            // Define the four corners of the rectangle
+            let corners = [
+                center + Vec2::new(-half_width, -half_height), // bottom-left
+                center + Vec2::new(half_width, -half_height),  // bottom-right
+                center + Vec2::new(half_width, half_height),   // top-right
+                center + Vec2::new(-half_width, half_height),  // top-left
+                center + Vec2::new(-half_width, -half_height), // back to start
+            ];
 
-            if let Some(north_entity) = neighbors.north {
-                if let Ok((_, neighbor_tile, _)) = tile_query.get(north_entity) {
-                    neighbor_debug.push(format!("North: {:?}", neighbor_tile.terrain_type));
-                    if !matches!(neighbor_tile.terrain_type, core_sim::TerrainType::Ocean) {
-                        land_directions.push("North");
-                    }
-                }
-            } else {
-                neighbor_debug.push("North: OutOfBounds".to_string());
-            }
+            gizmos.linestrip_2d(corners, border_color);
 
-            if let Some(south_entity) = neighbors.south {
-                if let Ok((_, neighbor_tile, _)) = tile_query.get(south_entity) {
-                    neighbor_debug.push(format!("South: {:?}", neighbor_tile.terrain_type));
-                    if !matches!(neighbor_tile.terrain_type, core_sim::TerrainType::Ocean) {
-                        land_directions.push("South");
-                    }
-                }
-            } else {
-                neighbor_debug.push("South: OutOfBounds".to_string());
-            }
-
-            if let Some(east_entity) = neighbors.east {
-                if let Ok((_, neighbor_tile, _)) = tile_query.get(east_entity) {
-                    neighbor_debug.push(format!("East: {:?}", neighbor_tile.terrain_type));
-                    if !matches!(neighbor_tile.terrain_type, core_sim::TerrainType::Ocean) {
-                        land_directions.push("East");
-                    }
-                }
-            } else {
-                neighbor_debug.push("East: OutOfBounds".to_string());
-            }
-
-            if let Some(west_entity) = neighbors.west {
-                if let Ok((_, neighbor_tile, _)) = tile_query.get(west_entity) {
-                    neighbor_debug.push(format!("West: {:?}", neighbor_tile.terrain_type));
-                    if !matches!(neighbor_tile.terrain_type, core_sim::TerrainType::Ocean) {
-                        land_directions.push("West");
-                    }
-                }
-            } else {
-                neighbor_debug.push("West: OutOfBounds".to_string());
-            }
-
-            // Assign viewpoint to face toward the primary land direction
-            let new_viewpoint = if land_directions.contains(&"South") {
-                DefaultViewPoint::South
-            } else if land_directions.contains(&"North") {
-                DefaultViewPoint::North
-            } else if land_directions.contains(&"East") {
-                DefaultViewPoint::East
-            } else if land_directions.contains(&"West") {
-                DefaultViewPoint::West
-            } else {
-                // If no land neighbors (surrounded by ocean), default to North
-                DefaultViewPoint::North
-            };
-
-            // Only schedule update if viewpoint has changed
-            if world_tile.default_view_point != new_viewpoint {
-                if debug_logging.0 {
-                    println!(
-                        "UPDATING coast tile at ({}, {}) viewpoint from {:?} to {:?}",
-                        world_tile.grid_pos.x,
-                        world_tile.grid_pos.y,
-                        world_tile.default_view_point,
-                        new_viewpoint
-                    );
-                    println!("  Neighbors: {}", neighbor_debug.join(", "));
-                    println!("  Land directions: {:?}", land_directions);
-                }
-                updates.push((
-                    entity,
-                    new_viewpoint,
-                    world_tile.grid_pos,
-                    world_tile.terrain_type.clone(),
-                ));
-            }
+            crate::debug_log!(
+                debug_logging,
+                "DEBUG: Drew unit border at ({}, {}) with color {:?}",
+                world_pos.x,
+                world_pos.y,
+                border_color
+            );
         }
     }
 
-    // Apply all updates
-    for (entity, new_viewpoint, grid_pos, terrain_type) in updates {
-        // Update ECS WorldTile entity
-        commands.entity(entity).insert(WorldTile {
-            grid_pos,
-            terrain_type: terrain_type.clone(),
-            default_view_point: new_viewpoint,
-        });
+    // Render capital borders
+    for (capital, position) in capitals.iter() {
+        if let Some(civ) = civilizations.iter().find(|civ| civ.id == capital.owner) {
+            let world_pos = calculate_world_position_for_gizmo(
+                *position, map_size, tile_size, grid_size, map_type, anchor,
+            );
+            let border_color = Color::srgb(civ.color[0], civ.color[1], civ.color[2]);
 
-        // Also update the WorldMap resource to keep it synchronized
-        if let Some(map_tile) = world_map.get_tile_mut(grid_pos) {
-            map_tile.terrain = terrain_type;
+            // Draw outer border for capitals
+            let half_width = tile_size.x * 0.5;
+            let half_height = tile_size.y * 0.5;
+            let center = world_pos.truncate();
+
+            let outer_corners = [
+                center + Vec2::new(-half_width, -half_height),
+                center + Vec2::new(half_width, -half_height),
+                center + Vec2::new(half_width, half_height),
+                center + Vec2::new(-half_width, half_height),
+                center + Vec2::new(-half_width, -half_height),
+            ];
+
+            gizmos.linestrip_2d(outer_corners, border_color);
+
+            // Draw inner border for capitals
+            let inner_half_width = tile_size.x * 0.4;
+            let inner_half_height = tile_size.y * 0.4;
+
+            let inner_corners = [
+                center + Vec2::new(-inner_half_width, -inner_half_height),
+                center + Vec2::new(inner_half_width, -inner_half_height),
+                center + Vec2::new(inner_half_width, inner_half_height),
+                center + Vec2::new(-inner_half_width, inner_half_height),
+                center + Vec2::new(-inner_half_width, -inner_half_height),
+            ];
+
+            gizmos.linestrip_2d(inner_corners, border_color);
         }
     }
 
-    if debug_logging.0 {
-        println!("=== COAST VIEWPOINT FINALIZATION COMPLETE ===");
+    // Render capital borders
+    for (capital, position) in capitals.iter() {
+        if let Some(civ) = civilizations.iter().find(|civ| civ.id == capital.owner) {
+            let world_pos = calculate_world_position_for_gizmo(
+                *position, map_size, tile_size, grid_size, map_type, anchor,
+            );
+            let border_color = Color::srgb(civ.color[0], civ.color[1], civ.color[2]);
+
+            // Draw outer border for capitals
+            let half_width = tile_size.x * 0.5;
+            let half_height = tile_size.y * 0.5;
+            let center = world_pos.truncate();
+
+            let outer_corners = [
+                center + Vec2::new(-half_width, -half_height),
+                center + Vec2::new(half_width, -half_height),
+                center + Vec2::new(half_width, half_height),
+                center + Vec2::new(-half_width, half_height),
+                center + Vec2::new(-half_width, -half_height),
+            ];
+
+            gizmos.linestrip_2d(outer_corners, border_color);
+
+            // Draw inner border for capitals
+            let inner_half_width = tile_size.x * 0.4;
+            let inner_half_height = tile_size.y * 0.4;
+
+            let inner_corners = [
+                center + Vec2::new(-inner_half_width, -inner_half_height),
+                center + Vec2::new(inner_half_width, -inner_half_height),
+                center + Vec2::new(inner_half_width, inner_half_height),
+                center + Vec2::new(-inner_half_width, inner_half_height),
+                center + Vec2::new(-inner_half_width, -inner_half_height),
+            ];
+
+            gizmos.linestrip_2d(inner_corners, border_color);
+
+            crate::debug_log!(
+                debug_logging,
+                "DEBUG: Drew capital double border at ({}, {}) with color {:?}",
+                world_pos.x,
+                world_pos.y,
+                border_color
+            );
+        }
     }
 }
-*/
+
+/// Helper function to calculate world position from tile position for gizmos
+fn calculate_world_position_for_gizmo(
+    position: core_sim::components::position::Position,
+    map_size: &TilemapSize,
+    tile_size: &TilemapTileSize,
+    grid_size: &TilemapGridSize,
+    map_type: &TilemapType,
+    anchor: &TilemapAnchor,
+) -> Vec3 {
+    let tile_pos = TilePos {
+        x: position.x as u32,
+        y: position.y as u32,
+    };
+
+    // Use bevy_ecs_tilemap's coordinate system for consistent positioning
+    let tile_center = tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+    tile_center.extend(z_layers::UNIT_Z + 1.0) // Render gizmos slightly above units
+}
