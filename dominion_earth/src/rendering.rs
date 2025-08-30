@@ -1,5 +1,6 @@
 use core_sim::tile::tile_components::WorldTile;
 
+use crate::constants::rendering::{tile_size, transform, z_layers};
 use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
@@ -31,8 +32,14 @@ pub fn setup_tilemap(
     );
 
     // Configure tilemap for square rendering (can switch to isometric later)
-    let tile_size = TilemapTileSize { x: 64.0, y: 64.0 };
-    let grid_size = TilemapGridSize { x: 64.0, y: 64.0 };
+    let tile_size = TilemapTileSize { 
+        x: tile_size::TILE_WIDTH, 
+        y: tile_size::TILE_HEIGHT 
+    };
+    let grid_size = TilemapGridSize { 
+        x: tile_size::GRID_WIDTH, 
+        y: tile_size::GRID_HEIGHT 
+    };
     let map_type = TilemapType::Square;
 
     // Add the tilemap bundle to the tilemap entity
@@ -46,7 +53,11 @@ pub fn setup_tilemap(
         storage: tile_storage,
         texture: TilemapTexture::Single(tile_assets.sprite_sheet.clone()),
         tile_size,
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+        transform: Transform::from_translation(Vec3::new(
+            transform::DEFAULT_X, 
+            transform::DEFAULT_Y, 
+            transform::DEFAULT_Z
+        )),
         ..Default::default()
     });
 }
@@ -191,7 +202,7 @@ pub fn spawn_unit_sprites(
             anchor,
             *position,
             sprite_index,
-            15.0, // Units render above capitals
+            z_layers::UNIT_Z, // Units render above capitals
             &debug_logging,
         );
     }
@@ -276,7 +287,7 @@ pub fn spawn_capital_sprites(
             anchor,
             *pos,
             capital.sprite_index as usize,
-            10.0, // Capitals render above terrain but below units
+            z_layers::CAPITAL_Z, // Capitals render above terrain but below units
             &debug_logging,
         );
     }
@@ -357,7 +368,7 @@ pub fn update_unit_sprites(
             anchor,
             *position,
             sprite_index,
-            15.0, // Units render above capitals
+            z_layers::UNIT_Z, // Units render above capitals
             &debug_logging,
         );
     }
@@ -403,7 +414,7 @@ pub fn update_capital_sprites(
             anchor,
             *pos,
             capital.sprite_index as usize,
-            10.0, // Capitals render above terrain but below units
+            z_layers::CAPITAL_Z, // Capitals render above terrain but below units
             &debug_logging,
         );
     }

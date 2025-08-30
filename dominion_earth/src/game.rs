@@ -1,3 +1,4 @@
+use crate::constants::game::{civilizations, map, personality, timing};
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use ai_planner::ai_coordinator::AICoordinatorSystem;
 use bevy::prelude::*;
@@ -27,8 +28,8 @@ impl GameState {
             _ai_coordinator: AICoordinatorSystem::new(),
             paused: false,
             auto_advance: auto,
-            simulation_speed: 1.0,
-            turn_timer: Timer::from_seconds(2.0, TimerMode::Repeating),
+            simulation_speed: timing::DEFAULT_SIMULATION_SPEED,
+            turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
             next_turn_requested: false,
         }
     }
@@ -48,7 +49,7 @@ pub fn setup_game(
     DebugUtils::log_world_generation(&debug_logging, game_config.random_seed);
 
     // Generate the world map (reduced size for better performance)
-    *world_map = world_gen::generate_island_map(50, 25, &mut rng.0);
+    *world_map = world_gen::generate_island_map(map::DEFAULT_WIDTH, map::DEFAULT_HEIGHT, &mut rng.0);
 
     // Initialize influence map
     // *influence_map = InfluenceMap::new(world_map.width, world_map.height);
@@ -68,9 +69,9 @@ fn spawn_initial_civilizations(
     debug_logging: &DebugLogging,
 ) {
     let starting_positions = world_gen::get_starting_positions();
-    let mut spawned_count = 0;
+    let mut spawned_count = civilizations::INITIAL_SPAWNED_COUNT;
 
-    for (i, (name, position, color)) in starting_positions.into_iter().take(20).enumerate() {
+    for (i, (name, position, color)) in starting_positions.into_iter().take(civilizations::MAX_STARTING_CIVS).enumerate() {
         let civ_id = CivId(i as u32);
 
         // Check if the position is on a buildable tile
@@ -92,14 +93,14 @@ fn spawn_initial_civilizations(
         use rand::Rng;
 
         let personality = CivPersonality {
-            land_hunger: rng.gen_range(0.2..0.8),
-            industry_focus: rng.gen_range(0.2..0.8),
-            tech_focus: rng.gen_range(0.2..0.8),
-            interventionism: rng.gen_range(0.1..0.7),
-            risk_tolerance: rng.gen_range(0.2..0.8),
-            honor_treaties: rng.gen_range(0.3..0.9),
-            militarism: rng.gen_range(0.2..0.8),
-            isolationism: rng.gen_range(0.1..0.6),
+            land_hunger: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
+            industry_focus: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
+            tech_focus: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
+            interventionism: rng.gen_range(personality::INTERVENTIONISM_MIN..personality::INTERVENTIONISM_MAX),
+            risk_tolerance: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
+            honor_treaties: rng.gen_range(personality::HONOR_TREATIES_MIN..personality::HONOR_TREATIES_MAX),
+            militarism: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
+            isolationism: rng.gen_range(personality::ISOLATIONISM_MIN..personality::ISOLATIONISM_MAX),
         };
 
         let civilization = Civilization {

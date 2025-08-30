@@ -1,3 +1,4 @@
+use crate::constants::input::{camera, coordinates, simulation};
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::ui::SelectedTile;
 use bevy::prelude::*;
@@ -12,8 +13,8 @@ fn cursor_to_tile_position(
 ) -> Result<Position, &'static str> {
     match camera.viewport_to_world_2d(camera_transform, cursor_pos) {
         Ok(world_pos) => {
-            let tile_x = (world_pos.x / 64.0).round() as i32;
-            let tile_y = (world_pos.y / 64.0).round() as i32;
+            let tile_x = (world_pos.x / coordinates::TILE_SIZE_FOR_INPUT).round() as i32;
+            let tile_y = (world_pos.y / coordinates::TILE_SIZE_FOR_INPUT).round() as i32;
             Ok(Position::new(tile_x, tile_y))
         }
         Err(_) => Err("Failed to convert cursor position to world position"),
@@ -170,29 +171,29 @@ pub fn handle_input(
     if keyboard_input.just_pressed(KeyCode::Equal)
         || keyboard_input.just_pressed(KeyCode::NumpadAdd)
     {
-        game_state.simulation_speed = (game_state.simulation_speed * 1.5).min(5.0);
+        game_state.simulation_speed = (game_state.simulation_speed * simulation::SPEED_MULTIPLIER).min(simulation::MAX_SPEED);
         let speed = game_state.simulation_speed;
         game_state
             .turn_timer
-            .set_duration(std::time::Duration::from_secs_f32(2.0 / speed));
+            .set_duration(std::time::Duration::from_secs_f32(simulation::BASE_TURN_DURATION / speed));
         DebugUtils::log_simulation_speed(&debug_logging, speed);
     }
 
     if keyboard_input.just_pressed(KeyCode::Minus)
         || keyboard_input.just_pressed(KeyCode::NumpadSubtract)
     {
-        game_state.simulation_speed = (game_state.simulation_speed / 1.5).max(0.2);
+        game_state.simulation_speed = (game_state.simulation_speed / simulation::SPEED_MULTIPLIER).max(simulation::MIN_SPEED);
         let speed = game_state.simulation_speed;
         game_state
             .turn_timer
-            .set_duration(std::time::Duration::from_secs_f32(2.0 / speed));
+            .set_duration(std::time::Duration::from_secs_f32(simulation::BASE_TURN_DURATION / speed));
         DebugUtils::log_simulation_speed(&debug_logging, speed);
     }
 
     // Camera controls
     if let Ok(mut camera_transform) = camera_query.single_mut() {
         let mut movement = Vec3::ZERO;
-        let camera_speed = 200.0 * time.delta_secs();
+        let camera_speed = camera::MOVEMENT_SPEED * time.delta_secs();
 
         if keyboard_input.pressed(KeyCode::ArrowUp) || keyboard_input.pressed(KeyCode::KeyW) {
             movement.y += camera_speed;
@@ -211,13 +212,13 @@ pub fn handle_input(
 
         // Zoom controls
         if keyboard_input.pressed(KeyCode::KeyQ) {
-            camera_transform.scale *= 1.0 + time.delta_secs();
+            camera_transform.scale *= camera::ZOOM_RATE + time.delta_secs();
             camera_transform.scale = camera_transform
                 .scale
                 .clamp(Vec3::splat(0.1), Vec3::splat(5.0));
         }
         if keyboard_input.pressed(KeyCode::KeyE) {
-            camera_transform.scale *= 1.0 - time.delta_secs();
+            camera_transform.scale *= camera::ZOOM_RATE - time.delta_secs();
             camera_transform.scale = camera_transform
                 .scale
                 .clamp(Vec3::splat(0.1), Vec3::splat(5.0));

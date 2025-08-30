@@ -1,3 +1,4 @@
+mod constants;
 mod game;
 mod input;
 mod rendering;
@@ -14,6 +15,7 @@ use core_sim::{
     influence_map::InfluenceMap,
     resources::{ActiveCivTurn, CurrentTurn, GameConfig, GameRng, WorldMap},
 };
+use crate::constants::{network, window};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -27,7 +29,7 @@ struct Cli {
     enable_remote: bool,
 
     /// Remote protocol port (default: 15702)
-    #[arg(long, default_value_t = 15702)]
+    #[arg(long, default_value_t = network::DEFAULT_REMOTE_PORT)]
     remote_port: u16,
 
     /// Random seed for world generation (default: current timestamp)
@@ -47,8 +49,8 @@ fn main() {
 
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
-            title: "Dominion Earth".to_string(),
-            resolution: (1200.0, 800.0).into(),
+            title: window::TITLE.to_string(),
+            resolution: (window::DEFAULT_WIDTH, window::DEFAULT_HEIGHT).into(),
             ..default()
         }),
         ..default()
