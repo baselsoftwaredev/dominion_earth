@@ -11,7 +11,34 @@ impl Default for DebugLogging {
     }
 }
 
+/// Centralized debug printing function - ALL terminal output should go through this
+/// This ensures debug output is controlled by the debug flag
+pub fn debug_print(debug_logging: &DebugLogging, message: &str) {
+    if debug_logging.0 {
+        println!("{}", message);
+    }
+}
+
+/// Centralized debug printing with formatting - ALL terminal output should go through this
+pub fn debug_printf(debug_logging: &DebugLogging, format_string: &str, args: std::fmt::Arguments) {
+    if debug_logging.0 {
+        println!("{}", format_args!("{}", format_string));
+        println!("{}", args);
+    }
+}
+
+/// Macro for debug printing with format args - USE THIS INSTEAD OF println!
+#[macro_export]
+macro_rules! debug_println {
+    ($debug_res:expr, $($arg:tt)*) => {
+        if $debug_res.0 {
+            println!($($arg)*);
+        }
+    };
+}
+
 /// Generic debug logging macro that respects the global debug flag
+/// DEPRECATED: Use debug_println! instead
 #[macro_export]
 macro_rules! debug_log {
     ($debug_res:expr, $($arg:tt)*) => {
@@ -32,109 +59,81 @@ impl DebugUtils {
         entities: &[T],
         formatter: impl Fn(&T) -> String,
     ) {
-        if !debug_logging.0 {
-            return;
-        }
-        
-        println!("UI DEBUG: Found {} {} in query:", entities.len(), query_name);
+        debug_println!(debug_logging, "UI DEBUG: Found {} {} in query:", entities.len(), query_name);
         for entity in entities {
-            println!("  {}", formatter(entity));
+            debug_println!(debug_logging, "  {}", formatter(entity));
         }
     }
 
     /// Log basic informational message
     pub fn log_info(debug_logging: &DebugLogging, message: &str) {
-        if debug_logging.0 {
-            println!("{}", message);
-        }
+        debug_println!(debug_logging, "{}", message);
     }
 
     /// Log tile click events
     pub fn log_tile_click(debug_logging: &DebugLogging, x: i32, y: i32) {
-        if debug_logging.0 {
-            println!("Tile clicked: ({}, {})", x, y);
-        }
+        debug_println!(debug_logging, "Tile clicked: ({}, {})", x, y);
     }
 
     /// Log game state changes
     pub fn log_game_state_change(debug_logging: &DebugLogging, state: &str, enabled: bool) {
-        if debug_logging.0 {
-            println!("Game {}", if enabled { format!("{} enabled", state) } else { format!("{} disabled", state) });
-        }
+        debug_println!(debug_logging, "Game {}", if enabled { format!("{} enabled", state) } else { format!("{} disabled", state) });
     }
 
     /// Log simulation speed changes
     pub fn log_simulation_speed(debug_logging: &DebugLogging, speed: f32) {
-        if debug_logging.0 {
-            println!("Simulation speed: {:.1}x", speed);
-        }
+        debug_println!(debug_logging, "Simulation speed: {:.1}x", speed);
     }
 
     /// Log world generation messages
     pub fn log_world_generation(debug_logging: &DebugLogging, seed: u64) {
-        if debug_logging.0 {
-            println!("Generating world with random seed: {}", seed);
-        }
+        debug_println!(debug_logging, "Generating world with random seed: {}", seed);
     }
 
     /// Log civilization spawning
     pub fn log_civilization_spawn(debug_logging: &DebugLogging, count: usize) {
-        if debug_logging.0 {
-            println!("Spawned {} civilizations on buildable terrain", count);
-        }
+        debug_println!(debug_logging, "Spawned {} civilizations on buildable terrain", count);
     }
 
     /// Log capital spawning details
     pub fn log_capital_spawn_skip(debug_logging: &DebugLogging, name: &str, x: i32, y: i32) {
-        if debug_logging.0 {
-            println!("DEBUG: Skipping {} capital spawn - position ({}, {}) is not on buildable terrain", name, x, y);
-        }
+        debug_println!(debug_logging, "DEBUG: Skipping {} capital spawn - position ({}, {}) is not on buildable terrain", name, x, y);
     }
 
     /// Log successful capital spawning
     pub fn log_capital_spawn_success(debug_logging: &DebugLogging, name: &str, pos: &Position, sprite_index: usize) {
-        if debug_logging.0 {
-            println!("DEBUG: Spawning capital for {} at {:?} with sprite index {} (buildable terrain)", name, pos, sprite_index);
-        }
+        debug_println!(debug_logging, "DEBUG: Spawning capital for {} at {:?} with sprite index {} (buildable terrain)", name, pos, sprite_index);
     }
 
-    /// Log world generation completed
-    pub fn log_world_generation_complete(debug_logging: &DebugLogging, width: u32, height: u32) {
-        if debug_logging.0 {
-            println!(
-                "Game world initialized with {} x {} map (reduced size for performance)",
-                width, height
-            );
-        }
+    /// Log world initialization message
+    pub fn log_world_initialization(debug_logging: &DebugLogging, width: u32, height: u32) {
+        debug_println!(debug_logging, 
+            "Game world initialized with {} x {} map (reduced size for performance)",
+            width, height
+        );
     }
 
     /// Log neighbor debugging info
     pub fn log_neighbors_header(debug_logging: &DebugLogging, x: i32, y: i32, terrain: &str) {
-        if debug_logging.0 {
-            println!("=== DEBUG LOGGING: Tile ({}, {}) Neighbors ===", x, y);
-            println!("DEBUG LOG - Center tile: {}", terrain);
-        }
+        debug_println!(debug_logging, "=== DEBUG LOGGING: Tile ({}, {}) Neighbors ===", x, y);
+        debug_println!(debug_logging, "DEBUG LOG - Center tile: {}", terrain);
     }
 
     /// Log single neighbor info
     pub fn log_single_neighbor(debug_logging: &DebugLogging, direction: &str, terrain: Option<&str>, x: Option<i32>, y: Option<i32>) {
-        if debug_logging.0 {
-            match (terrain, x, y) {
-                (Some(terrain), Some(x), Some(y)) => {
-                    println!("{}: {} at ({}, {})", direction, terrain, x, y);
-                }
-                _ => {
-                    println!("{}: OutOfBounds", direction);
-                }
+        match (terrain, x, y) {
+            (Some(terrain), Some(x), Some(y)) => {
+                debug_println!(debug_logging, "{}: {} at ({}, {})", direction, terrain, x, y);
+            }
+            _ => {
+                debug_println!(debug_logging, "{}: OutOfBounds", direction);
             }
         }
     }
 
     /// Log neighbors footer
     pub fn log_neighbors_footer(debug_logging: &DebugLogging) {
-        if debug_logging.0 {
-            println!("===============================");
-        }
+        debug_println!(debug_logging, "===============================");
     }
 
     /// Log capital entities specifically
@@ -194,21 +193,21 @@ impl DebugUtils {
             .collect();
 
         if !matching_capitals.is_empty() {
-            println!("UI DEBUG: Found {} capital(s) at tile ({}, {}):", matching_capitals.len(), pos.x, pos.y);
+            debug_println!(debug_logging, "UI DEBUG: Found {} capital(s) at tile ({}, {}):", matching_capitals.len(), pos.x, pos.y);
             for (capital, _) in &matching_capitals {
-                println!("  🏛️ Capital (Civ {})", capital.owner.0);
+                debug_println!(debug_logging, "  🏛️ Capital (Civ {})", capital.owner.0);
             }
         }
 
         if !matching_units.is_empty() {
-            println!("UI DEBUG: Found {} unit(s) at tile ({}, {}):", matching_units.len(), pos.x, pos.y);
+            debug_println!(debug_logging, "UI DEBUG: Found {} unit(s) at tile ({}, {}):", matching_units.len(), pos.x, pos.y);
             for (unit, _) in &matching_units {
-                println!("  ⚔️ {:?} (Civ {})", unit.unit_type, unit.owner.0);
+                debug_println!(debug_logging, "  ⚔️ {:?} (Civ {})", unit.unit_type, unit.owner.0);
             }
         }
 
         if matching_capitals.is_empty() && matching_units.is_empty() {
-            println!("UI DEBUG: No structures found at tile ({}, {})", pos.x, pos.y);
+            debug_println!(debug_logging, "UI DEBUG: No structures found at tile ({}, {})", pos.x, pos.y);
         }
     }
 

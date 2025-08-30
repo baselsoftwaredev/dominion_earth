@@ -59,7 +59,7 @@ pub fn setup_game(
     // Spawn initial civilizations
     spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0, &debug_logging);
 
-    DebugUtils::log_world_generation_complete(&debug_logging, world_map.width, world_map.height);
+    DebugUtils::log_world_initialization(&debug_logging, world_map.width, world_map.height);
 }
 
 fn spawn_initial_civilizations(

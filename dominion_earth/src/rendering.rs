@@ -128,11 +128,14 @@ pub fn spawn_world_tiles(
 pub fn spawn_unit_sprites(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
-    units: Query<(
-        Entity,
-        &core_sim::components::MilitaryUnit,
-        &core_sim::components::Position,
-    ), Without<core_sim::components::SpriteEntityReference>>,
+    units: Query<
+        (
+            Entity,
+            &core_sim::components::MilitaryUnit,
+            &core_sim::components::Position,
+        ),
+        Without<core_sim::components::SpriteEntityReference>,
+    >,
     tilemap_q: Query<(
         &TileStorage,
         &TilemapSize,
@@ -206,7 +209,7 @@ pub fn spawn_unit_sprites(
             &debug_logging,
         ) {
             commands.entity(unit_entity).insert(
-                core_sim::components::SpriteEntityReference::create_new_reference(sprite_entity)
+                core_sim::components::SpriteEntityReference::create_new_reference(sprite_entity),
             );
         }
     }
@@ -302,7 +305,15 @@ pub fn spawn_capital_sprites(
 pub fn update_unit_sprites(
     mut transform_q: Query<&mut Transform>,
     tile_assets: Res<TileAssets>,
-    query: Query<(Entity, &core_sim::Position, &core_sim::MilitaryUnit, &core_sim::components::rendering::SpriteEntityReference), Changed<core_sim::Position>>,
+    query: Query<
+        (
+            Entity,
+            &core_sim::Position,
+            &core_sim::MilitaryUnit,
+            &core_sim::components::rendering::SpriteEntityReference,
+        ),
+        Changed<core_sim::Position>,
+    >,
     debug_logging: Res<DebugLogging>,
 ) {
     // Only process if there are actually changed units
@@ -329,7 +340,7 @@ pub fn update_unit_sprites(
         if let Ok(mut transform) = transform_q.get_mut(sprite_reference.sprite_entity) {
             let new_world_position = calculate_sprite_world_position(position, &tile_assets);
             transform.translation = new_world_position;
-            
+
             crate::debug_log!(
                 debug_logging,
                 "DEBUG: Successfully moved sprite to world position ({}, {}, {})",
@@ -348,7 +359,10 @@ pub fn update_unit_sprites(
     }
 }
 
-fn calculate_sprite_world_position(position: &core_sim::Position, _tile_assets: &TileAssets) -> Vec3 {
+fn calculate_sprite_world_position(
+    position: &core_sim::Position,
+    _tile_assets: &TileAssets,
+) -> Vec3 {
     Vec3::new(
         position.x as f32 * tile_size::TILE_WIDTH,
         position.y as f32 * tile_size::TILE_HEIGHT,

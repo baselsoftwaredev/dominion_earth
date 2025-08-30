@@ -61,6 +61,7 @@ fn main() {
 
     // Conditionally add remote protocol plugins
     if cli.enable_remote {
+        // This is important system info that should always be shown
         println!("Enabling Bevy Remote Protocol on port {}", cli.remote_port);
         app.add_plugins(BrpExtrasPlugin::with_port(cli.remote_port));
     }
@@ -74,6 +75,7 @@ fn main() {
             let mut config = GameConfig::default();
             if let Some(seed) = cli.seed {
                 config.random_seed = seed;
+                // This is important config info that should always be shown
                 println!("Using custom random seed: {}", seed);
             }
             config.debug_logging = cli.debug_logging;
