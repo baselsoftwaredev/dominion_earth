@@ -1,6 +1,6 @@
 use core_sim::tile::tile_components::WorldTile;
 
-use crate::constants::rendering::{tile_size, transform, z_layers};
+use crate::constants::rendering::{animation, borders, tile_size, transform, z_layers};
 use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
@@ -11,20 +11,16 @@ use core_sim::*;
 #[derive(Resource, Clone)]
 pub struct TilemapIdResource(pub TilemapId);
 
-/// Setup isometric diamond tilemap using bevy_ecs_tilemap
 pub fn setup_tilemap(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
     mut world_map: ResMut<WorldMap>,
 ) {
-    // Create tilemap entity early - we need its ID for tile references
     let tilemap_entity = commands.spawn_empty().id();
     let tilemap_id = TilemapId(tilemap_entity);
 
-    // Store the tilemap ID as a resource for other systems to access
     commands.insert_resource(TilemapIdResource(tilemap_id));
 
-    // Use core_sim's setup_world_tiles to create tile entities and neighbors
     let tile_storage = core_sim::tile::tile_components::setup_world_tiles(
         &mut commands,
         tilemap_id,
@@ -32,7 +28,6 @@ pub fn setup_tilemap(
         &mut *world_map,
     );
 
-    // Configure tilemap for square rendering (can switch to isometric later)
     let tile_size = TilemapTileSize {
         x: tile_size::TILE_WIDTH,
         y: tile_size::TILE_HEIGHT,
@@ -43,7 +38,6 @@ pub fn setup_tilemap(
     };
     let map_type = TilemapType::Square;
 
-    // Add the tilemap bundle to the tilemap entity
     commands.entity(tilemap_entity).insert(TilemapBundle {
         grid_size,
         map_type,
@@ -63,8 +57,6 @@ pub fn setup_tilemap(
     });
 }
 
-/// Spawn a unit/capital/city as a child of the correct tile entity in the tilemap
-/// Spawn a capital/unit/building at world coordinates aligned with tilemap positioning
 pub fn spawn_entity_on_tile(
     commands: &mut Commands,
     tile_assets: &TileAssets,
@@ -79,20 +71,16 @@ pub fn spawn_entity_on_tile(
     z_offset: f32,
     debug_logging: &DebugLogging,
 ) -> Option<Entity> {
-    // Convert game position to tilemap position to verify tile exists
     let tile_pos = TilePos {
         x: position.x as u32,
         y: position.y as u32,
     };
 
-    // Verify the tile exists in storage
     if let Some(_tile_entity) = tile_storage.get(&tile_pos) {
-        // Calculate world position properly using bevy_ecs_tilemap's coordinate system
         let tile_center =
             tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
-        let world_pos = tile_center.extend(z_offset); // Use custom z-offset for different entity types
+        let world_pos = tile_center.extend(z_offset);
 
-        // Spawn the sprite at the calculated world coordinates
         let sprite_entity = commands
             .spawn((
                 Sprite::from_atlas_image(
@@ -111,13 +99,11 @@ pub fn spawn_entity_on_tile(
 
         Some(sprite_entity)
     } else {
-        eprintln!("Warning: Could not find tile at position {:?}", position);
+        crate::debug_println!(debug_logging, "Warning: Could not find tile at position {:?}", position);
         None
     }
 }
 
-/// Spawn an animated capital sprite entity above the tilemap
-/// This creates a sprite entity with animation for ancient capitals (sprites 3-7)
 pub fn spawn_animated_capital_sprite(
     commands: &mut Commands,
     tile_assets: &TileAssets,
@@ -132,24 +118,19 @@ pub fn spawn_animated_capital_sprite(
     z_offset: f32,
     debug_logging: &DebugLogging,
 ) -> Option<Entity> {
-    // Convert game position to tilemap position to verify tile exists
     let tile_pos = TilePos {
         x: position.x as u32,
         y: position.y as u32,
     };
 
-    // Verify the tile exists in storage
     if let Some(_tile_entity) = tile_storage.get(&tile_pos) {
-        // Calculate world position properly using bevy_ecs_tilemap's coordinate system
         let tile_center =
             tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
         let world_pos = tile_center.extend(z_offset);
 
-        // Only animate ancient capitals (sprites 3-7)
-        let should_animate = matches!(sprite_index, 3..=7);
+        let should_animate = matches!(sprite_index, animation::ANCIENT_CAPITAL_START_FRAME..=animation::ANCIENT_CAPITAL_END_FRAME);
         
         let sprite_entity = if should_animate {
-            // Create animated sprite for ancient capitals
             let entity = commands
                 .spawn((
                     Sprite::from_atlas_image(
@@ -160,18 +141,21 @@ pub fn spawn_animated_capital_sprite(
                         },
                     ),
                     Transform::from_translation(world_pos),
-                    SpriteAnimationTimer::new(3, 7, 0.5), // Animate ancient capitals from sprite 3 to 7
+                    SpriteAnimationTimer::new(
+                        animation::ANCIENT_CAPITAL_START_FRAME,
+                        animation::ANCIENT_CAPITAL_END_FRAME,
+                        animation::ANCIENT_CAPITAL_ANIMATION_SPEED,
+                    ),
                 ))
                 .id();
 
             crate::debug_println!(debug_logging, 
-                "DEBUG: Spawned animated capital sprite at ({}, {}) with animation range 3-7, speed 0.5", 
-                position.x, position.y
+                "DEBUG: Spawned animated capital sprite at ({}, {}) with animation range {}-{}, speed {}", 
+                position.x, position.y, animation::ANCIENT_CAPITAL_START_FRAME, animation::ANCIENT_CAPITAL_END_FRAME, animation::ANCIENT_CAPITAL_ANIMATION_SPEED
             );
 
             entity
         } else {
-            // For non-ancient capitals, create regular sprites
             let entity = commands
                 .spawn((
                     Sprite::from_atlas_image(
@@ -195,12 +179,11 @@ pub fn spawn_animated_capital_sprite(
 
         Some(sprite_entity)
     } else {
-        eprintln!("Warning: Could not find tile at position {:?}", position);
+        crate::debug_println!(debug_logging, "Warning: Could not find tile at position {:?}", position);
         None
     }
 }
 
-/// System to spawn all world tiles using the new tilemap setup
 pub fn spawn_world_tiles(
     commands: Commands,
     tile_assets: Res<TileAssets>,
@@ -209,7 +192,6 @@ pub fn spawn_world_tiles(
     setup_tilemap(commands, tile_assets, world_map);
 }
 
-/// System to spawn all unit sprites on their respective tiles
 pub fn spawn_unit_sprites(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
@@ -300,8 +282,6 @@ pub fn spawn_unit_sprites(
     }
 }
 
-/// System to spawn animated capital sprites above the tilemap
-/// This creates sprite entities with animation for ancient capitals (sprites 3-7)
 pub fn spawn_animated_capital_tiles(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
@@ -342,7 +322,6 @@ pub fn spawn_animated_capital_tiles(
             capital.sprite_index
         );
 
-        // Spawn animated capital sprite above the tilemap
         if let Some(sprite_entity) = spawn_animated_capital_sprite(
             &mut commands,
             &tile_assets,
@@ -357,7 +336,6 @@ pub fn spawn_animated_capital_tiles(
             z_layers::CAPITAL_Z,
             &debug_logging,
         ) {
-            // Store the sprite entity reference in the capital for future updates
             commands
                 .entity(capital_entity)
                 .insert(core_sim::components::rendering::SpriteEntityReference { sprite_entity });
@@ -365,7 +343,6 @@ pub fn spawn_animated_capital_tiles(
     }
 }
 
-/// Component that extends AnimatedTile with timing information for sprite-based animation
 #[derive(Component, Debug, Clone)]
 pub struct SpriteAnimationTimer {
     pub animated_tile: AnimatedTile,
@@ -376,33 +353,26 @@ impl SpriteAnimationTimer {
     pub fn new(start: u32, end: u32, speed: f32) -> Self {
         Self {
             animated_tile: AnimatedTile { start, end, speed },
-            timer: 0.0,
+            timer: animation::ANIMATION_TIMER_RESET_VALUE,
         }
     }
 }
 
-/// System to update animated capital sprites by changing their texture indices
-/// This cycles through the animation frames for sprites with SpriteAnimationTimer components
 pub fn update_animated_capital_sprites(
     time: Res<Time>,
     mut animated_query: Query<(&mut Sprite, &mut SpriteAnimationTimer)>,
     debug_logging: Res<DebugLogging>,
 ) {
     for (mut sprite, mut animation_timer) in animated_query.iter_mut() {
-        // Update animation timer
         animation_timer.timer += time.delta_secs();
 
-        // Check if it's time to advance to the next frame
         if animation_timer.timer >= animation_timer.animated_tile.speed {
-            // Reset timer
-            animation_timer.timer = 0.0;
+            animation_timer.timer = animation::ANIMATION_TIMER_RESET_VALUE;
 
-            // Get current texture atlas
             if let Some(texture_atlas) = &mut sprite.texture_atlas {
-                // Advance to next frame in the animation range
                 let current_index = texture_atlas.index;
                 let next_index = if current_index >= animation_timer.animated_tile.end as usize {
-                    animation_timer.animated_tile.start as usize // Loop back to start
+                    animation_timer.animated_tile.start as usize
                 } else {
                     current_index + 1
                 };
@@ -466,13 +436,11 @@ pub fn spawn_capital_sprites(
             capital.sprite_index
         );
 
-        // Convert game position to tilemap position
         let tile_pos = TilePos {
             x: pos.x as u32,
             y: pos.y as u32,
         };
 
-        // Get the tile entity to log terrain type for debugging
         if let Some(tile_entity) = tile_storage.get(&tile_pos) {
             if let Ok(world_tile) = tile_q.get(tile_entity) {
                 crate::debug_log!(
@@ -485,7 +453,6 @@ pub fn spawn_capital_sprites(
             }
         }
 
-        // Always spawn capital sprites since ECS entities are now pre-filtered for buildability
         spawn_entity_on_tile(
             &mut commands,
             &tile_assets,
@@ -497,14 +464,12 @@ pub fn spawn_capital_sprites(
             anchor,
             *pos,
             capital.sprite_index as usize,
-            z_layers::CAPITAL_Z, // Capitals render above terrain but below units
+            z_layers::CAPITAL_Z,
             &debug_logging,
         );
     }
 }
 
-/// System to update unit sprites by moving existing sprite entities
-/// Only processes units that have actually changed position
 pub fn update_unit_sprites(
     mut transform_q: Query<&mut Transform>,
     tile_assets: Res<TileAssets>,
@@ -519,7 +484,6 @@ pub fn update_unit_sprites(
     >,
     debug_logging: Res<DebugLogging>,
 ) {
-    // Only process if there are actually changed units
     let changed_unit_count = query.iter().count();
     if changed_unit_count == 0 {
         return;
@@ -573,7 +537,6 @@ fn calculate_sprite_world_position(
     )
 }
 
-/// System to update capital sprites when they evolve
 pub fn update_capital_sprites(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
@@ -600,8 +563,6 @@ pub fn update_capital_sprites(
     };
 
     for (capital, pos) in capitals.iter() {
-        // Remove old sprite and spawn new one with updated sprite index
-        // TODO: This is a simple approach - could be optimized to just update the texture index
         spawn_entity_on_tile(
             &mut commands,
             &tile_assets,
@@ -613,13 +574,12 @@ pub fn update_capital_sprites(
             anchor,
             *pos,
             capital.sprite_index as usize,
-            z_layers::CAPITAL_Z, // Capitals render above terrain but below units
+            z_layers::CAPITAL_Z,
             &debug_logging,
         );
     }
 }
 
-/// System to render civilization borders using gizmos around units and capitals
 pub fn render_civilization_borders(
     mut gizmos: Gizmos,
     units: Query<(
@@ -646,7 +606,6 @@ pub fn render_civilization_borders(
         return;
     };
 
-    // Render unit borders
     for (unit, position) in units.iter() {
         if let Some(civ) = civilizations.iter().find(|civ| civ.id == unit.owner) {
             let world_pos = calculate_world_position_for_gizmo(
@@ -654,18 +613,16 @@ pub fn render_civilization_borders(
             );
             let border_color = Color::srgb(civ.color[0], civ.color[1], civ.color[2]);
 
-            // Draw a rectangle border around the unit using line segments
-            let half_width = tile_size.x * 0.45;
-            let half_height = tile_size.y * 0.45;
+            let half_width = tile_size.x * borders::UNIT_BORDER_HALF_WIDTH_FACTOR;
+            let half_height = tile_size.y * borders::UNIT_BORDER_HALF_HEIGHT_FACTOR;
             let center = world_pos.truncate();
 
-            // Define the four corners of the rectangle
             let corners = [
-                center + Vec2::new(-half_width, -half_height), // bottom-left
-                center + Vec2::new(half_width, -half_height),  // bottom-right
-                center + Vec2::new(half_width, half_height),   // top-right
-                center + Vec2::new(-half_width, half_height),  // top-left
-                center + Vec2::new(-half_width, -half_height), // back to start
+                center + Vec2::new(-half_width, -half_height),
+                center + Vec2::new(half_width, -half_height),
+                center + Vec2::new(half_width, half_height),
+                center + Vec2::new(-half_width, half_height),
+                center + Vec2::new(-half_width, -half_height),
             ];
 
             gizmos.linestrip_2d(corners, border_color);
@@ -680,7 +637,6 @@ pub fn render_civilization_borders(
         }
     }
 
-    // Render capital borders
     for (capital, position) in capitals.iter() {
         if let Some(civ) = civilizations.iter().find(|civ| civ.id == capital.owner) {
             let world_pos = calculate_world_position_for_gizmo(
@@ -688,9 +644,8 @@ pub fn render_civilization_borders(
             );
             let border_color = Color::srgb(civ.color[0], civ.color[1], civ.color[2]);
 
-            // Draw outer border for capitals
-            let half_width = tile_size.x * 0.5;
-            let half_height = tile_size.y * 0.5;
+            let half_width = tile_size.x * borders::CAPITAL_OUTER_BORDER_HALF_WIDTH_FACTOR;
+            let half_height = tile_size.y * borders::CAPITAL_OUTER_BORDER_HALF_HEIGHT_FACTOR;
             let center = world_pos.truncate();
 
             let outer_corners = [
@@ -703,9 +658,8 @@ pub fn render_civilization_borders(
 
             gizmos.linestrip_2d(outer_corners, border_color);
 
-            // Draw inner border for capitals
-            let inner_half_width = tile_size.x * 0.4;
-            let inner_half_height = tile_size.y * 0.4;
+            let inner_half_width = tile_size.x * borders::CAPITAL_INNER_BORDER_HALF_WIDTH_FACTOR;
+            let inner_half_height = tile_size.y * borders::CAPITAL_INNER_BORDER_HALF_HEIGHT_FACTOR;
 
             let inner_corners = [
                 center + Vec2::new(-inner_half_width, -inner_half_height),
@@ -716,58 +670,10 @@ pub fn render_civilization_borders(
             ];
 
             gizmos.linestrip_2d(inner_corners, border_color);
-        }
-    }
-
-    // Render capital borders
-    for (capital, position) in capitals.iter() {
-        if let Some(civ) = civilizations.iter().find(|civ| civ.id == capital.owner) {
-            let world_pos = calculate_world_position_for_gizmo(
-                *position, map_size, tile_size, grid_size, map_type, anchor,
-            );
-            let border_color = Color::srgb(civ.color[0], civ.color[1], civ.color[2]);
-
-            // Draw outer border for capitals
-            let half_width = tile_size.x * 0.5;
-            let half_height = tile_size.y * 0.5;
-            let center = world_pos.truncate();
-
-            let outer_corners = [
-                center + Vec2::new(-half_width, -half_height),
-                center + Vec2::new(half_width, -half_height),
-                center + Vec2::new(half_width, half_height),
-                center + Vec2::new(-half_width, half_height),
-                center + Vec2::new(-half_width, -half_height),
-            ];
-
-            gizmos.linestrip_2d(outer_corners, border_color);
-
-            // Draw inner border for capitals
-            let inner_half_width = tile_size.x * 0.4;
-            let inner_half_height = tile_size.y * 0.4;
-
-            let inner_corners = [
-                center + Vec2::new(-inner_half_width, -inner_half_height),
-                center + Vec2::new(inner_half_width, -inner_half_height),
-                center + Vec2::new(inner_half_width, inner_half_height),
-                center + Vec2::new(-inner_half_width, inner_half_height),
-                center + Vec2::new(-inner_half_width, -inner_half_height),
-            ];
-
-            gizmos.linestrip_2d(inner_corners, border_color);
-
-            crate::debug_log!(
-                debug_logging,
-                "DEBUG: Drew capital double border at ({}, {}) with color {:?}",
-                world_pos.x,
-                world_pos.y,
-                border_color
-            );
         }
     }
 }
 
-/// Helper function to calculate world position from tile position for gizmos
 fn calculate_world_position_for_gizmo(
     position: core_sim::components::position::Position,
     map_size: &TilemapSize,
@@ -781,7 +687,6 @@ fn calculate_world_position_for_gizmo(
         y: position.y as u32,
     };
 
-    // Use bevy_ecs_tilemap's coordinate system for consistent positioning
     let tile_center = tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
-    tile_center.extend(z_layers::UNIT_Z + 1.0) // Render gizmos slightly above units
+    tile_center.extend(z_layers::UNIT_Z + 1.0)
 }

@@ -15,7 +15,7 @@ pub mod rendering {
     pub mod z_layers {
         pub const TERRAIN_Z: f32 = 0.0;
         pub const CAPITAL_Z: f32 = 10.0; // Capitals render above terrain but below units
-        pub const UNIT_Z: f32 = 15.0;    // Units render above capitals
+        pub const UNIT_Z: f32 = 15.0; // Units render above capitals
     }
 
     /// Transform constants
@@ -23,6 +23,31 @@ pub mod rendering {
         pub const DEFAULT_X: f32 = 0.0;
         pub const DEFAULT_Y: f32 = 0.0;
         pub const DEFAULT_Z: f32 = 0.0;
+    }
+
+    /// Camera positioning
+    pub mod camera {
+        pub const INITIAL_CAMERA_X: f32 = 1600.0;
+        pub const INITIAL_CAMERA_Y: f32 = 800.0;
+        pub const INITIAL_CAMERA_Z: f32 = 0.0;
+    }
+
+    /// Animation constants
+    pub mod animation {
+        pub const ANCIENT_CAPITAL_START_FRAME: u32 = 3;
+        pub const ANCIENT_CAPITAL_END_FRAME: u32 = 7;
+        pub const ANCIENT_CAPITAL_ANIMATION_SPEED: f32 = 0.5;
+        pub const ANIMATION_TIMER_RESET_VALUE: f32 = 0.0;
+    }
+
+    /// Border rendering constants
+    pub mod borders {
+        pub const UNIT_BORDER_HALF_WIDTH_FACTOR: f32 = 0.45;
+        pub const UNIT_BORDER_HALF_HEIGHT_FACTOR: f32 = 0.45;
+        pub const CAPITAL_OUTER_BORDER_HALF_WIDTH_FACTOR: f32 = 0.5;
+        pub const CAPITAL_OUTER_BORDER_HALF_HEIGHT_FACTOR: f32 = 0.5;
+        pub const CAPITAL_INNER_BORDER_HALF_WIDTH_FACTOR: f32 = 0.4;
+        pub const CAPITAL_INNER_BORDER_HALF_HEIGHT_FACTOR: f32 = 0.4;
     }
 }
 
@@ -72,7 +97,7 @@ pub mod game {
     pub mod personality {
         pub const TRAIT_MIN: f32 = 0.2;
         pub const TRAIT_MAX: f32 = 0.8;
-        
+
         // Specific ranges for certain traits
         pub const INTERVENTIONISM_MIN: f32 = 0.1;
         pub const INTERVENTIONISM_MAX: f32 = 0.7;

@@ -6,6 +6,7 @@ mod rendering;
 mod ui;
 pub mod unit_assets;
 
+use crate::constants::rendering::camera as camera_constants;
 use crate::constants::{network, window};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
@@ -59,9 +60,7 @@ fn main() {
     .add_plugins(bevy_ecs_tilemap::TilemapPlugin)
     .add_plugins(FramepacePlugin);
 
-    // Conditionally add remote protocol plugins
     if cli.enable_remote {
-        // This is important system info that should always be shown
         println!("Enabling Bevy Remote Protocol on port {}", cli.remote_port);
         app.add_plugins(BrpExtrasPlugin::with_port(cli.remote_port));
     }
@@ -75,7 +74,6 @@ fn main() {
             let mut config = GameConfig::default();
             if let Some(seed) = cli.seed {
                 config.random_seed = seed;
-                // This is important config info that should always be shown
                 println!("Using custom random seed: {}", seed);
             }
             config.debug_logging = cli.debug_logging;
@@ -115,8 +113,8 @@ fn main() {
                 core_sim::systems::capital_evolution_system,
                 rendering::update_unit_sprites,
                 rendering::update_capital_sprites,
-                rendering::update_animated_capital_sprites, // Add animated capital sprite system
-                rendering::render_civilization_borders,     // Add civilization border gizmos
+                rendering::update_animated_capital_sprites,
+                rendering::render_civilization_borders,
             ),
         )
         .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
@@ -125,7 +123,9 @@ fn main() {
 }
 
 fn setup_camera(mut commands: Commands) {
-    commands
-        .spawn(Camera2d)
-        .insert(Transform::from_xyz(1600.0, 800.0, 0.0));
+    commands.spawn(Camera2d).insert(Transform::from_xyz(
+        camera_constants::INITIAL_CAMERA_X,
+        camera_constants::INITIAL_CAMERA_Y,
+        camera_constants::INITIAL_CAMERA_Z,
+    ));
 }
