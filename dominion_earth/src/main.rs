@@ -101,7 +101,7 @@ fn main() {
                     .after(core_sim::tile::tile_assets::setup_tile_assets)
                     .after(game::setup_game),
                 rendering::spawn_unit_sprites.after(rendering::spawn_world_tiles),
-                rendering::spawn_capital_sprites.after(rendering::spawn_world_tiles),
+                rendering::spawn_animated_capital_tiles.after(rendering::spawn_world_tiles),
             ),
         )
         .add_systems(
@@ -115,6 +115,7 @@ fn main() {
                 core_sim::systems::capital_evolution_system,
                 rendering::update_unit_sprites,
                 rendering::update_capital_sprites,
+                rendering::update_animated_capital_sprites, // Add animated capital sprite system
                 rendering::render_civilization_borders, // Add civilization border gizmos
             ),
         )

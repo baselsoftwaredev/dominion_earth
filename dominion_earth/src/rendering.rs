@@ -4,6 +4,7 @@ use crate::constants::rendering::{tile_size, transform, z_layers};
 use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
+use bevy_ecs_tilemap::tiles::AnimatedTile;
 use core_sim::tile::tile_assets::TileAssets;
 use core_sim::*;
 
@@ -115,6 +116,90 @@ pub fn spawn_entity_on_tile(
     }
 }
 
+/// Spawn an animated capital sprite entity above the tilemap
+/// This creates a sprite entity with animation for ancient capitals (sprites 3-7)
+pub fn spawn_animated_capital_sprite(
+    commands: &mut Commands,
+    tile_assets: &TileAssets,
+    tile_storage: &TileStorage,
+    map_size: &TilemapSize,
+    tile_size: &TilemapTileSize,
+    grid_size: &TilemapGridSize,
+    map_type: &TilemapType,
+    anchor: &TilemapAnchor,
+    position: Position,
+    sprite_index: u32,
+    z_offset: f32,
+    debug_logging: &DebugLogging,
+) -> Option<Entity> {
+    // Convert game position to tilemap position to verify tile exists
+    let tile_pos = TilePos {
+        x: position.x as u32,
+        y: position.y as u32,
+    };
+
+    // Verify the tile exists in storage
+    if let Some(_tile_entity) = tile_storage.get(&tile_pos) {
+        // Calculate world position properly using bevy_ecs_tilemap's coordinate system
+        let tile_center =
+            tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
+        let world_pos = tile_center.extend(z_offset);
+
+        // Only animate ancient capitals (sprites 3-7)
+        let should_animate = matches!(sprite_index, 3..=7);
+        
+        let sprite_entity = if should_animate {
+            // Create animated sprite for ancient capitals
+            let entity = commands
+                .spawn((
+                    Sprite::from_atlas_image(
+                        tile_assets.sprite_sheet.clone(),
+                        TextureAtlas {
+                            layout: tile_assets.texture_atlas_layout.clone(),
+                            index: sprite_index as usize,
+                        },
+                    ),
+                    Transform::from_translation(world_pos),
+                    SpriteAnimationTimer::new(3, 7, 0.5), // Animate ancient capitals from sprite 3 to 7
+                ))
+                .id();
+
+            crate::debug_println!(debug_logging, 
+                "DEBUG: Spawned animated capital sprite at ({}, {}) with animation range 3-7, speed 0.5", 
+                position.x, position.y
+            );
+
+            entity
+        } else {
+            // For non-ancient capitals, create regular sprites
+            let entity = commands
+                .spawn((
+                    Sprite::from_atlas_image(
+                        tile_assets.sprite_sheet.clone(),
+                        TextureAtlas {
+                            layout: tile_assets.texture_atlas_layout.clone(),
+                            index: sprite_index as usize,
+                        },
+                    ),
+                    Transform::from_translation(world_pos),
+                ))
+                .id();
+
+            crate::debug_println!(debug_logging, 
+                "DEBUG: Spawned regular capital sprite at ({}, {}) with sprite index {}", 
+                position.x, position.y, sprite_index
+            );
+
+            entity
+        };
+
+        Some(sprite_entity)
+    } else {
+        eprintln!("Warning: Could not find tile at position {:?}", position);
+        None
+    }
+}
+
 /// System to spawn all world tiles using the new tilemap setup
 pub fn spawn_world_tiles(
     commands: Commands,
@@ -215,7 +300,125 @@ pub fn spawn_unit_sprites(
     }
 }
 
-/// System to spawn all capital sprites on their respective tiles
+/// System to spawn animated capital sprites above the tilemap
+/// This creates sprite entities with animation for ancient capitals (sprites 3-7)
+pub fn spawn_animated_capital_tiles(
+    mut commands: Commands,
+    tile_assets: Res<TileAssets>,
+    capitals: Query<
+        (Entity, &core_sim::Position, &core_sim::Capital),
+        Without<core_sim::components::rendering::SpriteEntityReference>,
+    >,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    debug_logging: Res<DebugLogging>,
+) {
+    if capitals.is_empty() {
+        return;
+    }
+
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single() else {
+        return;
+    };
+
+    crate::debug_println!(
+        debug_logging,
+        "DEBUG: spawn_animated_capital_tiles called with {} capitals",
+        capitals.iter().count()
+    );
+
+    for (capital_entity, pos, capital) in capitals.iter() {
+        crate::debug_println!(
+            debug_logging,
+            "DEBUG: Processing animated capital at position ({}, {}) with sprite index {}",
+            pos.x,
+            pos.y,
+            capital.sprite_index
+        );
+
+        // Spawn animated capital sprite above the tilemap
+        if let Some(sprite_entity) = spawn_animated_capital_sprite(
+            &mut commands,
+            &tile_assets,
+            &tile_storage,
+            &map_size,
+            &tile_size,
+            &grid_size,
+            &map_type,
+            &anchor,
+            *pos,
+            capital.sprite_index,
+            z_layers::CAPITAL_Z,
+            &debug_logging,
+        ) {
+            // Store the sprite entity reference in the capital for future updates
+            commands
+                .entity(capital_entity)
+                .insert(core_sim::components::rendering::SpriteEntityReference { sprite_entity });
+        }
+    }
+}
+
+/// Component that extends AnimatedTile with timing information for sprite-based animation
+#[derive(Component, Debug, Clone)]
+pub struct SpriteAnimationTimer {
+    pub animated_tile: AnimatedTile,
+    pub timer: f32,
+}
+
+impl SpriteAnimationTimer {
+    pub fn new(start: u32, end: u32, speed: f32) -> Self {
+        Self {
+            animated_tile: AnimatedTile { start, end, speed },
+            timer: 0.0,
+        }
+    }
+}
+
+/// System to update animated capital sprites by changing their texture indices
+/// This cycles through the animation frames for sprites with SpriteAnimationTimer components
+pub fn update_animated_capital_sprites(
+    time: Res<Time>,
+    mut animated_query: Query<(&mut Sprite, &mut SpriteAnimationTimer)>,
+    debug_logging: Res<DebugLogging>,
+) {
+    for (mut sprite, mut animation_timer) in animated_query.iter_mut() {
+        // Update animation timer
+        animation_timer.timer += time.delta_secs();
+
+        // Check if it's time to advance to the next frame
+        if animation_timer.timer >= animation_timer.animated_tile.speed {
+            // Reset timer
+            animation_timer.timer = 0.0;
+
+            // Get current texture atlas
+            if let Some(texture_atlas) = &mut sprite.texture_atlas {
+                // Advance to next frame in the animation range
+                let current_index = texture_atlas.index;
+                let next_index = if current_index >= animation_timer.animated_tile.end as usize {
+                    animation_timer.animated_tile.start as usize // Loop back to start
+                } else {
+                    current_index + 1
+                };
+
+                texture_atlas.index = next_index;
+
+                crate::debug_println!(
+                    debug_logging,
+                    "DEBUG: Animated capital sprite frame updated from {} to {}",
+                    current_index,
+                    next_index
+                );
+            }
+        }
+    }
+}
 pub fn spawn_capital_sprites(
     mut commands: Commands,
     tile_assets: Res<TileAssets>,
