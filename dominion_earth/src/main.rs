@@ -24,6 +24,18 @@ struct Cli {
     #[arg(long, default_value_t = false)]
     auto_advance: bool,
 
+    /// Enable AI-only mode (no player civilization, all civs controlled by AI)
+    #[arg(long, default_value_t = false)]
+    ai_only: bool,
+
+    /// Number of player-controlled civilizations (default: 1, ignored if --ai-only is set)
+    #[arg(long, default_value_t = 1)]
+    players: u32,
+
+    /// Total number of civilizations to spawn (default: 2)
+    #[arg(long, default_value_t = 2)]
+    total_civs: u32,
+
     /// Enable Bevy Remote Protocol for external tool access
     #[arg(long, default_value_t = false)]
     enable_remote: bool,
@@ -67,6 +79,7 @@ fn main() {
         .init_resource::<ui::SelectedTile>()
         .init_resource::<CurrentTurn>()
         .init_resource::<ActiveCivTurn>()
+        .init_resource::<core_sim::components::player::SelectedUnit>()
         .insert_resource(WinitSettings::game())
         .insert_resource({
             let mut config = GameConfig::default();
@@ -79,7 +92,7 @@ fn main() {
         })
         .init_resource::<GameRng>()
         .init_resource::<WorldMap>()
-        .insert_resource(game::GameState::with_auto_advance(cli.auto_advance))
+        .insert_resource(game::GameState::new(cli.auto_advance, cli.ai_only, cli.players, cli.total_civs))
         .insert_resource(debug_utils::DebugLogging(cli.debug_logging))
         .init_resource::<ui::SelectedTile>()
         .init_resource::<ui::LastLoggedTile>()
@@ -108,8 +121,10 @@ fn main() {
                 input::handle_input,
                 input::handle_mouse_input,
                 input::select_tile_on_click,
+                input::handle_player_unit_interaction,
                 game::game_update_system,
                 core_sim::systems::turn_based_system,
+                core_sim::systems::process_player_movement_orders,
                 core_sim::systems::capital_evolution_system,
                 rendering::units::update_unit_sprites,
                 rendering::capitals::update_capital_sprites,

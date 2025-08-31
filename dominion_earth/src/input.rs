@@ -295,3 +295,149 @@ pub fn handle_mouse_input(
         *last_cursor_pos = None;
     }
 }
+
+/// System to handle player unit selection and movement
+pub fn handle_player_unit_interaction(
+    mouse_button: Res<ButtonInput<MouseButton>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    windows: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    mut selected_unit: ResMut<core_sim::SelectedUnit>,
+    mut commands: Commands,
+    mut units_query: Query<(Entity, &mut core_sim::MilitaryUnit, &core_sim::Position)>,
+    player_civs: Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
+    world_map: Res<core_sim::resources::WorldMap>,
+    debug_logging: Res<DebugLogging>,
+) {
+    // Only handle input if it's not consumed by UI and we have a player civilization
+    if player_civs.is_empty() {
+        return;
+    }
+
+    // Collect all player civilization IDs
+    let player_civ_ids: Vec<core_sim::CivId> = player_civs.iter().map(|civ| civ.id).collect();
+
+    if mouse_button.just_pressed(MouseButton::Right) {
+        let Ok(window) = windows.single() else {
+            return;
+        };
+
+        let Some(cursor_pos) = window.cursor_position() else {
+            return;
+        };
+
+        let Ok((camera, camera_transform)) = camera_query.single() else {
+            return;
+        };
+
+        match cursor_to_tile_position(cursor_pos, camera, camera_transform) {
+            Ok(target_position) => {
+                // Right-click: Move selected unit to this position
+                if let Some(selected_entity) = selected_unit.unit_entity {
+                    if let Ok((entity, unit, _current_pos)) = units_query.get_mut(selected_entity) {
+                        if player_civ_ids.contains(&unit.owner) && unit.can_move() {
+                            // Check if target position is valid for movement
+                            if is_valid_movement_target(&target_position, &world_map) {
+                                commands.entity(entity).insert(core_sim::PlayerMovementOrder {
+                                    target_position,
+                                });
+                                DebugUtils::log_info(&debug_logging, &format!(
+                                    "Ordered unit {} to move to ({}, {})",
+                                    unit.id, target_position.x, target_position.y
+                                ));
+                            } else {
+                                DebugUtils::log_info(&debug_logging, "Invalid movement target: ocean or blocked tile");
+                            }
+                        } else {
+                            DebugUtils::log_info(&debug_logging, "Selected unit cannot move this turn or is not player-controlled");
+                        }
+                    }
+                }
+            }
+            Err(error_msg) => {
+                DebugUtils::log_info(&debug_logging, error_msg);
+            }
+        }
+    }
+
+    if mouse_button.just_pressed(MouseButton::Left) {
+        let Ok(window) = windows.single() else {
+            return;
+        };
+
+        let Some(cursor_pos) = window.cursor_position() else {
+            return;
+        };
+
+        let Ok((camera, camera_transform)) = camera_query.single() else {
+            return;
+        };
+
+        match cursor_to_tile_position(cursor_pos, camera, camera_transform) {
+            Ok(click_position) => {
+                // Left-click: Select unit at this position
+                let mut found_unit = false;
+                for (entity, unit, position) in units_query.iter() {
+                    if *position == click_position && player_civ_ids.contains(&unit.owner) {
+                        // Clear previous selection
+                        if let Some(prev_entity) = selected_unit.unit_entity {
+                            commands.entity(prev_entity).remove::<core_sim::UnitSelected>();
+                        }
+
+                        // Select new unit
+                        selected_unit.unit_entity = Some(entity);
+                        selected_unit.unit_id = Some(unit.id);
+                        selected_unit.owner = Some(unit.owner);
+                        commands.entity(entity).insert(core_sim::UnitSelected);
+                        found_unit = true;
+
+                        DebugUtils::log_info(&debug_logging, &format!(
+                            "Selected unit {} at ({}, {}) belonging to player civ {:?}", 
+                            unit.id, position.x, position.y, unit.owner
+                        ));
+                        break;
+                    }
+                }
+
+                if !found_unit {
+                    // Clear selection if clicking on empty tile
+                    if let Some(prev_entity) = selected_unit.unit_entity {
+                        commands.entity(prev_entity).remove::<core_sim::UnitSelected>();
+                    }
+                    selected_unit.unit_entity = None;
+                    selected_unit.unit_id = None;
+                    selected_unit.owner = None;
+                }
+            }
+            Err(error_msg) => {
+                DebugUtils::log_info(&debug_logging, error_msg);
+            }
+        }
+    }
+
+    // Keyboard shortcuts for unit actions
+    if keyboard_input.just_pressed(KeyCode::Space) {
+        // Skip turn for selected unit
+        if let Some(selected_entity) = selected_unit.unit_entity {
+            if let Ok((_, mut unit, _)) = units_query.get_mut(selected_entity) {
+                if player_civ_ids.contains(&unit.owner) {
+                    unit.movement_remaining = 0;
+                    DebugUtils::log_info(&debug_logging, &format!("Unit {} skipped turn", unit.id));
+                }
+            }
+        }
+    }
+}
+
+/// Check if a position is a valid movement target
+fn is_valid_movement_target(
+    position: &core_sim::Position,
+    world_map: &core_sim::resources::WorldMap,
+) -> bool {
+    if let Some(tile) = world_map.get_tile(*position) {
+        // Can move to any non-ocean tile
+        !matches!(tile.terrain, core_sim::TerrainType::Ocean)
+    } else {
+        false
+    }
+}

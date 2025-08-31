@@ -3,7 +3,7 @@ use crate::{
     influence_map::{InfluenceMap, InfluenceType},
     resources::{ActiveCivTurn, CurrentTurn, GameRng, TurnPhase},
     AIDecision, ActiveThisTurn, Capital, CapitalAge, City, CivId, CivPersonality, Civilization, MilitaryUnit,
-    MovementOrder, Position, Territory, WorldMap,
+    MovementOrder, Position, Territory, WorldMap, PlayerMovementOrder,
 };
 use bevy_ecs::prelude::*;
 use rand::seq::SliceRandom;
@@ -23,6 +23,7 @@ pub fn turn_based_system(
     mut active_civ_turn: ResMut<ActiveCivTurn>,
     mut commands: Commands,
     civs: Query<(Entity, &Civilization), With<Civilization>>,
+    player_civs: Query<&Civilization, With<crate::PlayerControlled>>,
     mut units: Query<(&mut Position, &mut MilitaryUnit)>,
     world_map: Res<WorldMap>,
     mut rng: ResMut<GameRng>,
@@ -64,29 +65,36 @@ pub fn turn_based_system(
         }
 
         TurnPhase::Execution => {
-            // Move units belonging to the current civilization
-            for (mut pos, mut unit) in units.iter_mut() {
-                // Use the actual owner field to check if this unit belongs to the current civilization
-                if unit.owner == current_civ_id {
-                    // Only move if on a land tile (not Ocean)
-                    if let Some(tile) = world_map.get_tile(*pos) {
-                        if !matches!(tile.terrain, crate::TerrainType::Ocean) {
-                            // Get all adjacent positions
-                            let adj = pos.adjacent_positions();
-                            // Filter to valid land (non-Ocean) tiles
-                            let mut valid_moves = vec![];
-                            for p in adj.iter() {
-                                if let Some(adj_tile) = world_map.get_tile(*p) {
-                                    if !matches!(adj_tile.terrain, crate::TerrainType::Ocean) {
-                                        valid_moves.push(*p);
+            // Check if current civilization is player-controlled
+            let is_player_controlled = player_civs.iter()
+                .any(|player_civ| player_civ.id == current_civ_id);
+
+            // Only run AI movement for non-player civilizations
+            if !is_player_controlled {
+                // Move units belonging to the current civilization
+                for (mut pos, mut unit) in units.iter_mut() {
+                    // Use the actual owner field to check if this unit belongs to the current civilization
+                    if unit.owner == current_civ_id {
+                        // Only move if on a land tile (not Ocean)
+                        if let Some(tile) = world_map.get_tile(*pos) {
+                            if !matches!(tile.terrain, crate::TerrainType::Ocean) {
+                                // Get all adjacent positions
+                                let adj = pos.adjacent_positions();
+                                // Filter to valid land (non-Ocean) tiles
+                                let mut valid_moves = vec![];
+                                for p in adj.iter() {
+                                    if let Some(adj_tile) = world_map.get_tile(*p) {
+                                        if !matches!(adj_tile.terrain, crate::TerrainType::Ocean) {
+                                            valid_moves.push(*p);
+                                        }
                                     }
                                 }
-                            }
-                            // Move to a random valid adjacent tile if possible
-                            if let Some(new_pos) = valid_moves.choose(&mut rng.0) {
-                                *pos = *new_pos;
-                                unit.position = *new_pos;
-                                CoreDebugUtils::log_unit_movement(unit.id, unit.owner.0, new_pos.x, new_pos.y);
+                                // Move to a random valid adjacent tile if possible
+                                if let Some(new_pos) = valid_moves.choose(&mut rng.0) {
+                                    *pos = *new_pos;
+                                    unit.position = *new_pos;
+                                    CoreDebugUtils::log_unit_movement(unit.id, unit.owner.0, new_pos.x, new_pos.y);
+                                }
                             }
                         }
                     }
@@ -156,6 +164,43 @@ pub fn process_movement_orders(
                     movement_order.path_index += 1;
                 }
             }
+        }
+    }
+}
+
+/// System for processing player movement orders
+pub fn process_player_movement_orders(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Position, &mut MilitaryUnit, &PlayerMovementOrder)>,
+    world_map: Res<WorldMap>,
+) {
+    for (entity, mut position, mut unit, movement_order) in query.iter_mut() {
+        if unit.can_move() {
+            let target = movement_order.target_position;
+            
+            // For simplicity, allow direct movement to adjacent tiles
+            let current_pos = *position;
+            let distance = ((target.x - current_pos.x).abs() + (target.y - current_pos.y).abs()) as u32;
+            
+            if distance == 1 {
+                // Adjacent tile - move directly
+                if let Some(tile) = world_map.get_tile(target) {
+                    if !matches!(tile.terrain, crate::TerrainType::Ocean) {
+                        *position = target;
+                        unit.position = target;
+                        unit.movement_remaining = unit.movement_remaining.saturating_sub(1);
+                        
+                        // Remove the movement order
+                        commands.entity(entity).remove::<PlayerMovementOrder>();
+                    }
+                }
+            }
+            // TODO: For non-adjacent tiles, implement pathfinding
+        }
+        
+        // Remove movement order if unit can't move
+        if !unit.can_move() {
+            commands.entity(entity).remove::<PlayerMovementOrder>();
         }
     }
 }

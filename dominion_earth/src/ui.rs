@@ -79,7 +79,9 @@ pub fn ui_system(
     world_map: Res<WorldMap>,
     terrain_counts: Res<TerrainCounts>,
     civs: Query<&Civilization>,
+    player_civs: Query<&Civilization, With<core_sim::PlayerControlled>>,
     selected_tile: Res<SelectedTile>,
+    selected_unit: Res<core_sim::SelectedUnit>,
     mut last_logged_tile: ResMut<LastLoggedTile>,
     debug_logging: Res<DebugLogging>,
     world_tile_query: Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
@@ -94,10 +96,12 @@ pub fn ui_system(
             &current_turn,
             &mut game_state,
             &selected_tile,
+            &selected_unit,
             &mut last_logged_tile,
             &debug_logging,
             &world_tile_query,
             &civs,
+            &player_civs,
             &world_map,
             &capitals,
             &units,
@@ -117,10 +121,12 @@ fn render_game_panel(
     current_turn: &core_sim::resources::CurrentTurn,
     game_state: &mut GameState,
     selected_tile: &SelectedTile,
+    selected_unit: &core_sim::SelectedUnit,
     last_logged_tile: &mut LastLoggedTile,
     debug_logging: &DebugLogging,
     world_tile_query: &Query<(&core_sim::tile::tile_components::WorldTile, &core_sim::tile::tile_components::TileNeighbors)>,
     civs: &Query<&core_sim::Civilization>,
+    player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
     world_map: &Res<core_sim::resources::WorldMap>,
     capitals: &Query<(&Capital, &Position)>,
     units: &Query<(&MilitaryUnit, &Position)>,
@@ -139,7 +145,9 @@ fn render_game_panel(
 
             render_selected_tile_info(ui, selected_tile, last_logged_tile, debug_logging, world_tile_query, world_map, capitals, units);
 
-            render_civilizations_list(ui, civs);
+            render_selected_unit_info(ui, selected_unit, units);
+
+            render_civilizations_list(ui, civs, player_civs);
 
             ui.separator();
             render_controls(ui, game_state);
@@ -328,21 +336,35 @@ fn collect_neighbor_info(
 }
 
 /// Renders a scrollable list of all civilizations with their details
-fn render_civilizations_list(ui: &mut egui::Ui, civs: &Query<&Civilization>) {
+fn render_civilizations_list(
+    ui: &mut egui::Ui, 
+    civs: &Query<&Civilization>,
+    player_civs: &Query<&Civilization, With<core_sim::PlayerControlled>>,
+) {
     ui.heading("Civilizations");
+    
+    // Collect player civilization IDs for quick lookup
+    let player_civ_ids: std::collections::HashSet<core_sim::CivId> = 
+        player_civs.iter().map(|civ| civ.id).collect();
     
     egui::ScrollArea::vertical()
         .max_height(300.0) // Limit height so controls section remains visible
         .show(ui, |ui| {
             for civ in civs.iter() {
-                render_civilization_card(ui, civ);
+                let is_player = player_civ_ids.contains(&civ.id);
+                render_civilization_card(ui, civ, is_player);
             }
         });
 }
 
 /// Renders a single civilization's information card
-fn render_civilization_card(ui: &mut egui::Ui, civ: &Civilization) {
+fn render_civilization_card(ui: &mut egui::Ui, civ: &Civilization, is_player: bool) {
     ui.group(|ui| {
+        // Show player status
+        let status_text = if is_player { "👤 PLAYER" } else { "🤖 AI" };
+        let status_color = if is_player { egui::Color32::GREEN } else { egui::Color32::GRAY };
+        ui.colored_label(status_color, status_text);
+        
         ui.label(&civ.name);
         ui.label(format!("Gold: {:.0}", civ.economy.gold));
         ui.label(format!("Military: {:.0}", civ.military.total_strength));
@@ -379,6 +401,48 @@ fn render_controls(ui: &mut egui::Ui, game_state: &mut GameState) {
     ui.label("A: Toggle auto-advance");
     ui.label("Mouse: Pan map");
     ui.label("Scroll: Zoom");
+    ui.separator();
+    ui.label("Player Controls:");
+    ui.label("Left click: Select unit");
+    ui.label("Right click: Move unit");
+    ui.label("Space: Skip unit turn");
+}
+
+/// Displays information about the currently selected unit
+fn render_selected_unit_info(
+    ui: &mut egui::Ui,
+    selected_unit: &core_sim::SelectedUnit,
+    units: &Query<(&MilitaryUnit, &Position)>,
+) {
+    ui.heading("Selected Unit");
+
+    if let Some(unit_entity) = selected_unit.unit_entity {
+        // Try to find the unit in the query
+        if let Ok((unit, position)) = units.get(unit_entity) {
+            ui.label(format!("Unit ID: {}", unit.id));
+            ui.label(format!("Type: {:?}", unit.unit_type));
+            ui.label(format!("Position: ({}, {})", position.x, position.y));
+            ui.label(format!("Strength: {:.1}", unit.strength));
+            ui.label(format!("Movement: {}/{}", 
+                unit.movement_remaining, 
+                unit.unit_type.movement_points()));
+            ui.label(format!("Experience: {:.1}", unit.experience));
+            ui.label(format!("Owner: {:?}", unit.owner));
+
+            if unit.movement_remaining > 0 {
+                ui.colored_label(egui::Color32::GREEN, "Can move");
+            } else {
+                ui.colored_label(egui::Color32::RED, "Cannot move");
+            }
+        } else {
+            ui.label("Unit data not available");
+        }
+    } else {
+        ui.label("No unit selected");
+        ui.label("Left-click on a unit to select it");
+    }
+
+    ui.separator();
 }
 
 /// Renders the bottom statistics panel with world and civilization data

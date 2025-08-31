@@ -6,7 +6,7 @@ use core_sim::{
     self,
     resources::{GameConfig, GameRng, WorldMap},
     world_gen, ActiveThisTurn, Building, BuildingType, Capital, CapitalAge, City, CivId,
-    CivPersonality, Civilization, Economy, Military, MilitaryUnit, Technologies, UnitType,
+    CivPersonality, Civilization, Economy, Military, MilitaryUnit, Technologies, UnitType, PlayerControlled,
 };
 use rand::SeedableRng;
 
@@ -17,6 +17,9 @@ pub struct GameState {
     pub _ai_coordinator: AICoordinatorSystem,
     pub paused: bool,
     pub auto_advance: bool,
+    pub ai_only: bool,
+    pub player_count: u32,
+    pub total_civilizations: u32,
     pub simulation_speed: f32,
     pub turn_timer: Timer,
     pub next_turn_requested: bool,
@@ -28,6 +31,40 @@ impl GameState {
             _ai_coordinator: AICoordinatorSystem::new(),
             paused: false,
             auto_advance: auto,
+            ai_only: false,
+            player_count: 1,
+            total_civilizations: 2,
+            simulation_speed: timing::DEFAULT_SIMULATION_SPEED,
+            turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
+            next_turn_requested: false,
+        }
+    }
+
+    pub fn with_auto_advance_and_ai_only(auto: bool, ai_only: bool) -> Self {
+        Self {
+            _ai_coordinator: AICoordinatorSystem::new(),
+            paused: false,
+            auto_advance: auto,
+            ai_only,
+            player_count: 1,
+            total_civilizations: 2,
+            simulation_speed: timing::DEFAULT_SIMULATION_SPEED,
+            turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
+            next_turn_requested: false,
+        }
+    }
+
+    pub fn new(auto_advance: bool, ai_only: bool, player_count: u32, total_civilizations: u32) -> Self {
+        // Validate parameters
+        let validated_player_count = if ai_only { 0 } else { player_count.min(total_civilizations) };
+        
+        Self {
+            _ai_coordinator: AICoordinatorSystem::new(),
+            paused: false,
+            auto_advance,
+            ai_only,
+            player_count: validated_player_count,
+            total_civilizations,
             simulation_speed: timing::DEFAULT_SIMULATION_SPEED,
             turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
             next_turn_requested: false,
@@ -42,6 +79,7 @@ pub fn setup_game(
     // mut influence_map: ResMut<InfluenceMap>,
     mut rng: ResMut<GameRng>,
     game_config: Res<GameConfig>,
+    game_state: Res<GameState>,
     debug_logging: Res<DebugLogging>,
 ) {
     // Initialize the random number generator with configured seed
@@ -57,7 +95,7 @@ pub fn setup_game(
     // influence_map.add_layer(InfluenceType::Threat);
 
     // Spawn initial civilizations
-    spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0, &debug_logging);
+    spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0, &debug_logging, game_state.ai_only, game_state.player_count, game_state.total_civilizations);
 
     DebugUtils::log_world_initialization(&debug_logging, world_map.width, world_map.height);
 }
@@ -67,11 +105,14 @@ fn spawn_initial_civilizations(
     world_map: &mut WorldMap,
     rng: &mut rand_pcg::Pcg64,
     debug_logging: &DebugLogging,
+    ai_only: bool,
+    player_count: u32,
+    total_civilizations: u32,
 ) {
     let starting_positions = world_gen::get_starting_positions();
-    let mut spawned_count = civilizations::INITIAL_SPAWNED_COUNT;
+    let mut spawned_count = 0;
 
-    for (i, (name, position, color)) in starting_positions.into_iter().take(civilizations::MAX_STARTING_CIVS).enumerate() {
+    for (i, (name, position, color)) in starting_positions.into_iter().take(total_civilizations as usize).enumerate() {
         let civ_id = CivId(i as u32);
 
         // Check if the position is on a buildable tile
@@ -115,7 +156,16 @@ fn spawn_initial_civilizations(
         };
 
         // Spawn civilization entity
-        commands.spawn((civilization, position, ActiveThisTurn));
+        let mut civ_entity_commands = commands.spawn((civilization, position, ActiveThisTurn));
+        
+        // Mark the first N civilizations as player-controlled if not ai_only mode
+        let civ_index = i as u32;
+        if !ai_only && civ_index < player_count {
+            civ_entity_commands.insert(core_sim::PlayerControlled);
+            DebugUtils::log_info(&debug_logging, &format!("Marking {} as player-controlled civilization (Player {})", name, civ_index + 1));
+        } else {
+            DebugUtils::log_info(&debug_logging, &format!("Marking {} as AI-controlled civilization", name));
+        }
 
         // Spawn capital city with Capital component
         let city = City {

@@ -4,8 +4,12 @@ A turn-based, 2D grand strategy game prototype built with Rust and Bevy 0.16. Ex
 
 ## 🎮 Features
 
-- **AI-Driven Gameplay**: ~40 civilizations with unique personalities using Utility AI + GOAP/HTN planning
+- **Configurable Player Count**: Control multiple civilizations or let AI handle them all
+- **Multiplayer Support**: Up to N player-controlled civilizations with AI opponents
+- **Scalable Game Size**: Choose from 2 to 40+ civilizations per game
+- **AI-Driven Opponents**: Civilizations with unique personalities using Utility AI + GOAP/HTN planning
 - **Real Earth Map**: Civilizations placed in historically accurate starting locations
+- **Interactive Gameplay**: Click to select units, right-click to move, intuitive controls
 - **Data-Driven Design**: All game content defined in RON/JSON asset files
 - **Performance Optimized**: Efficient real-time simulation with GUI rendering
 - **Deterministic Simulation**: Reproducible gameplay with seeded random number generation
@@ -50,10 +54,53 @@ cargo build --release
 ### Running
 
 ```bash
-# Run with GUI (default)
-cargo run --release
+# Run with default settings: 2 civilizations total, 1 player-controlled
+cargo run -- --seed 1756118413
 
+# Run with multiple players: 3 total civs, 2 players
+cargo run -- --seed 1756118413 --players 2 --total-civs 3
+
+# Run in AI-only mode - all civilizations controlled by AI
+cargo run -- --seed 1756118413 --ai-only --total-civs 5
+
+# Run with automatic turn advancement 
+cargo run -- --seed 1756118413 --auto-advance
+
+# Run with debug logging
+cargo run -- --seed 1756118413 --debug-logging
+
+# Enable Bevy Remote Protocol for external tool access
+cargo run -- --seed 1756118413 --enable-remote --remote-port 15702
 ```
+
+### Command Line Options
+
+- `--players N`: Number of player-controlled civilizations (default: 1, ignored if --ai-only)
+- `--total-civs N`: Total number of civilizations to spawn (default: 2)
+- `--ai-only`: All civilizations controlled by AI
+- `--auto-advance`: Automatic turn progression
+- `--seed N`: Random seed for reproducible games
+- `--debug-logging`: Enable detailed debug output
+
+### Controls
+
+#### Player Mode (Default)
+- **Left Click**: Select your units
+- **Right Click**: Move selected unit to target tile  
+- **Space**: Skip turn for selected unit
+- **Next Turn Button**: Advance to next turn (manual mode)
+
+**Note**: The first N civilizations (specified by `--players`) are player-controlled, the rest are AI-controlled. The UI shows which civilizations are players vs AI.
+
+#### Camera Controls
+- **Arrow Keys**: Move camera
+- **Q/E**: Zoom in/out
+- **Mouse Drag**: Pan camera
+- **Mouse Wheel**: Zoom
+
+#### Game Controls
+- **P**: Pause/Resume
+- **A**: Toggle auto-advance mode
 
 ### Development
 

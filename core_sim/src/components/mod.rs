@@ -7,6 +7,7 @@ pub mod diplomacy;
 pub mod ai;
 pub mod orders;
 pub mod rendering;
+pub mod player;
 
 // Re-export all components for compatibility
 pub use position::*;
@@ -18,3 +19,4 @@ pub use diplomacy::*;
 pub use ai::*;
 pub use orders::*;
 pub use rendering::*;
+pub use player::*;
