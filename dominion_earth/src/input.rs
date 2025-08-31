@@ -314,8 +314,12 @@ pub fn handle_player_unit_interaction(
         return;
     }
 
-    // Collect all player civilization IDs
-    let player_civ_ids: Vec<core_sim::CivId> = player_civs.iter().map(|civ| civ.id).collect();
+    // Get the single player civilization ID
+    let player_civ_id = if let Some(player_civ) = player_civs.iter().next() {
+        player_civ.id
+    } else {
+        return;
+    };
 
     if mouse_button.just_pressed(MouseButton::Right) {
         let Ok(window) = windows.single() else {
@@ -335,7 +339,7 @@ pub fn handle_player_unit_interaction(
                 // Right-click: Move selected unit to this position
                 if let Some(selected_entity) = selected_unit.unit_entity {
                     if let Ok((entity, unit, _current_pos)) = units_query.get_mut(selected_entity) {
-                        if player_civ_ids.contains(&unit.owner) && unit.can_move() {
+                        if unit.owner == player_civ_id && unit.can_move() {
                             // Check if target position is valid for movement
                             if is_valid_movement_target(&target_position, &world_map) {
                                 commands.entity(entity).insert(core_sim::PlayerMovementOrder {
@@ -378,7 +382,7 @@ pub fn handle_player_unit_interaction(
                 // Left-click: Select unit at this position
                 let mut found_unit = false;
                 for (entity, unit, position) in units_query.iter() {
-                    if *position == click_position && player_civ_ids.contains(&unit.owner) {
+                    if *position == click_position && unit.owner == player_civ_id {
                         // Clear previous selection
                         if let Some(prev_entity) = selected_unit.unit_entity {
                             commands.entity(prev_entity).remove::<core_sim::UnitSelected>();
@@ -392,8 +396,8 @@ pub fn handle_player_unit_interaction(
                         found_unit = true;
 
                         DebugUtils::log_info(&debug_logging, &format!(
-                            "Selected unit {} at ({}, {}) belonging to player civ {:?}", 
-                            unit.id, position.x, position.y, unit.owner
+                            "Selected unit {} at ({}, {})", 
+                            unit.id, position.x, position.y
                         ));
                         break;
                     }
@@ -420,7 +424,7 @@ pub fn handle_player_unit_interaction(
         // Skip turn for selected unit
         if let Some(selected_entity) = selected_unit.unit_entity {
             if let Ok((_, mut unit, _)) = units_query.get_mut(selected_entity) {
-                if player_civ_ids.contains(&unit.owner) {
+                if unit.owner == player_civ_id {
                     unit.movement_remaining = 0;
                     DebugUtils::log_info(&debug_logging, &format!("Unit {} skipped turn", unit.id));
                 }

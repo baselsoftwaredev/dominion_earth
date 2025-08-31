@@ -28,10 +28,6 @@ struct Cli {
     #[arg(long, default_value_t = false)]
     ai_only: bool,
 
-    /// Number of player-controlled civilizations (default: 1, ignored if --ai-only is set)
-    #[arg(long, default_value_t = 1)]
-    players: u32,
-
     /// Total number of civilizations to spawn (default: 2)
     #[arg(long, default_value_t = 2)]
     total_civs: u32,
@@ -92,7 +88,7 @@ fn main() {
         })
         .init_resource::<GameRng>()
         .init_resource::<WorldMap>()
-        .insert_resource(game::GameState::new(cli.auto_advance, cli.ai_only, cli.players, cli.total_civs))
+        .insert_resource(game::GameState::new(cli.auto_advance, cli.ai_only, cli.total_civs))
         .insert_resource(debug_utils::DebugLogging(cli.debug_logging))
         .init_resource::<ui::SelectedTile>()
         .init_resource::<ui::LastLoggedTile>()
