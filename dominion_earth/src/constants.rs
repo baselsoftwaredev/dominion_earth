@@ -69,7 +69,7 @@ pub mod input {
         pub const SPEED_MULTIPLIER: f32 = 1.5;
         pub const MAX_SPEED: f32 = 5.0;
         pub const MIN_SPEED: f32 = 0.2;
-        pub const BASE_TURN_DURATION: f32 = 2.0; // seconds
+        pub const BASE_TURN_DURATION: f32 = 1.0; // seconds - halved for faster AI turns
     }
 }
 
@@ -84,7 +84,7 @@ pub mod game {
     /// Simulation timing
     pub mod timing {
         pub const DEFAULT_SIMULATION_SPEED: f32 = 1.0;
-        pub const BASE_TURN_TIMER_SECONDS: f32 = 2.0;
+        pub const BASE_TURN_TIMER_SECONDS: f32 = 1.0; // seconds - halved for faster AI turns
     }
 
     /// Civilization spawning

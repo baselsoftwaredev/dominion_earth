@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::{city::Capital, civilization::Civilization, military::MilitaryUnit, position::Position};
 use crate::constants::rendering::borders;
-use crate::debug_utils::DebugLogging;
 use super::common::calculate_world_position_for_gizmo;
 
 pub fn render_civilization_borders(
@@ -18,7 +17,6 @@ pub fn render_civilization_borders(
     units: Query<(&MilitaryUnit, &Position)>,
     capitals: Query<(&Capital, &Position)>,
     civilizations: Query<&Civilization>,
-    debug_logging: Res<DebugLogging>,
 ) {
     let Ok((_tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
@@ -45,14 +43,6 @@ pub fn render_civilization_borders(
             ];
 
             gizmos.linestrip_2d(corners, border_color);
-
-            crate::debug_log!(
-                debug_logging,
-                "DEBUG: Drew unit border at ({}, {}) with color {:?}",
-                world_pos.x,
-                world_pos.y,
-                border_color
-            );
         }
     }
 

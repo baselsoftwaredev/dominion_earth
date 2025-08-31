@@ -39,7 +39,12 @@ fn display_neighbor_info(
     debug_logging: &DebugLogging,
 ) {
     let pos = world_tile.grid_pos;
-    DebugUtils::log_neighbors_header(debug_logging, pos.x, pos.y, &format!("{:?}", world_tile.terrain_type));
+    DebugUtils::log_neighbors_header(
+        debug_logging,
+        pos.x,
+        pos.y,
+        &format!("{:?}", world_tile.terrain_type),
+    );
 
     // Show North neighbor
     display_single_neighbor("North", neighbors.north, tile_query, debug_logging);
@@ -171,40 +176,46 @@ pub fn handle_input(
     if keyboard_input.just_pressed(KeyCode::Equal)
         || keyboard_input.just_pressed(KeyCode::NumpadAdd)
     {
-        game_state.simulation_speed = (game_state.simulation_speed * simulation::SPEED_MULTIPLIER).min(simulation::MAX_SPEED);
+        game_state.simulation_speed =
+            (game_state.simulation_speed * simulation::SPEED_MULTIPLIER).min(simulation::MAX_SPEED);
         let speed = game_state.simulation_speed;
         game_state
             .turn_timer
-            .set_duration(std::time::Duration::from_secs_f32(simulation::BASE_TURN_DURATION / speed));
+            .set_duration(std::time::Duration::from_secs_f32(
+                simulation::BASE_TURN_DURATION / speed,
+            ));
         DebugUtils::log_simulation_speed(&debug_logging, speed);
     }
 
     if keyboard_input.just_pressed(KeyCode::Minus)
         || keyboard_input.just_pressed(KeyCode::NumpadSubtract)
     {
-        game_state.simulation_speed = (game_state.simulation_speed / simulation::SPEED_MULTIPLIER).max(simulation::MIN_SPEED);
+        game_state.simulation_speed =
+            (game_state.simulation_speed / simulation::SPEED_MULTIPLIER).max(simulation::MIN_SPEED);
         let speed = game_state.simulation_speed;
         game_state
             .turn_timer
-            .set_duration(std::time::Duration::from_secs_f32(simulation::BASE_TURN_DURATION / speed));
+            .set_duration(std::time::Duration::from_secs_f32(
+                simulation::BASE_TURN_DURATION / speed,
+            ));
         DebugUtils::log_simulation_speed(&debug_logging, speed);
     }
 
-    // Camera controls
+    // Camera controls (arrow keys only, WASD reserved for game shortcuts)
     if let Ok(mut camera_transform) = camera_query.single_mut() {
         let mut movement = Vec3::ZERO;
         let camera_speed = camera::MOVEMENT_SPEED * time.delta_secs();
 
-        if keyboard_input.pressed(KeyCode::ArrowUp) || keyboard_input.pressed(KeyCode::KeyW) {
+        if keyboard_input.pressed(KeyCode::ArrowUp) {
             movement.y += camera_speed;
         }
-        if keyboard_input.pressed(KeyCode::ArrowDown) || keyboard_input.pressed(KeyCode::KeyS) {
+        if keyboard_input.pressed(KeyCode::ArrowDown) {
             movement.y -= camera_speed;
         }
-        if keyboard_input.pressed(KeyCode::ArrowLeft) || keyboard_input.pressed(KeyCode::KeyA) {
+        if keyboard_input.pressed(KeyCode::ArrowLeft) {
             movement.x -= camera_speed;
         }
-        if keyboard_input.pressed(KeyCode::ArrowRight) || keyboard_input.pressed(KeyCode::KeyD) {
+        if keyboard_input.pressed(KeyCode::ArrowRight) {
             movement.x += camera_speed;
         }
 

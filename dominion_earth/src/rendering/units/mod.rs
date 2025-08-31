@@ -93,12 +93,6 @@ pub fn update_unit_sprites(
         return;
     }
 
-    crate::debug_println!(
-        debug_logging,
-        "DEBUG: update_unit_sprites called with {} changed units",
-        changed_unit_count
-    );
-
     let Ok((map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single() else {
         return;
     };

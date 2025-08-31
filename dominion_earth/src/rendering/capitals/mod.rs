@@ -271,13 +271,6 @@ pub fn update_animated_capital_sprites(
                 };
 
                 texture_atlas.index = next_index;
-
-                crate::debug_println!(
-                    debug_logging,
-                    "DEBUG: Animated capital sprite frame updated from {} to {}",
-                    current_index,
-                    next_index
-                );
             }
         }
     }
