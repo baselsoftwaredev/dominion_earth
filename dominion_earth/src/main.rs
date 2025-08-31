@@ -88,7 +88,11 @@ fn main() {
         })
         .init_resource::<GameRng>()
         .init_resource::<WorldMap>()
-        .insert_resource(game::GameState::new(cli.auto_advance, cli.ai_only, cli.total_civs))
+        .insert_resource(game::GameState::new(
+            cli.auto_advance,
+            cli.ai_only,
+            cli.total_civs,
+        ))
         .insert_resource(debug_utils::DebugLogging(cli.debug_logging))
         .init_resource::<ui::SelectedTile>()
         .init_resource::<ui::LastLoggedTile>()

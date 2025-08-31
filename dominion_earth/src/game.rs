@@ -6,7 +6,8 @@ use core_sim::{
     self,
     resources::{GameConfig, GameRng, WorldMap},
     world_gen, ActiveThisTurn, Building, BuildingType, Capital, CapitalAge, City, CivId,
-    CivPersonality, Civilization, Economy, Military, MilitaryUnit, Technologies, UnitType, PlayerControlled,
+    CivPersonality, Civilization, Economy, Military, MilitaryUnit, PlayerControlled, Technologies,
+    UnitType,
 };
 use rand::SeedableRng;
 
@@ -80,7 +81,8 @@ pub fn setup_game(
     DebugUtils::log_world_generation(&debug_logging, game_config.random_seed);
 
     // Generate the world map (reduced size for better performance)
-    *world_map = world_gen::generate_island_map(map::DEFAULT_WIDTH, map::DEFAULT_HEIGHT, &mut rng.0);
+    *world_map =
+        world_gen::generate_island_map(map::DEFAULT_WIDTH, map::DEFAULT_HEIGHT, &mut rng.0);
 
     // Initialize influence map
     // *influence_map = InfluenceMap::new(world_map.width, world_map.height);
@@ -88,7 +90,14 @@ pub fn setup_game(
     // influence_map.add_layer(InfluenceType::Threat);
 
     // Spawn initial civilizations
-    spawn_initial_civilizations(&mut commands, &mut world_map, &mut rng.0, &debug_logging, game_state.ai_only, game_state.total_civilizations);
+    spawn_initial_civilizations(
+        &mut commands,
+        &mut world_map,
+        &mut rng.0,
+        &debug_logging,
+        game_state.ai_only,
+        game_state.total_civilizations,
+    );
 
     DebugUtils::log_world_initialization(&debug_logging, world_map.width, world_map.height);
 }
@@ -104,7 +113,11 @@ fn spawn_initial_civilizations(
     let starting_positions = world_gen::get_starting_positions();
     let mut spawned_count = 0;
 
-    for (i, (name, position, color)) in starting_positions.into_iter().take(total_civilizations as usize).enumerate() {
+    for (i, (name, position, color)) in starting_positions
+        .into_iter()
+        .take(total_civilizations as usize)
+        .enumerate()
+    {
         let civ_id = CivId(i as u32);
 
         // Check if the position is on a buildable tile
@@ -129,11 +142,14 @@ fn spawn_initial_civilizations(
             land_hunger: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
             industry_focus: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
             tech_focus: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
-            interventionism: rng.gen_range(personality::INTERVENTIONISM_MIN..personality::INTERVENTIONISM_MAX),
+            interventionism: rng
+                .gen_range(personality::INTERVENTIONISM_MIN..personality::INTERVENTIONISM_MAX),
             risk_tolerance: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
-            honor_treaties: rng.gen_range(personality::HONOR_TREATIES_MIN..personality::HONOR_TREATIES_MAX),
+            honor_treaties: rng
+                .gen_range(personality::HONOR_TREATIES_MIN..personality::HONOR_TREATIES_MAX),
             militarism: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
-            isolationism: rng.gen_range(personality::ISOLATIONISM_MIN..personality::ISOLATIONISM_MAX),
+            isolationism: rng
+                .gen_range(personality::ISOLATIONISM_MIN..personality::ISOLATIONISM_MAX),
         };
 
         let civilization = Civilization {
@@ -149,14 +165,20 @@ fn spawn_initial_civilizations(
 
         // Spawn civilization entity
         let mut civ_entity_commands = commands.spawn((civilization, position, ActiveThisTurn));
-        
+
         // Mark the first civilization as player-controlled if not ai_only mode
         let civ_index = i as u32;
         if !ai_only && civ_index == 0 {
             civ_entity_commands.insert(core_sim::PlayerControlled);
-            DebugUtils::log_info(&debug_logging, &format!("Marking {} as player-controlled civilization", name));
+            DebugUtils::log_info(
+                &debug_logging,
+                &format!("Marking {} as player-controlled civilization", name),
+            );
         } else {
-            DebugUtils::log_info(&debug_logging, &format!("Marking {} as AI-controlled civilization", name));
+            DebugUtils::log_info(
+                &debug_logging,
+                &format!("Marking {} as AI-controlled civilization", name),
+            );
         }
 
         // Spawn capital city with Capital component

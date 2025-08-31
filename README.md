@@ -63,7 +63,7 @@ cargo run -- --seed 1756118413 --players 2 --total-civs 3
 # Run in AI-only mode - all civilizations controlled by AI
 cargo run -- --seed 1756118413 --ai-only --total-civs 5
 
-# Run with automatic turn advancement 
+# Run with automatic turn advancement
 cargo run -- --seed 1756118413 --auto-advance
 
 # Run with debug logging
@@ -85,20 +85,23 @@ cargo run -- --seed 1756118413 --enable-remote --remote-port 15702
 ### Controls
 
 #### Player Mode (Default)
+
 - **Left Click**: Select your units
-- **Right Click**: Move selected unit to target tile  
+- **Right Click**: Move selected unit to target tile
 - **Space**: Skip turn for selected unit
 - **Next Turn Button**: Advance to next turn (manual mode)
 
 **Note**: The first N civilizations (specified by `--players`) are player-controlled, the rest are AI-controlled. The UI shows which civilizations are players vs AI.
 
 #### Camera Controls
+
 - **Arrow Keys**: Move camera
 - **Q/E**: Zoom in/out
 - **Mouse Drag**: Pan camera
 - **Mouse Wheel**: Zoom
 
 #### Game Controls
+
 - **P**: Pause/Resume
 - **A**: Toggle auto-advance mode
 
