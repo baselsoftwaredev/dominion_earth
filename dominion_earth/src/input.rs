@@ -338,22 +338,31 @@ pub fn handle_player_unit_interaction(
             Ok(target_position) => {
                 // Right-click: Move selected unit to this position
                 if let Some(selected_entity) = selected_unit.unit_entity {
-                    if let Ok((entity, unit, _current_pos)) = units_query.get_mut(selected_entity) {
+                    if let Ok((entity, unit, current_pos)) = units_query.get_mut(selected_entity) {
                         if unit.owner == player_civ_id && unit.can_move() {
                             // Check if target position is valid for movement
-                            if is_valid_movement_target(&target_position, &world_map) {
-                                commands.entity(entity).insert(core_sim::PlayerMovementOrder {
-                                    target_position,
-                                });
-                                DebugUtils::log_info(&debug_logging, &format!(
-                                    "Ordered unit {} to move to ({}, {})",
-                                    unit.id, target_position.x, target_position.y
-                                ));
+                            if is_valid_movement_target(&target_position, current_pos, &world_map) {
+                                commands
+                                    .entity(entity)
+                                    .insert(core_sim::PlayerMovementOrder { target_position });
+                                DebugUtils::log_info(
+                                    &debug_logging,
+                                    &format!(
+                                        "Ordered unit {} to move to ({}, {})",
+                                        unit.id, target_position.x, target_position.y
+                                    ),
+                                );
                             } else {
-                                DebugUtils::log_info(&debug_logging, "Invalid movement target: ocean or blocked tile");
+                                DebugUtils::log_info(
+                                    &debug_logging,
+                                    "Invalid movement target: not adjacent, ocean, or blocked tile",
+                                );
                             }
                         } else {
-                            DebugUtils::log_info(&debug_logging, "Selected unit cannot move this turn or is not player-controlled");
+                            DebugUtils::log_info(
+                                &debug_logging,
+                                "Selected unit cannot move this turn or is not player-controlled",
+                            );
                         }
                     }
                 }
@@ -385,7 +394,9 @@ pub fn handle_player_unit_interaction(
                     if *position == click_position && unit.owner == player_civ_id {
                         // Clear previous selection
                         if let Some(prev_entity) = selected_unit.unit_entity {
-                            commands.entity(prev_entity).remove::<core_sim::UnitSelected>();
+                            commands
+                                .entity(prev_entity)
+                                .remove::<core_sim::UnitSelected>();
                         }
 
                         // Select new unit
@@ -395,10 +406,13 @@ pub fn handle_player_unit_interaction(
                         commands.entity(entity).insert(core_sim::UnitSelected);
                         found_unit = true;
 
-                        DebugUtils::log_info(&debug_logging, &format!(
-                            "Selected unit {} at ({}, {})", 
-                            unit.id, position.x, position.y
-                        ));
+                        DebugUtils::log_info(
+                            &debug_logging,
+                            &format!(
+                                "Selected unit {} at ({}, {})",
+                                unit.id, position.x, position.y
+                            ),
+                        );
                         break;
                     }
                 }
@@ -406,7 +420,9 @@ pub fn handle_player_unit_interaction(
                 if !found_unit {
                     // Clear selection if clicking on empty tile
                     if let Some(prev_entity) = selected_unit.unit_entity {
-                        commands.entity(prev_entity).remove::<core_sim::UnitSelected>();
+                        commands
+                            .entity(prev_entity)
+                            .remove::<core_sim::UnitSelected>();
                     }
                     selected_unit.unit_entity = None;
                     selected_unit.unit_id = None;
@@ -435,10 +451,21 @@ pub fn handle_player_unit_interaction(
 
 /// Check if a position is a valid movement target
 fn is_valid_movement_target(
-    position: &core_sim::Position,
+    target_position: &core_sim::Position,
+    current_position: &core_sim::Position,
     world_map: &core_sim::resources::WorldMap,
 ) -> bool {
-    if let Some(tile) = world_map.get_tile(*position) {
+    // Check distance - can only move to adjacent tiles
+    let dx = (target_position.x - current_position.x).abs();
+    let dy = (target_position.y - current_position.y).abs();
+    let distance = dx + dy;
+    
+    if distance != 1 {
+        return false; // Must be exactly 1 tile away (adjacent)
+    }
+    
+    // Check if target tile exists and is moveable
+    if let Some(tile) = world_map.get_tile(*target_position) {
         // Can move to any non-ocean tile
         !matches!(tile.terrain, core_sim::TerrainType::Ocean)
     } else {

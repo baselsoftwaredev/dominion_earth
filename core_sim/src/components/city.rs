@@ -236,6 +236,34 @@ impl BuildingType {
     pub fn maintenance_cost(&self) -> f32 {
         self.cost() * 0.05 // 5% of build cost per turn
     }
+
+    pub fn production_cost(&self) -> f32 {
+        match self {
+            BuildingType::Granary => 30.0,
+            BuildingType::Barracks => 45.0,
+            BuildingType::Workshop => 60.0,
+            BuildingType::Library => 75.0,
+            BuildingType::Walls => 90.0,
+            BuildingType::Market => 70.0,
+            BuildingType::Temple => 55.0,
+        }
+    }
+
+    pub fn gold_cost(&self) -> f32 {
+        self.cost()
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            BuildingType::Granary => "Granary",
+            BuildingType::Barracks => "Barracks",
+            BuildingType::Workshop => "Workshop",
+            BuildingType::Library => "Library",
+            BuildingType::Walls => "Walls",
+            BuildingType::Market => "Market",
+            BuildingType::Temple => "Temple",
+        }
+    }
 }
 
 /// Territory control component

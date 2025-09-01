@@ -104,4 +104,24 @@ impl UnitType {
     pub fn maintenance_cost(&self) -> f32 {
         self.cost() * 0.1 // 10% of build cost per turn
     }
+
+    pub fn production_cost(&self) -> f32 {
+        match self {
+            UnitType::Infantry => 15.0,
+            UnitType::Cavalry => 25.0,
+            UnitType::Archer => 20.0,
+            UnitType::Siege => 40.0,
+            UnitType::Naval => 50.0,
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            UnitType::Infantry => "Infantry",
+            UnitType::Cavalry => "Cavalry",
+            UnitType::Archer => "Archer",
+            UnitType::Siege => "Siege Engine",
+            UnitType::Naval => "Naval Unit",
+        }
+    }
 }

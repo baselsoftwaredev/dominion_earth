@@ -19,6 +19,7 @@ pub mod tile;
 
 pub use components::*;
 pub use debug_utils::CoreDebugUtils;
+pub use systems::*;
 // Import specific items from resources to avoid Resource trait conflict
 pub use resources::{
     DiplomaticEvent,

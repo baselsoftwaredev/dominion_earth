@@ -1,45 +1,45 @@
 use bevy_ecs::prelude::*;
-use crate::{GameState, CivId};
+use crate::{
+    components::{MilitaryUnit, PlayerActionsComplete, PlayerControlled},
+    resources::CurrentTurn,
+};
 
-/// System for managing turn progression
-pub struct TurnManagementSystem;
-
-impl TurnManagementSystem {
-    /// Advance to the next turn
-    pub fn advance_turn(
-        mut game_state: ResMut<GameState>,
-    ) {
-        let previous_turn = game_state.turn;
-        game_state.turn += 1;
+/// System to handle turn advancement requests
+pub fn handle_turn_advance_requests(
+    mut turn_requests: EventReader<RequestTurnAdvance>,
+    mut current_turn: ResMut<CurrentTurn>,
+    mut player_actions: ResMut<PlayerActionsComplete>,
+    mut units: Query<&mut MilitaryUnit>,
+) {
+    for _request in turn_requests.read() {
+        // Advance the turn
+        current_turn.0 += 1;
         
-        tracing::info!("Advanced from turn {} to turn {}", previous_turn, game_state.turn);
-    }
-
-    /// Check if turn should advance
-    pub fn should_advance_turn(
-        _game_state: Res<GameState>,
-    ) -> bool {
-        // In this simple implementation, advance every update
-        // In a real game, this would check if all civilizations have finished their turns
-        true
-    }
-
-    /// Initialize turn for all civilizations
-    pub fn initialize_turn(
-        civs: Query<&CivId>,
-        game_state: Res<GameState>,
-    ) {
-        for civ_id in civs.iter() {
-            // Reset turn-based state for each civilization
-            tracing::debug!("Initializing turn {} for civ {:?}", game_state.turn, civ_id);
+        // Reset unit movement for all units
+        for mut unit in units.iter_mut() {
+            unit.reset_movement();
         }
-    }
-
-    /// Finalize turn cleanup
-    pub fn finalize_turn(
-        game_state: Res<GameState>,
-    ) {
-        tracing::debug!("Finalizing turn {}", game_state.turn);
-        // Cleanup any temporary turn state
+        
+        // Reset player actions tracking
+        player_actions.reset();
+        
+        tracing::info!("Advanced to turn {}", current_turn.0);
     }
 }
+
+/// System to automatically process AI turns and request turn advance when appropriate
+pub fn auto_advance_turn_system(
+    player_civs: Query<Entity, With<PlayerControlled>>,
+    mut turn_advance: EventWriter<RequestTurnAdvance>,
+) {
+    // If no player civilizations, auto-advance immediately
+    if player_civs.is_empty() {
+        turn_advance.write(RequestTurnAdvance);
+    }
+    // Note: We don't auto-advance when player civs exist - the player must manually end their turn
+    // via the handle_end_turn_input system in the frontend
+}
+
+/// Event to request turn advancement
+#[derive(Event)]
+pub struct RequestTurnAdvance;

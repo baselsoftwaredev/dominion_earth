@@ -2,6 +2,7 @@ mod constants;
 mod debug_utils;
 mod game;
 mod input;
+mod production_input;
 mod rendering;
 mod ui;
 pub mod unit_assets;
@@ -99,6 +100,12 @@ fn main() {
         .init_resource::<ui::TerrainCounts>()
         .init_resource::<core_sim::resources::TurnAdvanceRequest>()
         .init_resource::<InfluenceMap>()
+        .init_resource::<CurrentTurn>()
+        .init_resource::<core_sim::PlayerActionsComplete>()
+        .init_resource::<production_input::SelectedCapital>()
+        .add_event::<core_sim::PlayerProductionOrder>()
+        .add_event::<core_sim::SkipProductionThisTurn>()
+        .add_event::<core_sim::RequestTurnAdvance>()
         .add_systems(
             Startup,
             (
@@ -122,17 +129,24 @@ fn main() {
                 input::handle_mouse_input,
                 input::select_tile_on_click,
                 input::handle_player_unit_interaction,
-                game::game_update_system,
-                core_sim::systems::turn_based_system,
-                core_sim::systems::process_player_movement_orders,
-                core_sim::systems::capital_evolution_system,
+                production_input::handle_production_input,
+                production_input::handle_end_turn_input,
+                core_sim::initialize_production_queues,
+                core_sim::handle_player_production_orders,
+                core_sim::handle_skip_production,
+                core_sim::process_player_movement_orders,
+                core_sim::check_player_actions_complete,
+                core_sim::handle_turn_advance_requests,
+                core_sim::auto_advance_turn_system,
+                core_sim::process_production_queues,
+                core_sim::reset_unit_movement,
                 rendering::units::update_unit_sprites,
                 rendering::capitals::update_capital_sprites,
                 rendering::capitals::update_animated_capital_sprites,
                 rendering::borders::render_civilization_borders,
             ),
         )
-        .add_systems(bevy_egui::EguiPrimaryContextPass, ui::ui_system);
+        .add_systems(bevy_egui::EguiPrimaryContextPass, (ui::ui_system, production_input::display_production_ui));
 
     app.run();
 }

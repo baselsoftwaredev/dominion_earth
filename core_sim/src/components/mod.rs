@@ -8,6 +8,7 @@ pub mod ai;
 pub mod orders;
 pub mod rendering;
 pub mod player;
+pub mod production;
 
 // Re-export all components for compatibility
 pub use position::*;
@@ -20,3 +21,4 @@ pub use ai::*;
 pub use orders::*;
 pub use rendering::*;
 pub use player::*;
+pub use production::*;

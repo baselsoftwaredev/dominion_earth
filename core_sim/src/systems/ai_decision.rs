@@ -52,15 +52,15 @@ impl AIDecisionSystem {
                 // Implementation would add building to city
             },
             AIAction::Trade { partner, resource, .. } => {
-                tracing::info!("AI action: Trade {:?} with {}", resource, partner);
+                tracing::info!("AI action: Trade {:?} with {:?}", resource, partner);
                 // Implementation would create trade agreement
             },
             AIAction::Attack { target, target_position, .. } => {
-                tracing::info!("AI action: Attack {} at {:?}", target, target_position);
+                tracing::info!("AI action: Attack {:?} at {:?}", target, target_position);
                 // Implementation would issue attack orders
             },
             AIAction::Diplomacy { target, action, .. } => {
-                tracing::info!("AI action: Diplomatic {:?} with {}", action, target);
+                tracing::info!("AI action: Diplomatic {:?} with {:?}", action, target);
                 // Implementation would handle diplomatic actions
             },
             AIAction::Defend { position, .. } => {
