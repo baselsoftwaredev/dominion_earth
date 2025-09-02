@@ -6,8 +6,8 @@ use core_sim::{
     self,
     resources::{GameConfig, GameRng, WorldMap},
     world_gen, ActiveThisTurn, Building, BuildingType, Capital, CapitalAge, City, CivId,
-    CivPersonality, Civilization, Economy, Military, MilitaryUnit, PlayerControlled, Technologies,
-    UnitType, ProductionQueue,
+    CivPersonality, Civilization, Economy, Military, MilitaryUnit, PlayerControlled,
+    ProductionQueue, Technologies, UnitType,
 };
 use rand::SeedableRng;
 
@@ -210,10 +210,10 @@ fn spawn_initial_civilizations(
 
         // Spawn capital entity with both City and Capital components and ProductionQueue
         let mut capital_commands = commands.spawn((city, capital, position));
-        
+
         // Add ProductionQueue to the capital
         capital_commands.insert(ProductionQueue::new(civ_id));
-        
+
         // If this is a player-controlled civilization, mark the capital as player-controlled too
         if !ai_only && civ_index == 0 {
             capital_commands.insert(core_sim::PlayerControlled);
@@ -237,7 +237,7 @@ fn spawn_initial_civilizations(
         };
 
         let mut unit_commands = commands.spawn((initial_unit, position));
-        
+
         // If this is a player-controlled civilization, mark the unit as player-controlled too
         if !ai_only && civ_index == 0 {
             unit_commands.insert(core_sim::PlayerControlled);

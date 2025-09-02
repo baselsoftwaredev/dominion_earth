@@ -2,6 +2,7 @@ use crate::constants::input::{camera, coordinates, simulation};
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::ui::SelectedTile;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 use core_sim::components::Position;
 use core_sim::tile::tile_components::{TileNeighbors, WorldTile};
 
@@ -298,13 +299,14 @@ pub fn handle_mouse_input(
 
 /// System to handle player unit selection and movement
 pub fn handle_player_unit_interaction(
+    mut commands: Commands,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<Camera>>,
     mouse_button: Res<ButtonInput<MouseButton>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
-    windows: Query<&Window>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
     mut selected_unit: ResMut<core_sim::SelectedUnit>,
-    mut commands: Commands,
     mut units_query: Query<(Entity, &mut core_sim::MilitaryUnit, &core_sim::Position)>,
+    pending_movements_query: Query<Entity, With<core_sim::PlayerMovementOrder>>,
     player_civs: Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
     world_map: Res<core_sim::resources::WorldMap>,
     debug_logging: Res<DebugLogging>,
@@ -340,23 +342,53 @@ pub fn handle_player_unit_interaction(
                 if let Some(selected_entity) = selected_unit.unit_entity {
                     if let Ok((entity, unit, current_pos)) = units_query.get_mut(selected_entity) {
                         if unit.owner == player_civ_id && unit.can_move() {
-                            // Check if target position is valid for movement
-                            if is_valid_movement_target(&target_position, current_pos, &world_map) {
-                                commands
-                                    .entity(entity)
-                                    .insert(core_sim::PlayerMovementOrder { target_position });
+                            // Check if unit already has a pending movement order
+                            if pending_movements_query.get(entity).is_ok() {
                                 DebugUtils::log_info(
                                     &debug_logging,
                                     &format!(
-                                        "Ordered unit {} to move to ({}, {})",
-                                        unit.id, target_position.x, target_position.y
+                                        "Unit {} already has a pending movement order - ignoring new order",
+                                        unit.id
                                     ),
                                 );
-                            } else {
-                                DebugUtils::log_info(
-                                    &debug_logging,
-                                    "Invalid movement target: not adjacent, ocean, or blocked tile",
-                                );
+                                return;
+                            }
+
+                            // Check if target position is valid for movement and get movement cost
+                            match is_valid_movement_target(
+                                &target_position,
+                                current_pos,
+                                &world_map,
+                            ) {
+                                Ok(movement_cost) => {
+                                    // Check if unit has enough movement points for this specific move
+                                    if unit.movement_remaining >= movement_cost {
+                                        commands.entity(entity).insert(
+                                            core_sim::PlayerMovementOrder { target_position },
+                                        );
+                                        DebugUtils::log_info(
+                                            &debug_logging,
+                                            &format!(
+                                                "Ordered unit {} to move to ({}, {}) - Cost: {} - Available: {}",
+                                                unit.id, target_position.x, target_position.y, movement_cost, unit.movement_remaining
+                                            ),
+                                        );
+                                    } else {
+                                        DebugUtils::log_info(
+                                            &debug_logging,
+                                            &format!(
+                                                "Unit {} cannot move - insufficient movement points. Required: {}, Available: {}",
+                                                unit.id, movement_cost, unit.movement_remaining
+                                            ),
+                                        );
+                                    }
+                                }
+                                Err(reason) => {
+                                    DebugUtils::log_info(
+                                        &debug_logging,
+                                        &format!("Invalid movement target: {}", reason),
+                                    );
+                                }
                             }
                         } else {
                             DebugUtils::log_info(
@@ -454,21 +486,31 @@ fn is_valid_movement_target(
     target_position: &core_sim::Position,
     current_position: &core_sim::Position,
     world_map: &core_sim::resources::WorldMap,
-) -> bool {
+) -> Result<u32, &'static str> {
     // Check distance - can only move to adjacent tiles
     let dx = (target_position.x - current_position.x).abs();
     let dy = (target_position.y - current_position.y).abs();
     let distance = dx + dy;
-    
+
     if distance != 1 {
-        return false; // Must be exactly 1 tile away (adjacent)
+        return Err("Must be exactly 1 tile away (adjacent)");
     }
-    
+
     // Check if target tile exists and is moveable
     if let Some(tile) = world_map.get_tile(*target_position) {
-        // Can move to any non-ocean tile
-        !matches!(tile.terrain, core_sim::TerrainType::Ocean)
+        match tile.terrain {
+            core_sim::TerrainType::Ocean => Err("Cannot move into ocean"),
+            _ => {
+                // Return movement cost for this terrain
+                let movement_cost = tile.movement_cost as u32;
+                if movement_cost == 0 {
+                    Ok(1) // Default cost if not set
+                } else {
+                    Ok(movement_cost)
+                }
+            }
+        }
     } else {
-        false
+        Err("Target position is outside map boundaries")
     }
 }

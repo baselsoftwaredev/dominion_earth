@@ -139,14 +139,16 @@ fn main() {
                 core_sim::handle_turn_advance_requests,
                 core_sim::auto_advance_turn_system,
                 core_sim::process_production_queues,
-                core_sim::reset_unit_movement,
                 rendering::units::update_unit_sprites,
                 rendering::capitals::update_capital_sprites,
                 rendering::capitals::update_animated_capital_sprites,
                 rendering::borders::render_civilization_borders,
             ),
         )
-        .add_systems(bevy_egui::EguiPrimaryContextPass, (ui::ui_system, production_input::display_production_ui));
+        .add_systems(
+            bevy_egui::EguiPrimaryContextPass,
+            (ui::ui_system, production_input::display_production_ui),
+        );
 
     app.run();
 }
