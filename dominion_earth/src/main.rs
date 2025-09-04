@@ -127,7 +127,7 @@ fn main() {
             (
                 input::handle_input,
                 input::handle_mouse_input,
-                input::select_tile_on_click,
+                input::handle_tile_selection_on_mouse_click,
                 input::handle_player_unit_interaction,
                 production_input::handle_production_input,
                 production_input::handle_end_turn_input,
@@ -147,7 +147,7 @@ fn main() {
         )
         .add_systems(
             bevy_egui::EguiPrimaryContextPass,
-            (ui::ui_system, production_input::display_production_ui),
+            (ui::initialize_ui_system, production_input::display_production_ui),
         );
 
     app.run();
