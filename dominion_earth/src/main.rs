@@ -147,7 +147,10 @@ fn main() {
         )
         .add_systems(
             bevy_egui::EguiPrimaryContextPass,
-            (ui::initialize_ui_system, production_input::display_production_ui),
+            (
+                ui::initialize_ui_system,
+                production_input::display_production_ui,
+            ),
         );
 
     app.run();
