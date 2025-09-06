@@ -73,18 +73,6 @@ impl UiComponent for HuiComponent {
 
 /// Setup main UI with proper component registration
 fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>, mut html_comps: HtmlComponents) {
-    // Register custom components first
-    html_comps.register("header", server.load("ui/header.html"));
-    html_comps.register("game_panel", server.load("ui/game_panel.html"));
-    html_comps.register("statistics_panel", server.load("ui/statistics_panel.html"));
-    html_comps.register("tile_info", server.load("ui/tile_info.html"));
-    html_comps.register(
-        "civilizations_list",
-        server.load("ui/civilizations_list.html"),
-    );
-    html_comps.register("minimap", server.load("ui/minimap.html"));
-    html_comps.register("resources_panel", server.load("ui/resources_panel.html"));
-
     // Spawn main UI layout
     cmd.spawn((
         HtmlNode(server.load("ui/main_layout.html")),
@@ -103,6 +91,18 @@ fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>, mut html_comps: Ht
             .with("selected_terrain", "None")
             .with("civilizations_list", "Loading..."),
     ));
+
+    // Register custom components first
+    html_comps.register("header", server.load("ui/header.html"));
+    html_comps.register("game_panel", server.load("ui/game_panel.html"));
+    html_comps.register("statistics_panel", server.load("ui/statistics_panel.html"));
+    html_comps.register("tile_info", server.load("ui/tile_info.html"));
+    html_comps.register(
+        "civilizations_list",
+        server.load("ui/civilizations_list.html"),
+    );
+    html_comps.register("minimap", server.load("ui/minimap.html"));
+    html_comps.register("resources_panel", server.load("ui/resources_panel.html"));
 }
 
 /// Update UI properties with current game data
