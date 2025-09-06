@@ -18,7 +18,7 @@ impl BevyHuiSystem {
     pub fn setup_plugins(app: &mut App) {
         app.add_plugins((
             HuiPlugin,
-            HuiAutoLoadPlugin::new(&["assets/ui"]),
+            HuiAutoLoadPlugin::new(&["ui"]),
         ))
         .add_systems(Startup, setup_main_ui)
         .add_systems(Update, update_ui_properties);
