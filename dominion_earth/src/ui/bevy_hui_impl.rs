@@ -72,7 +72,7 @@ impl UiComponent for HuiComponent {
 }
 
 /// Setup main UI with inline content instead of separate components
-fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>) {
+fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>, mut html_funcs: HtmlFunctions, mut html_comps: HtmlComponents) {
     // Spawn main UI layout with all content inline
     cmd.spawn((
         HtmlNode(server.load("ui/main_layout.html")),
@@ -91,6 +91,10 @@ fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>) {
             .with("selected_terrain", "None")
             .with("civilizations_list", "Loading..."),
     ));
+
+    html_comps.register_with_spawn_fn("game_panel", server.load("ui/game_panel.html"), |mut cmd| {
+        cmd.insert(Name::new("GamePanel"));
+    });
 }
 
 /// Update UI properties with current game data
