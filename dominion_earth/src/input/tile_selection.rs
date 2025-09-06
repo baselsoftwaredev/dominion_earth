@@ -1,4 +1,5 @@
 use super::coordinates::convert_cursor_position_to_tile_coordinates;
+use crate::debug_println;
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::production_input::SelectedCapital;
 use crate::ui::resources::SelectedTile;
@@ -89,18 +90,21 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
     capitals_query: &Query<(Entity, &Capital, &Position)>,
     player_civilizations_query: &Query<Entity, With<PlayerControlled>>,
     selected_capital: &mut SelectedCapital,
+    debug_logging: &DebugLogging,
 ) {
     let player_civilization_entities: Vec<Entity> = player_civilizations_query.iter().collect();
 
     let total_capitals_count = capitals_query.iter().count();
-    println!(
+    debug_println!(
+        debug_logging,
         "DEBUG TILE SELECTION: Found {} capitals total",
         total_capitals_count
     );
 
     for (capital_entity, capital, capital_position) in capitals_query.iter() {
         if capital_position.x == clicked_position.x && capital_position.y == clicked_position.y {
-            println!(
+            debug_println!(
+                debug_logging,
                 "DEBUG TILE SELECTION: Found capital at clicked position! Capital owner: {}",
                 capital.owner.0
             );
@@ -111,7 +115,10 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
                     &player_civilization_entities,
                 )
             {
-                println!("DEBUG TILE SELECTION: Player capital clicked - opening production menu");
+                debug_println!(
+                    debug_logging,
+                    "DEBUG TILE SELECTION: Player capital clicked - opening production menu"
+                );
                 selected_capital.capital_entity = Some(capital_entity);
                 selected_capital.civ_entity = Some(matching_player_civilization_entity);
                 selected_capital.show_production_menu = true;
@@ -126,8 +133,8 @@ fn find_player_civilization_entity_matching_capital_owner(
     player_civilization_entities: &[Entity],
 ) -> Option<Entity> {
     if capital_owner_id == constants::EGYPT_CIVILIZATION_ID {
-        if let Some(&first_player_entity) = player_civilization_entities
-            .get(constants::FIRST_PLAYER_CIVILIZATION_INDEX)
+        if let Some(&first_player_entity) =
+            player_civilization_entities.get(constants::FIRST_PLAYER_CIVILIZATION_INDEX)
         {
             return Some(first_player_entity);
         }
@@ -146,7 +153,10 @@ fn process_tile_selection_and_update_ui_state(
     selected_capital: &mut SelectedCapital,
 ) {
     if world_map.get_tile(clicked_position).is_some() {
-        println!("DEBUG TILE SELECTION: Tile exists in world map.");
+        debug_println!(
+            debug_logging,
+            "DEBUG TILE SELECTION: Tile exists in world map."
+        );
         selected_tile.position = Some(clicked_position);
 
         check_and_activate_capital_production_menu_if_player_capital_clicked(
@@ -154,6 +164,7 @@ fn process_tile_selection_and_update_ui_state(
             capitals_query,
             player_civilizations_query,
             selected_capital,
+            debug_logging,
         );
 
         if let Some((_, world_tile, tile_neighbors)) =
@@ -169,7 +180,10 @@ fn process_tile_selection_and_update_ui_state(
             }
         }
     } else {
-        println!("DEBUG TILE SELECTION: No tile data found at this position.");
+        debug_println!(
+            debug_logging,
+            "DEBUG TILE SELECTION: No tile data found at this position."
+        );
         selected_tile.position = None;
     }
 }
