@@ -1,9 +1,13 @@
+// TODO: Replace with bevy_hui implementation
+/*
 use super::constants::display_layout;
 use super::tile_info::render_selected_tile_information_panel;
 use crate::debug_utils::DebugLogging;
 use crate::game::GameState;
 use crate::production_input::SelectedCapital;
 use crate::ui::resources::{LastLoggedTile, SelectedTile};
+// TODO: Remove or replace with bevy_hui implementation
+/*
 use bevy::prelude::*;
 use bevy_egui::egui;
 use core_sim::{
@@ -118,3 +122,5 @@ fn render_unit_selection_information(ui: &mut egui::Ui, selected_unit: &core_sim
         ui.label("No unit selected");
     }
 }
+*/
+*/

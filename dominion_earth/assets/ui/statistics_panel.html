@@ -1,0 +1,62 @@
+<!-- Statistics Panel Component -->
+<template>
+    <property name="turn">1</property>
+    <property name="total_civilizations">0</property>
+    <property name="player_civilizations">0</property>
+    <property name="total_population">0</property>
+    
+    <node 
+        width="100%"
+        min_height="150px"
+        background="#404040"
+        border_radius="8px"
+        padding="15px"
+        margin="0 0 10px 0"
+        flex_direction="column"
+    >
+        <!-- Panel title -->
+        <text 
+            font_size="18"
+            font_color="#ffffff"
+            margin="0 0 15px 0"
+        >
+            Statistics
+        </text>
+        
+        <!-- Statistics content -->
+        <node 
+            flex_direction="row"
+            justify_content="space_between"
+            margin="0 0 8px 0"
+        >
+            <text font_size="14" font_color="#cccccc">Turn:</text>
+            <text font_size="14" font_color="#ffffff">{turn}</text>
+        </node>
+        
+        <node 
+            flex_direction="row"
+            justify_content="space_between"
+            margin="0 0 8px 0"
+        >
+            <text font_size="14" font_color="#cccccc">Civilizations:</text>
+            <text font_size="14" font_color="#ffffff">{total_civilizations}</text>
+        </node>
+        
+        <node 
+            flex_direction="row"
+            justify_content="space_between"
+            margin="0 0 8px 0"
+        >
+            <text font_size="14" font_color="#cccccc">Player Civs:</text>
+            <text font_size="14" font_color="#ffffff">{player_civilizations}</text>
+        </node>
+        
+        <node 
+            flex_direction="row"
+            justify_content="space_between"
+        >
+            <text font_size="14" font_color="#cccccc">Total Population:</text>
+            <text font_size="14" font_color="#ffffff">{total_population}</text>
+        </node>
+    </node>
+</template>

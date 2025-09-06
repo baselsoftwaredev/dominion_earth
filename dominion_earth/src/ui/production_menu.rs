@@ -1,3 +1,5 @@
+// TODO: Replace with bevy_hui implementation
+/*
 use crate::production_input::SelectedCapital;
 use bevy::prelude::*;
 use bevy_egui::egui;
@@ -69,3 +71,4 @@ fn render_production_queue_information(ui: &mut egui::Ui, production_queue: &Pro
         ));
     }
 }
+*/

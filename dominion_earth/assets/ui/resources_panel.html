@@ -1,0 +1,66 @@
+<!-- Resources Panel Component -->
+<template>
+    <property name="has_player_civ">false</property>
+    <property name="civ_name">Unknown</property>
+    <property name="population">0</property>
+    <property name="gold">0</property>
+    <property name="science">0</property>
+    
+    <node 
+        flex_direction="row"
+        align_items="center"
+        padding="10px"
+        background="#2a2a2a"
+        border_radius="6px"
+    >
+        <node if="{has_player_civ}" flex_direction="row" align_items="center">
+            <!-- Civilization name -->
+            <text 
+                font_size="16"
+                font_color="#ffffff"
+                margin="0 20px 0 0"
+            >
+                {civ_name}
+            </text>
+            
+            <!-- Population -->
+            <node 
+                flex_direction="row"
+                align_items="center"
+                margin="0 15px 0 0"
+            >
+                <text font_size="14" font_color="#cccccc">Pop:</text>
+                <text font_size="14" font_color="#ffffff" margin="0 0 0 5px">{population}</text>
+            </node>
+            
+            <!-- Gold -->
+            <node 
+                flex_direction="row"
+                align_items="center"
+                margin="0 15px 0 0"
+            >
+                <text font_size="14" font_color="#ffd700">Gold:</text>
+                <text font_size="14" font_color="#ffffff" margin="0 0 0 5px">{gold}</text>
+            </node>
+            
+            <!-- Science -->
+            <node 
+                flex_direction="row"
+                align_items="center"
+            >
+                <text font_size="14" font_color="#4a9eff">Science:</text>
+                <text font_size="14" font_color="#ffffff" margin="0 0 0 5px">{science}</text>
+            </node>
+        </node>
+        
+        <!-- No player civilization -->
+        <node if_not="{has_player_civ}">
+            <text 
+                font_size="14"
+                font_color="#888888"
+            >
+                No player civilization
+            </text>
+        </node>
+    </node>
+</template>

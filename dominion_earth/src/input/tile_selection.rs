@@ -1,7 +1,7 @@
 use super::coordinates::convert_cursor_position_to_tile_coordinates;
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::production_input::SelectedCapital;
-use crate::ui::SelectedTile;
+use crate::ui::resources::SelectedTile;
 use bevy::prelude::*;
 use core_sim::components::Position;
 use core_sim::components::{Capital, PlayerControlled};

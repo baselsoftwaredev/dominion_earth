@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 bevy = { workspace = true, features = ["default", "bevy_remote", "png"] }
-bevy_egui = { workspace = true }
+# bevy_egui = { workspace = true }  # Commented out, replaced with bevy_hui
+bevy_hui = "0.4"
 bevy_brp_extras = { workspace = true }
 core_sim = { path = "../core_sim" }
 ai_planner = { path = "../ai_planner" }

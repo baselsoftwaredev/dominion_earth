@@ -1,0 +1,74 @@
+<!-- Minimap Component -->
+<template>
+    <property name="map_width">100</property>
+    <property name="map_height">100</property>
+    <property name="capital_count">0</property>
+    <property name="unit_count">0</property>
+    
+    <node 
+        width="100%"
+        min_height="200px"
+        background="#404040"
+        border_radius="8px"
+        padding="15px"
+        margin="0 0 10px 0"
+        flex_direction="column"
+    >
+        <!-- Panel title -->
+        <text 
+            font_size="18"
+            font_color="#ffffff"
+            margin="0 0 15px 0"
+        >
+            Minimap
+        </text>
+        
+        <!-- Map info -->
+        <node 
+            flex_direction="row"
+            justify_content="space_between"
+            margin="0 0 8px 0"
+        >
+            <text font_size="14" font_color="#cccccc">Map Size:</text>
+            <text font_size="14" font_color="#ffffff">{map_width}x{map_height}</text>
+        </node>
+        
+        <node 
+            flex_direction="row"
+            justify_content="space_between"
+            margin="0 0 8px 0"
+        >
+            <text font_size="14" font_color="#cccccc">Capitals:</text>
+            <text font_size="14" font_color="#ffffff">{capital_count}</text>
+        </node>
+        
+        <node 
+            flex_direction="row"
+            justify_content="space_between"
+            margin="0 0 15px 0"
+        >
+            <text font_size="14" font_color="#cccccc">Units:</text>
+            <text font_size="14" font_color="#ffffff">{unit_count}</text>
+        </node>
+        
+        <!-- Minimap visualization placeholder -->
+        <node 
+            width="100%"
+            height="120px"
+            background="#2a2a2a"
+            border_radius="4px"
+            border="2px solid #555555"
+            justify_content="center"
+            align_items="center"
+        >
+            <text 
+                font_size="12"
+                font_color="#888888"
+                text_align="center"
+            >
+                Minimap View
+                (Implementation needed)
+            </text>
+        </node>
+    </node>
+</template>

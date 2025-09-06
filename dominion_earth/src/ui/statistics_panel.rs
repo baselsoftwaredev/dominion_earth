@@ -1,3 +1,5 @@
+// TODO: Replace with bevy_hui implementation
+/*
 use crate::ui::resources::TerrainCounts;
 use bevy::prelude::*;
 use bevy_egui::egui;
@@ -54,3 +56,4 @@ fn render_civilization_count_statistics(ui: &mut egui::Ui, civs: &Query<&Civiliz
         ui.label(format!("Total: {}", civs.iter().count()));
     });
 }
+*/

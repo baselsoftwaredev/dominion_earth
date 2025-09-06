@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_egui::egui;
+// use bevy_hui::egui; // Commented out for now
 use core_sim::{
     Capital, Civilization, PlayerActionsComplete, PlayerControlled, PlayerProductionOrder,
     ProductionItem, ProductionQueue, UnitType, RequestTurnAdvance, SkipProductionThisTurn,
@@ -80,7 +80,9 @@ pub fn handle_end_turn_input(
 
 
 
-/// System to display production UI
+// System to display production UI (commented out for bevy_hui transition)
+// TODO: Implement with bevy_hui instead of egui
+/*
 pub fn display_production_ui(
     mut contexts: bevy_egui::EguiContexts,
     selected_capital: Res<SelectedCapital>,
@@ -157,3 +159,4 @@ pub fn display_production_ui(
             });
     }
 }
+*/

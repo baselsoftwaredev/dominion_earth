@@ -63,8 +63,12 @@ fn main() {
             ..default()
         }),
         ..default()
-    }))
-    .add_plugins(bevy_egui::EguiPlugin::default())
+    }));
+    
+    // Initialize UI system with bevy_hui
+    ui::BevyHuiSystem::setup_plugins(&mut app);
+    
+    app.insert_resource(ui::UiSystemResource::new(Box::new(ui::BevyHuiSystem)))
     .add_plugins(bevy_ecs_tilemap::TilemapPlugin);
 
     if cli.enable_remote {
@@ -74,6 +78,7 @@ fn main() {
 
     app.init_resource::<ui::TerrainCounts>()
         .init_resource::<ui::SelectedTile>()
+        .init_resource::<ui::LastLoggedTile>()
         .init_resource::<CurrentTurn>()
         .init_resource::<ActiveCivTurn>()
         .init_resource::<core_sim::components::player::SelectedUnit>()
@@ -95,12 +100,8 @@ fn main() {
             cli.total_civs,
         ))
         .insert_resource(debug_utils::DebugLogging(cli.debug_logging))
-        .init_resource::<ui::SelectedTile>()
-        .init_resource::<ui::LastLoggedTile>()
-        .init_resource::<ui::TerrainCounts>()
         .init_resource::<core_sim::resources::TurnAdvanceRequest>()
         .init_resource::<InfluenceMap>()
-        .init_resource::<CurrentTurn>()
         .init_resource::<core_sim::PlayerActionsComplete>()
         .init_resource::<production_input::SelectedCapital>()
         .add_event::<core_sim::PlayerProductionOrder>()
@@ -129,8 +130,18 @@ fn main() {
                 input::handle_mouse_input,
                 input::handle_tile_selection_on_mouse_click,
                 input::handle_player_unit_interaction,
+            ),
+        )
+        .add_systems(
+            Update,
+            (
                 production_input::handle_production_input,
                 production_input::handle_end_turn_input,
+            ),
+        )
+        .add_systems(
+            Update,
+            (
                 core_sim::initialize_production_queues,
                 core_sim::handle_player_production_orders,
                 core_sim::handle_skip_production,
@@ -139,17 +150,15 @@ fn main() {
                 core_sim::handle_turn_advance_requests,
                 core_sim::auto_advance_turn_system,
                 core_sim::process_production_queues,
+            ),
+        )
+        .add_systems(
+            Update,
+            (
                 rendering::units::update_unit_sprites,
                 rendering::capitals::update_capital_sprites,
                 rendering::capitals::update_animated_capital_sprites,
                 rendering::borders::render_civilization_borders,
-            ),
-        )
-        .add_systems(
-            bevy_egui::EguiPrimaryContextPass,
-            (
-                ui::initialize_ui_system,
-                production_input::display_production_ui,
             ),
         );
 

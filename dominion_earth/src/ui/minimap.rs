@@ -1,3 +1,5 @@
+// TODO: Replace with bevy_hui implementation
+/*
 use super::constants::{color_values, minimap_display, world_dimensions};
 use bevy::prelude::*;
 use bevy_egui::egui;
@@ -95,3 +97,4 @@ fn convert_civilization_color_to_egui_color(civilization: &Civilization) -> egui
         (civilization.color[2] * color_values::RGB_COLOR_CONVERSION_FACTOR) as u8,
     )
 }
+*/

@@ -1,3 +1,5 @@
+// TODO: Replace with bevy_hui implementation
+/*
 use super::production_menu::render_capital_production_interface;
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::production_input::SelectedCapital;
@@ -237,3 +239,4 @@ fn render_world_map_terrain_comparison(
         );
     }
 }
+*/

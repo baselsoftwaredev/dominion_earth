@@ -1,7 +1,10 @@
 use super::constants;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
-use bevy_egui::EguiContexts;
+use bevy::window::PrimaryWindow;
+use core_sim::tile::tile_components::WorldTile;
+// use bevy_hui::EguiContexts; // Commented out for now
+use core_sim::{Position, TerrainType};
 
 pub fn handle_mouse_input(
     mut mouse_wheel: EventReader<bevy::input::mouse::MouseWheel>,
@@ -9,9 +12,8 @@ pub fn handle_mouse_input(
     mut cursor_moved: EventReader<CursorMoved>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
     mut last_cursor_pos: Local<Option<Vec2>>,
-    mut egui_contexts: EguiContexts,
 ) {
-    handle_camera_zoom_controls(&mut mouse_wheel, &mut egui_contexts, &mut camera_query);
+    handle_camera_zoom_controls(&mut mouse_wheel, &mut camera_query);
     handle_camera_panning_controls(
         &mouse_button,
         &mut cursor_moved,
@@ -22,18 +24,12 @@ pub fn handle_mouse_input(
 
 fn handle_camera_zoom_controls(
     mouse_wheel: &mut EventReader<MouseWheel>,
-    egui_contexts: &mut EguiContexts,
     camera_query: &mut Query<&mut Transform, With<Camera>>,
 ) {
-    if let Ok(ctx) = egui_contexts.ctx_mut() {
-        if !ctx.is_pointer_over_area() && !ctx.wants_pointer_input() {
-            for wheel_event in mouse_wheel.read() {
-                if let Ok(mut camera_transform) = camera_query.single_mut() {
-                    apply_camera_zoom_from_wheel_event(wheel_event, &mut camera_transform);
-                }
-            }
-        } else {
-            mouse_wheel.clear();
+    // Process all mouse wheel events for camera zoom
+    for wheel_event in mouse_wheel.read() {
+        if let Ok(mut camera_transform) = camera_query.single_mut() {
+            apply_camera_zoom_from_wheel_event(wheel_event, &mut camera_transform);
         }
     }
 }
