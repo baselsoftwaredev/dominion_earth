@@ -17,3 +17,7 @@ rand_pcg = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 bevy_ecs_tilemap = "0.16"
 bevy_framepace = "0.19.1"
+
+[lints.rust]
+unused = "allow"
+unsafe_code = "forbid"

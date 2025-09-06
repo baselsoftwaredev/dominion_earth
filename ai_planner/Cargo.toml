@@ -11,3 +11,7 @@ rand = { workspace = true }
 rand_pcg = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
+
+[lints.rust]
+unused = "allow"
+unsafe_code = "forbid"

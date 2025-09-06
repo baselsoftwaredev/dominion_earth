@@ -2,5 +2,7 @@
   "editor.formatOnSave": true,
   "search.exclude": {
     "**/target": true
-  }
+  },
+  "rust-analyzer.restartServerOnConfigChange": true,
+  "rust-analyzer.showSyntaxTree": true
 }

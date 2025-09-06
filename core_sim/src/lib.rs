@@ -17,9 +17,56 @@ pub mod world_gen;
 
 pub mod tile;
 
-pub use components::*;
+// Import specific components to avoid ambiguous glob reexports
+pub use components::{
+    // AI components
+    ai::{AIAction, AIDecision, CivilizationData, DecisionType},
+    // City components
+    city::{
+        Building, BuildingType, Capital, CapitalAge, CapitalEvolutionRequirements, City, Territory,
+    },
+    // Civilization components
+    civilization::{
+        CivPersonality, CivStats, Civilization, Economy, Military, Technologies, TradeRoute,
+    },
+    // Diplomacy components
+    diplomacy::{DiplomaticAction, DiplomaticRelation, Treaty},
+    // Military components
+    military::{MilitaryUnit, UnitType},
+    // Orders components
+    orders::ActiveThisTurn,
+    // Player components
+    player::{PlayerControlled, PlayerMovementOrder, SelectedUnit, UnitSelected},
+    // Position components
+    position::{Direction, MovementOrder, Position},
+    // Production components
+    production::{
+        PlayerAction, PlayerActionType, PlayerActionsComplete, ProductionItem, ProductionQueue,
+    },
+    // Rendering components
+    rendering::SpriteEntityReference,
+    // Terrain components
+    terrain::TerrainType,
+    // Core component types
+    CivId,
+};
+
 pub use debug_utils::CoreDebugUtils;
-pub use systems::*;
+
+// Import specific systems to avoid ambiguous glob reexports
+pub use systems::{
+    ai_decision::*,
+    combat_resolution::*,
+    economic_update::*,
+    movement::process_player_movement_orders,
+    production::{
+        check_player_actions_complete, handle_player_production_orders, handle_skip_production,
+        initialize_production_queues, process_production_queues, reset_unit_movement,
+        PlayerProductionOrder, SkipProductionThisTurn,
+    },
+    turn_management::{auto_advance_turn_system, handle_turn_advance_requests, RequestTurnAdvance},
+};
+
 // Import specific items from resources to avoid Resource trait conflict
 pub use resources::{
     DiplomaticEvent,
