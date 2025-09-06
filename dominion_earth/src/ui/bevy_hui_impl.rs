@@ -92,9 +92,8 @@ fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>, mut html_funcs: Ht
             .with("civilizations_list", "Loading..."),
     ));
 
-    html_comps.register_with_spawn_fn("game_panel", server.load("ui/game_panel.html"), |mut cmd| {
-        cmd.insert(Name::new("GamePanel"));
-    });
+    html_comps.register("game_panel", server.load("ui/statistics_panel.html"));
+    html_comps.register("statistics_panel", server.load("ui/statistics_panel.html"));
 }
 
 /// Update UI properties with current game data

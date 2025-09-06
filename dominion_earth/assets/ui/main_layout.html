@@ -60,34 +60,24 @@
             padding="10px"
         >
             <!-- Game Panel -->
-            <game_panel>
-                <property name="current_turn">1</property>
-                <property name="player_gold">0</property>
-                <property name="total_production">0</property>
-                <property name="capital_count">0</property>
-                <property name="capital_names">No capitals</property>
-            </game_panel>
+            <game_panel
+                current_turn="1"
+                player_gold="0"
+                total_production="0"
+                capital_count="0"
+                capital_names="No capitals"
+            />
 
             <!-- Statistics Panel -->
-            <node
-                background="#2d2d2d"
-                border="2px solid #444444"
-                padding="15px"
-                border_radius="8px"
-                margin="5px"
-                flex_direction="column"
-                min_height="150px"
-            >
-                <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">World Statistics</text>
-                <text font_size="16" font_color="#ffffff">Turn: {current_turn}</text>
-                <text font_size="16" font_color="#ffffff">Land: {terrain_land_count}</text>
-                <text font_size="16" font_color="#ffffff">Water: {terrain_water_count}</text>
-                <text font_size="16" font_color="#ffffff">Mountain: {terrain_mountain_count}</text>
-            </node>
+            <statistics_panel
+                current_turn="1"
+                terrain_land_count="0"
+                terrain_water_count="0"
+                terrain_mountain_count="0"
+            />
         </node>
         
         <!-- Right sidebar -->
-                <!-- Right sidebar -->
         <node 
             position="absolute"
             right="0"
