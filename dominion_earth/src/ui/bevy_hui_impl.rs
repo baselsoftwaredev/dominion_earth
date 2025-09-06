@@ -71,15 +71,15 @@ impl UiComponent for HuiComponent {
     }
 }
 
-/// Setup main UI
+/// Setup main UI with inline content instead of separate components
 fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>) {
-    // Spawn main UI layout
+    // Spawn main UI layout with all content inline
     cmd.spawn((
         HtmlNode(server.load("ui/main_layout.html")),
         Name::new("MainUI"),
         TemplateProperties::default()
-            .with("current_turn", "1")
             .with("game_title", "Dominion Earth")
+            .with("current_turn", "1")
             .with("player_gold", "0")
             .with("player_production", "0")
             .with("player_cities", "0")
@@ -106,7 +106,7 @@ fn update_ui_properties(
     production_queues: Query<&ProductionQueue>,
     mut ui_nodes: Query<&mut TemplateProperties, With<HtmlNode>>,
 ) {
-    // Only update when resources change or every few seconds (to avoid spam but ensure updates)
+    // Only update when resources change
     if current_turn.is_changed() || terrain_counts.is_changed() || selected_tile.is_changed() {
         // Collect game data
         let all_civs: Vec<&Civilization> = civs.iter().collect();
@@ -128,13 +128,6 @@ fn update_ui_properties(
             .first()
             .map(|civ| civ.economy.gold as i32)
             .unwrap_or(0);
-
-        debug_println!(
-            debug_logging,
-            "UI UPDATE: Player gold = {}, Turn = {}",
-            player_gold,
-            current_turn.0
-        );
 
         let total_production: f32 = production_queues
             .iter()
@@ -165,7 +158,7 @@ fn update_ui_properties(
             if names.is_empty() {
                 "No cities founded".to_string()
             } else {
-                names.join("\n")
+                names.join(", ")
             }
         };
 
@@ -188,7 +181,7 @@ fn update_ui_properties(
                     )
                 })
                 .collect::<Vec<_>>()
-                .join("\n")
+                .join(", ")
         };
 
         for mut properties in ui_nodes.iter_mut() {

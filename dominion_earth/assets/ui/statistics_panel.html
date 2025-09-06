@@ -1,33 +1,63 @@
 <!-- Statistics Panel Component -->
 <template>
-    <property name="turn">1</property>
-    <property name="total_civilizations">0</property>
-    <property name="civilization_list">No civilizations</property>
-    <property name="civ_details">No data</property>
+    <property name="current_turn">1</property>
+    <property name="terrain_land_count">0</property>
+    <property name="terrain_water_count">0</property>
+    <property name="terrain_mountain_count">0</property>
     
     <node 
         width="100%"
-        min_height="250px"
-        background="#404040"
+        min_height="200px"
+        background="#2d2d2d"
+        border="2px solid #444444"
         border_radius="8px"
         padding="15px"
-        margin="0 0 10px 0"
+        margin="5px"
         flex_direction="column"
     >
         <!-- Panel title -->
         <text 
-            font_size="18"
-            font_color="#ffffff"
+            font_size="20"
+            font_color="#ffcc00"
             margin="0 0 15px 0"
         >
-            World Civilizations
+            World Statistics
         </text>
         
-        <!-- Total civilizations count -->
-        <node 
-            flex_direction="row"
-            justify_content="space_between"
-            margin="0 0 15px 0"
+        <!-- Turn info -->
+        <text 
+            font_size="16"
+            font_color="#ffffff"
+            margin="0 0 10px 0"
+        >
+            Turn: {current_turn}
+        </text>
+        
+        <!-- Terrain stats -->
+        <text 
+            font_size="16"
+            font_color="#ffffff"
+            margin="0 0 5px 0"
+        >
+            Land: {terrain_land_count}
+        </text>
+        
+        <text 
+            font_size="16"
+            font_color="#ffffff"
+            margin="0 0 5px 0"
+        >
+            Water: {terrain_water_count}
+        </text>
+        
+        <text 
+            font_size="16"
+            font_color="#ffffff"
+        >
+            Mountains: {terrain_mountain_count}
+        </text>
+    </node>
+</template>
         >
             <text font_size="14" font_color="#cccccc">Total Civilizations:</text>
             <text font_size="14" font_color="#ffffff">{total_civilizations}</text>

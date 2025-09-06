@@ -1,23 +1,33 @@
 <!-- Minimap Component -->
 <template>
-    <property name="map_width">100</property>
-    <property name="map_height">100</property>
-    <property name="capital_count">0</property>
-    <property name="unit_count">0</property>
-    
     <node 
         width="100%"
-        min_height="200px"
-        background="#404040"
+        min_height="150px"
+        background="#2d2d2d"
+        border="2px solid #444444"
         border_radius="8px"
         padding="15px"
-        margin="0 0 10px 0"
+        margin="5px"
         flex_direction="column"
     >
         <!-- Panel title -->
         <text 
-            font_size="18"
-            font_color="#ffffff"
+            font_size="20"
+            font_color="#ffcc00"
+            margin="0 0 15px 0"
+        >
+            Minimap
+        </text>
+        
+        <!-- Placeholder content -->
+        <text 
+            font_size="16"
+            font_color="#888888"
+        >
+            Map view placeholder
+        </text>
+    </node>
+</template>
             margin="0 0 15px 0"
         >
             Minimap
