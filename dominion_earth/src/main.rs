@@ -64,12 +64,12 @@ fn main() {
         }),
         ..default()
     }));
-    
+
     // Initialize UI system with bevy_hui
     ui::BevyHuiSystem::setup_plugins(&mut app);
-    
+
     app.insert_resource(ui::UiSystemResource::new(Box::new(ui::BevyHuiSystem)))
-    .add_plugins(bevy_ecs_tilemap::TilemapPlugin);
+        .add_plugins(bevy_ecs_tilemap::TilemapPlugin);
 
     if cli.enable_remote {
         println!("Enabling Bevy Remote Protocol on port {}", cli.remote_port);

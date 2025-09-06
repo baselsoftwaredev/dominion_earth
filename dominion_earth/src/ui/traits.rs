@@ -1,14 +1,14 @@
+use crate::{
+    debug_utils::DebugLogging,
+    game::GameState,
+    production_input::SelectedCapital,
+    ui::resources::{LastLoggedTile, SelectedTile, TerrainCounts},
+};
 use bevy::prelude::*;
 use core_sim::{
     components::{Capital, MilitaryUnit},
     resources::{CurrentTurn, WorldMap},
     Civilization, Position, ProductionQueue,
-};
-use crate::{
-    debug_utils::DebugLogging,
-    game::GameState,
-    production_input::SelectedCapital,
-    ui::resources::{TerrainCounts, SelectedTile, LastLoggedTile},
 };
 
 /// Trait for UI system implementations
@@ -16,22 +16,22 @@ use crate::{
 pub trait UiSystem: Send + Sync + 'static {
     /// Initialize the UI system
     fn initialize(&self, app: &mut App);
-    
+
     /// Render the main game panel
     fn render_main_game_panel(&self, data: &GamePanelData);
-    
+
     /// Render the production menu
     fn render_production_menu(&self, data: &ProductionMenuData);
-    
+
     /// Render the statistics panel
     fn render_statistics_panel(&self, data: &StatisticsPanelData);
-    
+
     /// Render the tile info panel
     fn render_tile_info(&self, data: &TileInfoData);
-    
+
     /// Render the minimap
     fn render_minimap(&self, data: &MinimapData);
-    
+
     /// Render the resources panel
     fn render_resources(&self, data: &ResourcesData);
 }
@@ -92,10 +92,10 @@ pub struct ResourcesData {
 pub trait UiComponent: Component + Send + Sync {
     /// The UI framework-specific identifier
     type Id: Send + Sync + Clone + 'static;
-    
+
     /// Get the UI element identifier
     fn get_id(&self) -> Self::Id;
-    
+
     /// Update the component's data
     fn update_data(&mut self, data: Box<dyn std::any::Any + Send + Sync>);
 }
