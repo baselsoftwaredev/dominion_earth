@@ -7,13 +7,13 @@
     <property name="capital_names">No capitals</property>
     
     <node 
-        width="100%"
-        min_height="300px"
-        background="#404040"
-        border_radius="8px"
+        background="#2d2d2d"
+        border="2px solid #444444"
         padding="15px"
-        margin="0 0 10px 0"
+        border_radius="8px"
+        margin="5px"
         flex_direction="column"
+        min_height="200px"
     >
         <!-- Panel title -->
         <text 
@@ -79,45 +79,5 @@
                 {capital_names}
             </text>
         </node>
-    </node>
-</template>
-        >
-            <text font_size="14" font_color="#cccccc">Player Civs:</text>
-            <text font_size="14" font_color="#ffffff">{player_civs}</text>
-        </node>
-        
-        <!-- Action buttons -->
-        <button 
-            width="100%"
-            height="40px"
-            background="#4a9eff"
-            border_radius="4px"
-            margin="0 0 8px 0"
-            hover:background="#3a8eef"
-            on_press="advance_turn"
-        >
-            <text 
-                font_size="14"
-                font_color="#ffffff"
-            >
-                Advance Turn
-            </text>
-        </button>
-        
-        <button 
-            width="100%"
-            height="40px"
-            background="#ff6b6b"
-            border_radius="4px"
-            hover:background="#ff5b5b"
-            on_press="toggle_debug"
-        >
-            <text 
-                font_size="14"
-                font_color="#ffffff"
-            >
-                Toggle Debug
-            </text>
-        </button>
     </node>
 </template>

@@ -60,22 +60,14 @@
             padding="10px"
         >
             <!-- Game Panel -->
-            <node
-                background="#2d2d2d"
-                border="2px solid #444444"
-                padding="15px"
-                border_radius="8px"
-                margin="5px"
-                flex_direction="column"
-                min_height="200px"
-            >
-                <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">Your Empire</text>
-                <text font_size="16" font_color="#ffffff">Gold: {player_gold}</text>
-                <text font_size="16" font_color="#ffffff">Production: {player_production}</text>
-                <text font_size="16" font_color="#ffffff">Cities: {player_cities}</text>
-                <text font_size="14" font_color="#cccccc">{capital_names}</text>
-            </node>
-            
+            <game_panel>
+                <property name="current_turn">1</property>
+                <property name="player_gold">0</property>
+                <property name="total_production">0</property>
+                <property name="capital_count">0</property>
+                <property name="capital_names">No capitals</property>
+            </game_panel>
+
             <!-- Statistics Panel -->
             <node
                 background="#2d2d2d"
