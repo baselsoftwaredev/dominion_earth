@@ -2,12 +2,12 @@
 <template>
     <property name="turn">1</property>
     <property name="total_civilizations">0</property>
-    <property name="player_civilizations">0</property>
-    <property name="total_population">0</property>
+    <property name="civilization_list">No civilizations</property>
+    <property name="civ_details">No data</property>
     
     <node 
         width="100%"
-        min_height="150px"
+        min_height="250px"
         background="#404040"
         border_radius="8px"
         padding="15px"
@@ -20,34 +20,46 @@
             font_color="#ffffff"
             margin="0 0 15px 0"
         >
-            Statistics
+            World Civilizations
         </text>
         
-        <!-- Statistics content -->
+        <!-- Total civilizations count -->
         <node 
             flex_direction="row"
             justify_content="space_between"
-            margin="0 0 8px 0"
+            margin="0 0 15px 0"
         >
-            <text font_size="14" font_color="#cccccc">Turn:</text>
-            <text font_size="14" font_color="#ffffff">{turn}</text>
-        </node>
-        
-        <node 
-            flex_direction="row"
-            justify_content="space_between"
-            margin="0 0 8px 0"
-        >
-            <text font_size="14" font_color="#cccccc">Civilizations:</text>
+            <text font_size="14" font_color="#cccccc">Total Civilizations:</text>
             <text font_size="14" font_color="#ffffff">{total_civilizations}</text>
         </node>
         
-        <node 
-            flex_direction="row"
-            justify_content="space_between"
-            margin="0 0 8px 0"
+        <!-- Civilizations list -->
+        <text 
+            font_size="16"
+            font_color="#ffffff"
+            margin="0 0 10px 0"
         >
-            <text font_size="14" font_color="#cccccc">Player Civs:</text>
+            Active Civilizations:
+        </text>
+        
+        <!-- Civilization details -->
+        <node 
+            flex_direction="column"
+            max_height="150px"
+            background="#333333"
+            border_radius="4px"
+            padding="8px"
+        >
+            <text 
+                font_size="12"
+                font_color="#cccccc"
+                margin="0 0 5px 0"
+            >
+                {civ_details}
+            </text>
+        </node>
+    </node>
+</template>
             <text font_size="14" font_color="#ffffff">{player_civilizations}</text>
         </node>
         

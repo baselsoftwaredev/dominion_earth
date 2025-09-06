@@ -77,8 +77,18 @@ fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>) {
         HtmlNode(server.load("ui/main_layout.html")),
         Name::new("MainUI"),
         TemplateProperties::default()
-            .with("currentTurn", "1")
-            .with("gameTitle", "Dominion Earth"),
+            .with("current_turn", "1")
+            .with("game_title", "Dominion Earth")
+            .with("player_gold", "0")
+            .with("player_production", "0")
+            .with("player_cities", "0")
+            .with("capital_names", "No capital")
+            .with("terrain_land_count", "0")
+            .with("terrain_water_count", "0")
+            .with("terrain_mountain_count", "0")
+            .with("selected_position", "None")
+            .with("selected_terrain", "None")
+            .with("civilizations_list", "Loading..."),
     ));
 }
 
@@ -87,34 +97,102 @@ fn update_ui_properties(
     current_turn: Res<CurrentTurn>,
     terrain_counts: Res<TerrainCounts>,
     selected_tile: Res<SelectedTile>,
+    civs: Query<&Civilization>,
+    player_civs: Query<&Civilization, With<core_sim::PlayerControlled>>,
+    capitals: Query<(&Capital, &Position)>,
+    cities: Query<(&core_sim::City, &Position)>,
+    production_queues: Query<&ProductionQueue>,
     mut ui_nodes: Query<&mut TemplateProperties, With<HtmlNode>>,
 ) {
     // Update template properties when resources change
     if current_turn.is_changed() || terrain_counts.is_changed() || selected_tile.is_changed() {
+        // Collect game data
+        let all_civs: Vec<&Civilization> = civs.iter().collect();
+        let player_civilization_list: Vec<&Civilization> = player_civs.iter().collect();
+        let capital_list: Vec<(&Capital, &Position)> = capitals.iter().collect();
+        let city_list: Vec<(&core_sim::City, &Position)> = cities.iter().collect();
+        
+        // Calculate player stats
+        let player_gold = player_civilization_list.first()
+            .map(|civ| civ.economy.gold as i32)
+            .unwrap_or(0);
+        
+        let total_production: f32 = production_queues
+            .iter()
+            .map(|queue| queue.accumulated_production)
+            .sum();
+        
+        // Format capital and city names
+        let capital_names = if capital_list.is_empty() && city_list.is_empty() {
+            "No capitals founded".to_string()
+        } else {
+            let mut names = Vec::new();
+            
+            // Add capital information
+            for (capital, pos) in &capital_list {
+                let civ_name = all_civs.iter()
+                    .find(|civ| civ.id == capital.owner)
+                    .map(|civ| civ.name.as_str())
+                    .unwrap_or("Unknown");
+                names.push(format!("{} Capital at ({}, {})", civ_name, pos.x, pos.y));
+            }
+            
+            // Add city information
+            for (city, pos) in &city_list {
+                names.push(format!("{} at ({}, {})", city.name, pos.x, pos.y));
+            }
+            
+            if names.is_empty() {
+                "No cities founded".to_string()
+            } else {
+                names.join("\n")
+            }
+        };
+        
+        // Format civilization details
+        let civ_details = if all_civs.is_empty() {
+            "No civilizations".to_string()
+        } else {
+            all_civs
+                .iter()
+                .enumerate()
+                .map(|(i, civ)| {
+                    let civ_type = if player_civs.iter().any(|pc| pc.id == civ.id) {
+                        "Player"
+                    } else {
+                        "AI"
+                    };
+                    format!("{} - {} (Gold: {})", civ.name, civ_type, civ.economy.gold as i32)
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+
         for mut properties in ui_nodes.iter_mut() {
             // Update current turn
-            properties.insert("currentTurn".to_string(), current_turn.0.to_string());
+            properties.insert("current_turn".to_string(), current_turn.0.to_string());
 
-            // Update terrain counts
-            properties.insert("plains".to_string(), terrain_counts.plains.to_string());
-            properties.insert("hills".to_string(), terrain_counts.hills.to_string());
-            properties.insert("forest".to_string(), terrain_counts.forest.to_string());
-            properties.insert("ocean".to_string(), terrain_counts.ocean.to_string());
-            properties.insert("coast".to_string(), terrain_counts.coast.to_string());
-            properties.insert(
-                "mountains".to_string(),
-                terrain_counts.mountains.to_string(),
-            );
-            properties.insert("desert".to_string(), terrain_counts.desert.to_string());
-            properties.insert("river".to_string(), terrain_counts.river.to_string());
+            // Player empire data
+            properties.insert("player_gold".to_string(), player_gold.to_string());
+            properties.insert("player_production".to_string(), (total_production as i32).to_string());
+            properties.insert("player_cities".to_string(), (capital_list.len() + city_list.len()).to_string());
+            properties.insert("capital_names".to_string(), capital_names.clone());
+            
+            // World statistics
+            properties.insert("terrain_land_count".to_string(), (terrain_counts.plains + terrain_counts.hills + terrain_counts.forest + terrain_counts.desert).to_string());
+            properties.insert("terrain_water_count".to_string(), (terrain_counts.ocean + terrain_counts.coast + terrain_counts.river).to_string());
+            properties.insert("terrain_mountain_count".to_string(), terrain_counts.mountains.to_string());
+            
+            // Civilizations list
+            properties.insert("civilizations_list".to_string(), civ_details.clone());
 
             // Update selected tile info
             if let Some(pos) = selected_tile.position {
-                properties.insert("selectedTileX".to_string(), pos.x.to_string());
-                properties.insert("selectedTileY".to_string(), pos.y.to_string());
-                properties.insert("hasSelectedTile".to_string(), "true".to_string());
+                properties.insert("selected_position".to_string(), format!("({}, {})", pos.x, pos.y));
+                properties.insert("selected_terrain".to_string(), "Unknown".to_string()); // TODO: Get actual terrain type
             } else {
-                properties.insert("hasSelectedTile".to_string(), "false".to_string());
+                properties.insert("selected_position".to_string(), "None".to_string());
+                properties.insert("selected_terrain".to_string(), "None".to_string());
             }
         }
     }

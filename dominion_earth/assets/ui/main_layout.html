@@ -31,7 +31,20 @@
             </text>
             
             <!-- Resources panel -->
-            <resources_panel />
+            <node 
+                background="#444444"
+                padding="10px"
+                border_radius="5px"
+                margin="5px"
+                flex_direction="row"
+                justify_content="space_between"
+                align_items="center"
+                min_width="400px"
+            >
+                <text font_size="16" font_color="#ffffff">Gold: {player_gold}</text>
+                <text font_size="16" font_color="#ffffff">Production: {player_production}</text>
+                <text font_size="16" font_color="#ffffff">Turn: {current_turn}</text>
+            </node>
         </node>
         
         <!-- Left sidebar -->
@@ -45,8 +58,37 @@
             flex_direction="column"
             padding="10px"
         >
-            <game_panel />
-            <statistics_panel />
+            <!-- Game Panel -->
+            <node
+                background="#444444"
+                padding="10px"
+                border_radius="5px"
+                margin="5px"
+                flex_direction="column"
+                min_height="200px"
+            >
+                <text font_size="18" font_color="#ffffff" margin="0 0 10px 0">Your Empire</text>
+                <text font_size="14" font_color="#cccccc">Gold: {player_gold}</text>
+                <text font_size="14" font_color="#cccccc">Production: {player_production}</text>
+                <text font_size="14" font_color="#cccccc">Cities: {player_cities}</text>
+                <text font_size="14" font_color="#cccccc">Capital: {capital_names}</text>
+            </node>
+            
+            <!-- Statistics Panel -->
+            <node
+                background="#444444"
+                padding="10px"
+                border_radius="5px"
+                margin="5px"
+                flex_direction="column"
+                min_height="150px"
+            >
+                <text font_size="18" font_color="#ffffff" margin="0 0 10px 0">World Statistics</text>
+                <text font_size="14" font_color="#cccccc">Turn: {current_turn}</text>
+                <text font_size="14" font_color="#cccccc">Land: {terrain_land_count}</text>
+                <text font_size="14" font_color="#cccccc">Water: {terrain_water_count}</text>
+                <text font_size="14" font_color="#cccccc">Mountain: {terrain_mountain_count}</text>
+            </node>
         </node>
         
         <!-- Right sidebar -->
@@ -60,9 +102,45 @@
             flex_direction="column"
             padding="10px"
         >
-            <tile_info />
-            <production_menu />
-            <minimap />
+            <!-- Tile Info -->
+            <node
+                background="#444444"
+                padding="10px"
+                border_radius="5px"
+                margin="5px"
+                flex_direction="column"
+                min_height="120px"
+            >
+                <text font_size="18" font_color="#ffffff" margin="0 0 10px 0">Selected Tile</text>
+                <text font_size="14" font_color="#cccccc">Position: {selected_position}</text>
+                <text font_size="14" font_color="#cccccc">Terrain: {selected_terrain}</text>
+            </node>
+            
+            <!-- World Civilizations -->
+            <node
+                background="#444444"
+                padding="10px"
+                border_radius="5px"
+                margin="5px"
+                flex_direction="column"
+                min_height="200px"
+            >
+                <text font_size="18" font_color="#ffffff" margin="0 0 10px 0">Civilizations</text>
+                <text font_size="14" font_color="#cccccc">{civilizations_list}</text>
+            </node>
+            
+            <!-- Minimap placeholder -->
+            <node
+                background="#444444"
+                padding="10px"
+                border_radius="5px"
+                margin="5px"
+                flex_direction="column"
+                min_height="150px"
+            >
+                <text font_size="18" font_color="#ffffff" margin="0 0 10px 0">Minimap</text>
+                <text font_size="14" font_color="#888888">Map view placeholder</text>
+            </node>
         </node>
     </node>
 </template>
