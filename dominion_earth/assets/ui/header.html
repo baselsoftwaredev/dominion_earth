@@ -1,0 +1,45 @@
+<!-- Header Component -->
+<template>
+  <property name="game_title">Dominion Earth</property>
+  <property name="player_gold">0</property>
+  <property name="player_production">0</property>
+  <property name="current_turn">1</property>
+
+  <!-- Top bar -->
+  <node
+    position="absolute"
+    top="0"
+    left="0"
+    width="100%"
+    height="80px"
+    background="#2a2a2a"
+    flex_direction="row"
+    justify_content="space_between"
+    align_items="center"
+    padding="10px"
+  >
+    <!-- Game title -->
+    <text font_size="24" font_color="#ffffff" margin="0 20px">
+      {game_title}
+    </text>
+
+    <!-- Resources panel -->
+    <node
+      background="#2d2d2d"
+      border="2px solid #444444"
+      padding="15px"
+      border_radius="8px"
+      margin="5px"
+      flex_direction="row"
+      justify_content="space_between"
+      align_items="center"
+      min_width="500px"
+    >
+      <text font_size="18" font_color="#ffcc00">Gold: {player_gold}</text>
+      <text font_size="18" font_color="#ffcc00"
+        >Production: {player_production}</text
+      >
+      <text font_size="18" font_color="#ffcc00">Turn: {current_turn}</text>
+    </node>
+  </node>
+</template>

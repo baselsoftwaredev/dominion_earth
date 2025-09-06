@@ -1,83 +1,49 @@
 <!-- Game Panel Component -->
 <template>
+  <property name="current_turn">1</property>
+  <property name="player_gold">0</property>
+  <property name="total_production">0</property>
+  <property name="capital_count">0</property>
+  <property name="capital_names">No capitals</property>
+
+  <!-- Game Panel Component -->
+  <template>
     <property name="current_turn">1</property>
     <property name="player_gold">0</property>
     <property name="total_production">0</property>
     <property name="capital_count">0</property>
     <property name="capital_names">No capitals</property>
-    
-    <node 
-        background="#2d2d2d"
-        border="2px solid #444444"
-        padding="15px"
-        border_radius="8px"
-        margin="5px"
-        flex_direction="column"
-        min_height="200px"
+
+    <node
+      width="100%"
+      min_height="200px"
+      background="#2d2d2d"
+      border="2px solid #444444"
+      border_radius="8px"
+      padding="15px"
+      margin="5px"
+      flex_direction="column"
     >
-        <!-- Panel title -->
-        <text 
-            font_size="18"
-            font_color="#ffffff"
-            margin="0 0 15px 0"
-        >
-            Player Empire
-        </text>
-        
-        <!-- Turn info -->
-        <node 
-            flex_direction="row"
-            justify_content="space_between"
-            margin="0 0 8px 0"
-        >
-            <text font_size="14" font_color="#cccccc">Turn:</text>
-            <text font_size="14" font_color="#ffffff">{current_turn}</text>
-        </node>
-        
-        <!-- Gold -->
-        <node 
-            flex_direction="row"
-            justify_content="space_between"
-            margin="0 0 8px 0"
-        >
-            <text font_size="14" font_color="#cccccc">Gold:</text>
-            <text font_size="14" font_color="#ffd700">{player_gold}</text>
-        </node>
-        
-        <!-- Total Production -->
-        <node 
-            flex_direction="row"
-            justify_content="space_between"
-            margin="0 0 15px 0"
-        >
-            <text font_size="14" font_color="#cccccc">Production:</text>
-            <text font_size="14" font_color="#90ee90">{total_production}</text>
-        </node>
-        
-        <!-- Cities Section -->
-        <text 
-            font_size="16"
-            font_color="#ffffff"
-            margin="0 0 10px 0"
-        >
-            Cities ({capital_count})
-        </text>
-        
-        <!-- Capital cities list -->
-        <node 
-            flex_direction="column"
-            max_height="150px"
-            background="#333333"
-            border_radius="4px"
-            padding="8px"
-        >
-            <text 
-                font_size="12"
-                font_color="#cccccc"
-                margin="0 0 5px 0"
-            >
-                {capital_names}
-            </text>
-        </node>
+      <!-- Panel title -->
+      <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">
+        Your Empire
+      </text>
+
+      <!-- Empire stats -->
+      <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">
+        Gold: {player_gold}
+      </text>
+
+      <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">
+        Production: {total_production}
+      </text>
+
+      <text font_size="16" font_color="#ffffff" margin="0 0 10px 0">
+        Cities: {capital_count}
+      </text>
+
+      <!-- Capital names -->
+      <text font_size="14" font_color="#cccccc"> {capital_names} </text>
     </node>
+  </template>
 </template>

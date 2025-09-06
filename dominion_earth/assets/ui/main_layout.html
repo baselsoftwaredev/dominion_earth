@@ -1,135 +1,67 @@
 <!-- Main UI Layout -->
 <template>
-    <property name="game_title">Dominion Earth</property>
-    
-    <!-- Root container -->
-    <node 
-        position="absolute"
-        width="100%"
-        height="100%"
-    >
-        <!-- Top bar -->
-        <node 
-            position="absolute"
-            top="0"
-            left="0"
-            width="100%"
-            height="80px"
-            background="#2a2a2a"
-            flex_direction="row"
-            justify_content="space_between"
-            align_items="center"
-            padding="10px"
-        >
-            <!-- Game title -->
-            <text 
-                font_size="24"
-                font_color="#ffffff"
-                margin="0 20px"
-            >
-                {game_title}
-            </text>
-            
-            <!-- Resources panel -->
-            <node 
-                background="#2d2d2d"
-                border="2px solid #444444"
-                padding="15px"
-                border_radius="8px"
-                margin="5px"
-                flex_direction="row"
-                justify_content="space_between"
-                align_items="center"
-                min_width="500px"
-            >
-                <text font_size="18" font_color="#ffcc00">Gold: {player_gold}</text>
-                <text font_size="18" font_color="#ffcc00">Production: {player_production}</text>
-                <text font_size="18" font_color="#ffcc00">Turn: {current_turn}</text>
-            </node>
-        </node>
-        
-        <!-- Left sidebar -->
-        <node 
-            position="absolute"
-            left="0"
-            top="80px"
-            width="300px"
-            bottom="0"
-            background="#1a1a1a"
-            flex_direction="column"
-            padding="10px"
-        >
-            <!-- Game Panel -->
-            <game_panel
-                current_turn="1"
-                player_gold="0"
-                total_production="0"
-                capital_count="0"
-                capital_names="No capitals"
-            />
+  <property name="game_title">Dominion Earth</property>
 
-            <!-- Statistics Panel -->
-            <statistics_panel
-                current_turn="1"
-                terrain_land_count="0"
-                terrain_water_count="0"
-                terrain_mountain_count="0"
-            />
-        </node>
-        
-        <!-- Right sidebar -->
-        <node 
-            position="absolute"
-            right="0"
-            top="80px"
-            width="300px"
-            bottom="0"
-            background="#1a1a1a"
-            flex_direction="column"
-            padding="10px"
-        >
-            <!-- Tile Info -->
-            <node
-                background="#2d2d2d"
-                border="2px solid #444444"
-                padding="15px"
-                border_radius="8px"
-                margin="5px"
-                flex_direction="column"
-                min_height="120px"
-            >
-                <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">Selected Tile</text>
-                <text font_size="16" font_color="#ffffff">Position: {selected_position}</text>
-                <text font_size="16" font_color="#ffffff">Terrain: {selected_terrain}</text>
-            </node>
-            
-            <!-- World Civilizations -->
-            <node
-                background="#2d2d2d"
-                border="2px solid #444444"
-                padding="15px"
-                border_radius="8px"
-                margin="5px"
-                flex_direction="column"
-                min_height="200px"
-            >
-                <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">Civilizations</text>
-                <text font_size="14" font_color="#cccccc">{civilizations_list}</text>
-            </node>
-            
-            <!-- Minimap placeholder -->
-            <node
-                background="#2d2d2d"
-                border="2px solid #444444"
-                padding="15px"
-                border_radius="8px"
-                margin="5px"
-                flex_direction="column"
-                min_height="150px"
-            >
-                <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">Minimap</text>
-                <text font_size="16" font_color="#888888">Map view placeholder</text>
-            </node>
-        </node>
+  <!-- Root container -->
+  <node position="absolute" width="100%" height="100%">
+    <!-- Header Component -->
+    <header
+      game_title="{game_title}"
+      player_gold="{player_gold}"
+      player_production="{player_production}"
+      current_turn="{current_turn}"
+    />
+
+    <!-- Left sidebar -->
+    <node
+      position="absolute"
+      left="0"
+      top="80px"
+      width="300px"
+      bottom="0"
+      background="#1a1a1a"
+      flex_direction="column"
+      padding="10px"
+    >
+      <!-- Game Panel -->
+      <game_panel
+        current_turn="{current_turn}"
+        player_gold="{player_gold}"
+        total_production="{total_production}"
+        capital_count="{capital_count}"
+        capital_names="{capital_names}"
+      />
+
+      <!-- Statistics Panel -->
+      <statistics_panel
+        current_turn="{current_turn}"
+        terrain_land_count="{terrain_land_count}"
+        terrain_water_count="{terrain_water_count}"
+        terrain_mountain_count="{terrain_mountain_count}"
+      />
     </node>
+
+    <!-- Right sidebar -->
+    <node
+      position="absolute"
+      right="0"
+      top="80px"
+      width="300px"
+      bottom="0"
+      background="#1a1a1a"
+      flex_direction="column"
+      padding="10px"
+    >
+      <!-- Tile Info Component -->
+      <tile_info
+        selected_position="{selected_position}"
+        selected_terrain="{selected_terrain}"
+      />
+
+      <!-- Civilizations List Component -->
+      <civilizations_list civilizations_list="{civilizations_list}" />
+
+      <minimap />
+    </node>
+  </node>
 </template>
