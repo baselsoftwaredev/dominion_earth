@@ -1,74 +1,37 @@
-// TODO: Replace with bevy_hui implementation
-/*
+// Production Menu implementation using bevy_hui
 use crate::production_input::SelectedCapital;
 use bevy::prelude::*;
-use bevy_egui::egui;
+use bevy_hui::prelude::*;
 use core_sim::{Civilization, ProductionQueue};
 
-pub fn render_capital_production_interface(
-    ui: &mut egui::Ui,
-    selected_capital: &SelectedCapital,
-    production_query: &Query<&ProductionQueue>,
-    civs: &Query<&Civilization>,
+/// Production menu functionality is now handled through bevy_hui templates
+/// The UI template is at assets/ui/production_menu.html
+///
+/// Key features:
+/// - Shows/hides based on selected_capital.show_production_menu
+/// - Displays capital name, civilization info, gold, production
+/// - Shows current production progress
+/// - Shows production queue length
+/// - Provides instructions for queueing units
+///
+/// The production menu state is managed through the SelectedCapital resource
+/// and updated in the main UI update system in bevy_hui_impl.rs
+
+pub fn update_production_menu_visibility(
+    selected_capital: Res<SelectedCapital>,
+    mut ui_nodes: Query<&mut TemplateProperties, With<HtmlNode>>,
 ) {
-    ui.separator();
-    ui.heading("Production Menu");
+    // This function can be used for additional production menu logic if needed
+    // The main visibility and data updates are handled in bevy_hui_impl.rs
 
-    if let Some(capital_entity) = selected_capital.capital_entity {
-        if let Ok(production_queue) = production_query.get(capital_entity) {
-            if let Some(civilization_entity) = selected_capital.civ_entity {
-                if let Ok(civilization) = civs.get(civilization_entity) {
-                    render_civilization_economic_information(ui, civilization);
-                    ui.separator();
-
-                    render_available_production_units(ui);
-                    ui.separator();
-
-                    render_current_production_status(ui, production_queue);
-
-                    render_production_queue_information(ui, production_queue);
-
-                    ui.separator();
-                    ui.label("Press [Esc] to close");
-                }
-            }
+    if selected_capital.is_changed() {
+        for mut properties in ui_nodes.iter_mut() {
+            let show_menu = if selected_capital.show_production_menu {
+                "flex"
+            } else {
+                "none"
+            };
+            properties.insert("show_production_menu".to_string(), show_menu.to_string());
         }
     }
 }
-
-fn render_civilization_economic_information(ui: &mut egui::Ui, civilization: &Civilization) {
-    ui.label(format!("Capital: {}", civilization.name));
-    ui.label(format!("Gold: {:.0}", civilization.economy.gold));
-    ui.label(format!(
-        "Production: {:.1}",
-        civilization.economy.production
-    ));
-}
-
-fn render_available_production_units(ui: &mut egui::Ui) {
-    ui.label("Available Units:");
-    ui.label("Press [1] to queue Infantry (Cost: 20 gold, 15 production)");
-}
-
-fn render_current_production_status(ui: &mut egui::Ui, production_queue: &ProductionQueue) {
-    if production_queue.is_producing() {
-        ui.label("Currently Producing:");
-        if let Some(ref current_production_item) = production_queue.current_production {
-            ui.label(format!("• {}", current_production_item.name()));
-            ui.label(format!(
-                "Progress: {:.1}%",
-                production_queue.get_progress_percentage() * 100.0
-            ));
-        }
-    }
-}
-
-fn render_production_queue_information(ui: &mut egui::Ui, production_queue: &ProductionQueue) {
-    if production_queue.queue_length() > 0 {
-        ui.label(format!(
-            "Queue length: {}",
-            production_queue.queue_length()
-        ));
-    }
-}
-*/

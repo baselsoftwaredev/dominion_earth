@@ -1,6 +1,27 @@
 <!-- Main UI Layout -->
 <template>
   <property name="game_title">Dominion Earth</property>
+  <property name="current_turn">1</property>
+  <property name="player_gold">0</property>
+  <property name="player_production">0</property>
+  <property name="total_production">0</property>
+  <property name="player_cities">0</property>
+  <property name="capital_count">0</property>
+  <property name="capital_names">No capital</property>
+  <property name="terrain_land_count">0</property>
+  <property name="terrain_water_count">0</property>
+  <property name="terrain_mountain_count">0</property>
+  <property name="civilizations_list">Loading...</property>
+  <property name="selected_position">None</property>
+  <property name="selected_terrain">None</property>
+  <property name="show_production_menu">none</property>
+  <property name="capital_name">Unknown Capital</property>
+  <property name="civilization_name">Unknown Civilization</property>
+  <property name="civilization_gold">0</property>
+  <property name="civilization_production">0</property>
+  <property name="current_production_name">None</property>
+  <property name="current_production_progress">0</property>
+  <property name="production_queue_length">0</property>
 
   <!-- Root container -->
   <node position="absolute" width="100%" height="100%">
@@ -9,8 +30,7 @@
       game_title="{game_title}"
       player_gold="{player_gold}"
       player_production="{player_production}"
-      current_turn="{current_turn}"
-    />
+      current_turn="{current_turn}" />
 
     <!-- Left sidebar -->
     <node
@@ -21,24 +41,21 @@
       bottom="0"
       background="#1a1a1a"
       flex_direction="column"
-      padding="10px"
-    >
+      padding="10px">
       <!-- Game Panel -->
       <game_panel
         current_turn="{current_turn}"
         player_gold="{player_gold}"
         total_production="{total_production}"
         capital_count="{capital_count}"
-        capital_names="{capital_names}"
-      />
+        capital_names="{capital_names}" />
 
       <!-- Statistics Panel -->
       <statistics_panel
         current_turn="{current_turn}"
         terrain_land_count="{terrain_land_count}"
         terrain_water_count="{terrain_water_count}"
-        terrain_mountain_count="{terrain_mountain_count}"
-      />
+        terrain_mountain_count="{terrain_mountain_count}" />
     </node>
 
     <!-- Right sidebar -->
@@ -50,13 +67,22 @@
       bottom="0"
       background="#1a1a1a"
       flex_direction="column"
-      padding="10px"
-    >
+      padding="10px">
+      <!-- Production Menu Component (only shows when capital is selected) -->
+      <production_menu
+        show_production_menu="{show_production_menu}"
+        capital_name="{capital_name}"
+        civilization_name="{civilization_name}"
+        civilization_gold="{civilization_gold}"
+        civilization_production="{civilization_production}"
+        current_production_name="{current_production_name}"
+        current_production_progress="{current_production_progress}"
+        production_queue_length="{production_queue_length}" />
+
       <!-- Tile Info Component -->
       <tile_info
         selected_position="{selected_position}"
-        selected_terrain="{selected_terrain}"
-      />
+        selected_terrain="{selected_terrain}" />
 
       <!-- Civilizations List Component -->
       <civilizations_list civilizations_list="{civilizations_list}" />

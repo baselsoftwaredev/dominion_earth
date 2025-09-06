@@ -72,7 +72,58 @@ impl UiComponent for HuiComponent {
 }
 
 /// Setup main UI with proper component registration
-fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>, mut html_comps: HtmlComponents) {
+fn setup_main_ui(
+    mut cmd: Commands,
+    server: Res<AssetServer>,
+    mut html_comps: HtmlComponents,
+    mut html_funcs: HtmlFunctions,
+) {
+    // Register function bindings for dynamic updates (following bevy_hui example pattern)
+    html_funcs.register(
+        "update_player_gold",
+        |In(entity): In<Entity>,
+         mut cmd: Commands,
+         mut template_props: Query<&mut TemplateProperties>,
+         scopes: Query<&TemplateScope>,
+         player_civs: Query<&Civilization, With<core_sim::PlayerControlled>>| {
+            let Ok(scope) = scopes.get(entity) else {
+                return;
+            };
+            let Ok(mut props) = template_props.get_mut(**scope) else {
+                return;
+            };
+
+            // Get latest player gold
+            let player_gold = player_civs
+                .iter()
+                .next()
+                .map(|civ| civ.economy.gold as i32)
+                .unwrap_or(0);
+
+            props.insert("player_gold".to_string(), player_gold.to_string());
+            cmd.trigger_targets(CompileContextEvent, **scope);
+        },
+    );
+
+    html_funcs.register(
+        "update_turn",
+        |In(entity): In<Entity>,
+         mut cmd: Commands,
+         mut template_props: Query<&mut TemplateProperties>,
+         scopes: Query<&TemplateScope>,
+         current_turn: Res<CurrentTurn>| {
+            let Ok(scope) = scopes.get(entity) else {
+                return;
+            };
+            let Ok(mut props) = template_props.get_mut(**scope) else {
+                return;
+            };
+
+            props.insert("current_turn".to_string(), current_turn.0.to_string());
+            cmd.trigger_targets(CompileContextEvent, **scope);
+        },
+    );
+
     // Spawn main UI layout
     cmd.spawn((
         HtmlNode(server.load("ui/main_layout.html")),
@@ -89,13 +140,22 @@ fn setup_main_ui(mut cmd: Commands, server: Res<AssetServer>, mut html_comps: Ht
             .with("terrain_mountain_count", "0")
             .with("selected_position", "None")
             .with("selected_terrain", "None")
-            .with("civilizations_list", "Loading..."),
+            .with("civilizations_list", "Loading...")
+            .with("show_production_menu", "none")
+            .with("capital_name", "Unknown Capital")
+            .with("civilization_name", "Unknown Civilization")
+            .with("civilization_gold", "0")
+            .with("civilization_production", "0")
+            .with("current_production_name", "None")
+            .with("current_production_progress", "0")
+            .with("production_queue_length", "0"),
     ));
 
     // Register custom components first
     html_comps.register("header", server.load("ui/header.html"));
     html_comps.register("game_panel", server.load("ui/game_panel.html"));
     html_comps.register("statistics_panel", server.load("ui/statistics_panel.html"));
+    html_comps.register("production_menu", server.load("ui/production_menu.html"));
     html_comps.register("tile_info", server.load("ui/tile_info.html"));
     html_comps.register(
         "civilizations_list",
@@ -110,16 +170,22 @@ fn update_ui_properties(
     current_turn: Res<CurrentTurn>,
     terrain_counts: Res<TerrainCounts>,
     selected_tile: Res<SelectedTile>,
+    selected_capital: Res<SelectedCapital>,
     debug_logging: Res<DebugLogging>,
     civs: Query<&Civilization>,
     player_civs: Query<&Civilization, With<core_sim::PlayerControlled>>,
     capitals: Query<(&Capital, &Position)>,
     cities: Query<(&core_sim::City, &Position)>,
     production_queues: Query<&ProductionQueue>,
-    mut ui_nodes: Query<&mut TemplateProperties, With<HtmlNode>>,
+    mut ui_nodes: Query<(Entity, &mut TemplateProperties), With<HtmlNode>>,
+    mut cmd: Commands,
 ) {
-    // Only update when resources change
-    if current_turn.is_changed() || terrain_counts.is_changed() || selected_tile.is_changed() {
+    // Only update when resources change or when production menu state changes
+    if current_turn.is_changed()
+        || terrain_counts.is_changed()
+        || selected_tile.is_changed()
+        || selected_capital.is_changed()
+    {
         // Collect game data
         let all_civs: Vec<&Civilization> = civs.iter().collect();
         let player_civilization_list: Vec<&Civilization> = player_civs.iter().collect();
@@ -145,6 +211,85 @@ fn update_ui_properties(
             .iter()
             .map(|queue| queue.accumulated_production)
             .sum();
+
+        // Production menu logic
+        let (
+            show_production_menu,
+            capital_name,
+            civilization_name,
+            civilization_gold,
+            civilization_production,
+            current_production_name,
+            current_production_progress,
+            production_queue_length,
+        ) = if selected_capital.show_production_menu {
+            if let (Some(capital_entity), Some(civ_entity)) =
+                (selected_capital.capital_entity, selected_capital.civ_entity)
+            {
+                // Get capital information
+                let capital_name = format!("Capital"); // TODO: Get actual capital name
+
+                // Get civilization information
+                let (civ_name, civ_gold, civ_production) = if let Ok(civ) = civs.get(civ_entity) {
+                    (
+                        civ.name.clone(),
+                        civ.economy.gold as i32,
+                        civ.economy.production as i32,
+                    )
+                } else {
+                    ("Unknown".to_string(), 0, 0)
+                };
+
+                // Get production queue information
+                let (current_production, progress, queue_length) =
+                    if let Ok(production_queue) = production_queues.get(capital_entity) {
+                        let current =
+                            if let Some(ref current_item) = production_queue.current_production {
+                                current_item.name().to_string()
+                            } else {
+                                "None".to_string()
+                            };
+                        let progress = (production_queue.get_progress_percentage() * 100.0) as i32;
+                        let queue_len = production_queue.queue_length();
+                        (current, progress, queue_len)
+                    } else {
+                        ("None".to_string(), 0, 0)
+                    };
+
+                (
+                    "flex".to_string(),
+                    capital_name,
+                    civ_name,
+                    civ_gold,
+                    civ_production,
+                    current_production,
+                    progress,
+                    queue_length,
+                )
+            } else {
+                (
+                    "none".to_string(),
+                    "Unknown Capital".to_string(),
+                    "Unknown Civilization".to_string(),
+                    0,
+                    0,
+                    "None".to_string(),
+                    0,
+                    0,
+                )
+            }
+        } else {
+            (
+                "none".to_string(),
+                "Unknown Capital".to_string(),
+                "Unknown Civilization".to_string(),
+                0,
+                0,
+                "None".to_string(),
+                0,
+                0,
+            )
+        };
 
         // Format capital and city names
         let capital_names = if capital_list.is_empty() && city_list.is_empty() {
@@ -196,8 +341,8 @@ fn update_ui_properties(
                 .join(", ")
         };
 
-        for mut properties in ui_nodes.iter_mut() {
-            // Update all properties (these will be passed to custom components via attributes)
+        for (entity, mut properties) in ui_nodes.iter_mut() {
+            // Update all existing properties
             properties.insert("current_turn".to_string(), current_turn.0.to_string());
             properties.insert("player_gold".to_string(), player_gold.to_string());
             properties.insert(
@@ -246,11 +391,41 @@ fn update_ui_properties(
                     format!("({}, {})", pos.x, pos.y),
                 );
                 properties.insert("selected_terrain".to_string(), "Unknown".to_string());
-            // TODO: Get actual terrain type
             } else {
                 properties.insert("selected_position".to_string(), "None".to_string());
                 properties.insert("selected_terrain".to_string(), "None".to_string());
             }
+
+            // Update production menu properties
+            properties.insert(
+                "show_production_menu".to_string(),
+                show_production_menu.clone(),
+            );
+            properties.insert("capital_name".to_string(), capital_name.clone());
+            properties.insert("civilization_name".to_string(), civilization_name.clone());
+            properties.insert(
+                "civilization_gold".to_string(),
+                civilization_gold.to_string(),
+            );
+            properties.insert(
+                "civilization_production".to_string(),
+                civilization_production.to_string(),
+            );
+            properties.insert(
+                "current_production_name".to_string(),
+                current_production_name.clone(),
+            );
+            properties.insert(
+                "current_production_progress".to_string(),
+                current_production_progress.to_string(),
+            );
+            properties.insert(
+                "production_queue_length".to_string(),
+                production_queue_length.to_string(),
+            );
+
+            // Trigger recompilation - this is the key part from the bevy_hui example!
+            cmd.trigger_targets(CompileContextEvent, entity);
         }
     }
 }

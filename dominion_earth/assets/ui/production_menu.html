@@ -1,53 +1,65 @@
 <!-- Production Menu Component -->
 <template>
-    <property name="has_selected_capital">false</property>
-    <property name="queue_size">0</property>
-    <property name="current_production">None</property>
-    
-    <node 
-        width="100%"
-        min_height="250px"
-        background="#404040"
-        border_radius="8px"
-        padding="15px"
-        margin="0 0 10px 0"
-        flex_direction="column"
-    >
-        <!-- Panel title -->
-        <text 
-            font_size="18"
-            font_color="#ffffff"
-            margin="0 0 15px 0"
-        >
-            Production
-        </text>
-        
-        <!-- Content based on selection -->
-        <node if="{has_selected_capital}" flex_direction="column">
-            <!-- Current production info -->
-            <node 
-                flex_direction="row"
-                justify_content="space_between"
-                margin="0 0 8px 0"
-            >
-                <text font_size="14" font_color="#cccccc">Queue Size:</text>
-                <text font_size="14" font_color="#ffffff">{queue_size}</text>
-            </node>
-            
-            <node 
-                flex_direction="column"
-                margin="0 0 15px 0"
-            >
-                <text font_size="14" font_color="#cccccc">Current:</text>
-                <text font_size="12" font_color="#ffffff">{current_production}</text>
-            </node>
-            
-            <!-- Production options -->
-            <text 
-                font_size="16"
-                font_color="#ffffff"
-                margin="0 0 10px 0"
-            >
+  <property name="show_production_menu">false</property>
+  <property name="capital_name">Unknown Capital</property>
+  <property name="civilization_name">Unknown Civilization</property>
+  <property name="civilization_gold">0</property>
+  <property name="civilization_production">0</property>
+  <property name="current_production_name">None</property>
+  <property name="current_production_progress">0</property>
+  <property name="production_queue_length">0</property>
+
+  <node
+    display="{show_production_menu}"
+    background="#2d2d2d"
+    border="2px solid #444444"
+    padding="15px"
+    border_radius="8px"
+    margin="5px"
+    flex_direction="column"
+    min_height="400px"
+  >
+    <!-- Header -->
+    <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">Production Menu</text>
+
+    <!-- Capital Information -->
+    <node margin="0 0 10px 0" flex_direction="column">
+      <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">Capital: {capital_name}</text>
+      <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">Civilization: {civilization_name}</text>
+      <text font_size="14" font_color="#cccccc" margin="0 0 5px 0">Gold: {civilization_gold}</text>
+      <text font_size="14" font_color="#cccccc">Production: {civilization_production}</text>
+    </node>
+
+    <!-- Separator -->
+    <node width="100%" height="2px" background="#444444" margin="10px 0"></node>
+
+    <!-- Available Units -->
+    <node margin="0 0 15px 0" flex_direction="column">
+      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">Available Units:</text>
+      <text font_size="14" font_color="#cccccc" margin="0 0 5px 0">Press [1] to queue Infantry</text>
+      <text font_size="12" font_color="#999999">(Cost: 20 gold, 15 production)</text>
+    </node>
+
+    <!-- Current Production -->
+    <node margin="0 0 15px 0" flex_direction="column">
+      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">Currently Producing:</text>
+      <text font_size="14" font_color="#ffffff" margin="0 0 5px 0">{current_production_name}</text>
+      <text font_size="12" font_color="#cccccc">Progress: {current_production_progress}%</text>
+    </node>
+
+    <!-- Production Queue -->
+    <node margin="0 0 15px 0" flex_direction="column">
+      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">Queue Status:</text>
+      <text font_size="14" font_color="#cccccc">Queue length: {production_queue_length}</text>
+    </node>
+
+    <!-- Separator -->
+    <node width="100%" height="2px" background="#444444" margin="10px 0"></node>
+
+    <!-- Controls -->
+    <text font_size="12" font_color="#999999">Press [Esc] to close</text>
+  </node>
+</template>
                 Add to Queue:
             </text>
             
