@@ -126,43 +126,51 @@ fn setup_main_ui(
 
     // Spawn main UI layout
     cmd.spawn((
-        HtmlNode(server.load("ui/main_layout.html")),
-        Name::new("MainUI"),
+        HtmlNode(server.load("ui/top_panel.html")),
+        Name::new("top_panel"),
         TemplateProperties::default()
             .with("game_title", "Dominion Earth")
             .with("current_turn", "1")
             .with("player_gold", "0")
             .with("player_production", "0")
-            .with("player_cities", "0")
+
+    ));
+
+    cmd.spawn((
+        HtmlNode(server.load("ui/right_side_panel.html")),
+        Name::new("right_side_panel"),
+        TemplateProperties::default()
             .with("capital_names", "No capital")
-            .with("terrain_land_count", "0")
-            .with("terrain_water_count", "0")
-            .with("terrain_mountain_count", "0")
-            .with("selected_position", "None")
-            .with("selected_terrain", "None")
-            .with("civilizations_list", "Loading...")
-            .with("show_production_menu", "none")
-            .with("capital_name", "Unknown Capital")
             .with("civilization_name", "Unknown Civilization")
             .with("civilization_gold", "0")
+            .with("show_production_menu", "none")
             .with("civilization_production", "0")
             .with("current_production_name", "None")
             .with("current_production_progress", "0")
-            .with("production_queue_length", "0"),
+            .with("production_queue_length", "0")
+            .with("selected_position", "None")
+            .with("selected_terrain", "None")
+            .with("civilizations_list", "Loading…")
     ));
 
+    cmd.spawn((
+        HtmlNode(server.load("ui/left_side_panel.html")),
+        Name::new("left_side_panel"),
+        TemplateProperties::default()
+    ));
+
+
     // Register custom components first
-    html_comps.register("header", server.load("ui/header.html"));
-    html_comps.register("game_panel", server.load("ui/game_panel.html"));
-    html_comps.register("statistics_panel", server.load("ui/statistics_panel.html"));
-    html_comps.register("production_menu", server.load("ui/production_menu.html"));
-    html_comps.register("tile_info", server.load("ui/tile_info.html"));
+    html_comps.register("left_side_top", server.load("ui/components/top_panel/left_side_top.html"));
+    html_comps.register("game_panel", server.load("ui/components/left_side_panel/game_panel.html"));
+    html_comps.register("statistics_panel", server.load("ui/components/left_side_panel/statistics_panel.html"));
+    html_comps.register("production_menu", server.load("ui/components/right_side_panel/production_menu.html"));
+    html_comps.register("tile_info", server.load("ui/components/right_side_panel/tile_info.html"));
     html_comps.register(
         "civilizations_list",
-        server.load("ui/civilizations_list.html"),
+        server.load("ui/components/right_side_panel/civilizations_list.html"),
     );
-    html_comps.register("minimap", server.load("ui/minimap.html"));
-    html_comps.register("resources_panel", server.load("ui/resources_panel.html"));
+    html_comps.register("minimap", server.load("ui/components/right_side_panel/minimap.html"));
 }
 
 mod constants {

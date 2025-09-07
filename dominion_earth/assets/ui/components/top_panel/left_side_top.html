@@ -15,11 +15,10 @@
     flex_direction="row"
     justify_content="space_between"
     align_items="center"
-    padding="10px"
-  >
-    <!-- <text font_size="24" font_color="#ffffff" margin="0 20px"
-      >{game_title}</text
-    > -->
+    padding="10px">
+    <text font_size="24" font_color="#ffffff" margin="0 20px">
+      {game_title}
+    </text>
 
     <node
       background="#2d2d2d"
@@ -30,10 +29,11 @@
       flex_direction="row"
       justify_content="space_between"
       align_items="center"
-      min_width="500px"
-    >
+      min_width="500px">
       <text font_size="18" font_color="#ffcc00">Gold: {player_gold}</text>
-      <text font_size="18" font_color="#ffcc00">Production: {player_production}</text>
+      <text font_size="18" font_color="#ffcc00">
+        Production: {player_production}
+      </text>
       <text font_size="18" font_color="#ffcc00">Turn: {current_turn}</text>
     </node>
   </node>

@@ -1,0 +1,21 @@
+<template>
+  <node position="absolute" width="100%" height="100%">
+    <node
+      position="absolute"
+      left="0"
+      top="80px"
+      width="300px"
+      bottom="0"
+      background="#1a1a1a"
+      flex_direction="column"
+      padding="10px">
+      <game_panel />
+
+      <statistics_panel
+        current_turn="{current_turn}"
+        terrain_land_count="{terrain_land_count}"
+        terrain_water_count="{terrain_water_count}"
+        terrain_mountain_count="{terrain_mountain_count}" />
+    </node>
+  </node>
+</template>
