@@ -29,6 +29,27 @@ pub fn handle_player_unit_interaction(
     };
 
     if mouse_button.just_pressed(MouseButton::Right) {
+        // Check if cursor is over UI panels before processing unit movement
+        if let Ok(window) = windows.single() {
+            if let Some(cursor_pos) = window.cursor_position() {
+                let window_width = window.width();
+                let window_height = window.height();
+                let header_height = 80.0;
+                let left_sidebar_width = 300.0;
+                let right_sidebar_width = 300.0;
+
+                // Convert cursor position to match Bevy coordinate system (origin at bottom-left)
+                let cursor_y_from_top = window_height - cursor_pos.y;
+
+                if cursor_y_from_top <= header_height
+                    || cursor_pos.x <= left_sidebar_width
+                    || cursor_pos.x >= (window_width - right_sidebar_width)
+                {
+                    return; // Don't process unit movement if clicking on UI
+                }
+            }
+        }
+
         handle_unit_movement_command(
             &mut commands,
             &windows,
@@ -43,6 +64,27 @@ pub fn handle_player_unit_interaction(
     }
 
     if mouse_button.just_pressed(MouseButton::Left) {
+        // Check if cursor is over UI panels before processing unit selection
+        if let Ok(window) = windows.single() {
+            if let Some(cursor_pos) = window.cursor_position() {
+                let window_width = window.width();
+                let window_height = window.height();
+                let header_height = 80.0;
+                let left_sidebar_width = 300.0;
+                let right_sidebar_width = 300.0;
+
+                // Convert cursor position to match Bevy coordinate system (origin at bottom-left)
+                let cursor_y_from_top = window_height - cursor_pos.y;
+
+                if cursor_y_from_top <= header_height
+                    || cursor_pos.x <= left_sidebar_width
+                    || cursor_pos.x >= (window_width - right_sidebar_width)
+                {
+                    return; // Don't process unit selection if clicking on UI
+                }
+            }
+        }
+
         handle_unit_selection(
             &mut commands,
             &windows,

@@ -204,6 +204,38 @@ pub fn handle_tile_selection_on_mouse_click(
         return;
     }
 
+    // Check if cursor is over UI panels to avoid processing tile selection when clicking on UI
+    let Ok(primary_window) = windows_query.single() else {
+        return;
+    };
+
+    let Some(cursor_screen_position) = primary_window.cursor_position() else {
+        return;
+    };
+
+    // Define UI panel bounds - header (0-80px from top), left sidebar (0-300px), right sidebar (window_width-300 to window_width)
+    let window_width = primary_window.width();
+    let window_height = primary_window.height();
+    let header_height = 80.0;
+    let left_sidebar_width = 300.0;
+    let right_sidebar_width = 300.0;
+
+    // Convert cursor position to match Bevy coordinate system (origin at bottom-left)
+    let cursor_y_from_top = window_height - cursor_screen_position.y;
+
+    if cursor_y_from_top <= header_height
+        || cursor_screen_position.x <= left_sidebar_width
+        || cursor_screen_position.x >= (window_width - right_sidebar_width)
+    {
+        debug_println!(
+            debug_logging,
+            "DEBUG TILE SELECTION: Cursor over UI panel (x: {}, y: {}), skipping tile selection",
+            cursor_screen_position.x,
+            cursor_y_from_top
+        );
+        return;
+    }
+
     let Ok(primary_window) = windows_query.single() else {
         return;
     };
