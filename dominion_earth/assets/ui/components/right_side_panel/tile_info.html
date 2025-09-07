@@ -40,41 +40,4 @@
         </text>
     </node>
 </template>
-                justify_content="space_between"
-                margin="0 0 8px 0"
-            >
-                <text font_size="14" font_color="#cccccc">Position:</text>
-                <text font_size="14" font_color="#ffffff">({tile_x}, {tile_y})</text>
-            </node>
-            
-            <node 
-                flex_direction="row"
-                justify_content="space_between"
-                margin="0 0 8px 0"
-            >
-                <text font_size="14" font_color="#cccccc">Terrain:</text>
-                <text font_size="14" font_color="#ffffff">{tile_type}</text>
-            </node>
-            
-            <node if="{debug_enabled}">
-                <text 
-                    font_size="12"
-                    font_color="#ffff00"
-                    margin="5px 0 0 0"
-                >
-                    [DEBUG MODE ACTIVE]
-                </text>
-            </node>
-        </node>
-        
-        <!-- No tile selected message -->
-        <node if_not="{has_selected_tile}" flex_direction="column">
-            <text 
-                font_size="14"
-                font_color="#888888"
-            >
-                Select a tile to view information
-            </text>
-        </node>
-    </node>
-</template>
+    

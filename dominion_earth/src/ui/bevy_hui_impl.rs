@@ -139,14 +139,10 @@ fn setup_main_ui(
         HtmlNode(server.load("ui/right_side_panel.html")),
         Name::new("right_side_panel"),
         TemplateProperties::default()
-            .with("capital_names", "No capital")
-            .with("civilization_name", "Unknown Civilization")
-            .with("civilization_gold", "0")
-            .with("show_production_menu", "none")
-            .with("civilization_production", "0")
-            .with("current_production_name", "None")
-            .with("current_production_progress", "0")
-            .with("production_queue_length", "0")
+            .with("current_turn", "1")
+            .with("terrain_land_count", "0")
+            .with("terrain_water_count", "0")
+            .with("terrain_mountain_count", "0")
             .with("selected_position", "None")
             .with("selected_terrain", "None")
             .with("civilizations_list", "Loading…"),
@@ -155,7 +151,15 @@ fn setup_main_ui(
     cmd.spawn((
         HtmlNode(server.load("ui/left_side_panel.html")),
         Name::new("left_side_panel"),
-        TemplateProperties::default(),
+        TemplateProperties::default()
+            .with("show_production_menu", "none")
+            .with("capital_name", "Unknown Capital")
+            .with("civilization_name", "Unknown Civilization")
+            .with("civilization_gold", "0")
+            .with("civilization_production", "0")
+            .with("current_production_name", "None")
+            .with("current_production_progress", "0")
+            .with("production_queue_length", "0"),
     ));
 
     // Register custom components first
@@ -168,12 +172,12 @@ fn setup_main_ui(
         server.load("ui/components/left_side_panel/game_panel.html"),
     );
     html_comps.register(
-        "statistics_panel",
-        server.load("ui/components/left_side_panel/statistics_panel.html"),
-    );
-    html_comps.register(
         "production_menu",
         server.load("ui/components/right_side_panel/production_menu.html"),
+    );
+    html_comps.register(
+        "statistics_panel",
+        server.load("ui/components/left_side_panel/statistics_panel.html"),
     );
     html_comps.register(
         "tile_info",
