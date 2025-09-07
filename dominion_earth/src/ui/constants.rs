@@ -2,6 +2,11 @@ pub mod display_layout {
     pub const GAME_PANEL_MINIMUM_WIDTH: f32 = 300.0;
     pub const GAME_PANEL_MAXIMUM_WIDTH: f32 = 600.0;
     pub const GAME_PANEL_DEFAULT_WIDTH: f32 = 400.0;
+    
+    // UI Panel Layout Constants
+    pub const HEADER_HEIGHT: f32 = 80.0;
+    pub const LEFT_SIDEBAR_WIDTH: f32 = 300.0;
+    pub const RIGHT_SIDEBAR_WIDTH: f32 = 300.0;
 }
 
 pub mod minimap_display {

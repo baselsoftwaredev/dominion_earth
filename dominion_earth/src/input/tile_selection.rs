@@ -3,6 +3,7 @@ use crate::debug_println;
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::production_input::SelectedCapital;
 use crate::ui::resources::SelectedTile;
+use crate::ui::utilities::{is_cursor_over_ui_panel, UiPanelBounds};
 use bevy::prelude::*;
 use core_sim::components::Position;
 use core_sim::components::{Capital, PlayerControlled};
@@ -213,25 +214,14 @@ pub fn handle_tile_selection_on_mouse_click(
         return;
     };
 
-    // Define UI panel bounds - header (0-80px from top), left sidebar (0-300px), right sidebar (window_width-300 to window_width)
-    let window_width = primary_window.width();
-    let window_height = primary_window.height();
-    let header_height = 80.0;
-    let left_sidebar_width = 300.0;
-    let right_sidebar_width = 300.0;
+    let ui_bounds = UiPanelBounds::from_window(primary_window);
 
-    // Convert cursor position to match Bevy coordinate system (origin at bottom-left)
-    let cursor_y_from_top = window_height - cursor_screen_position.y;
-
-    if cursor_y_from_top <= header_height
-        || cursor_screen_position.x <= left_sidebar_width
-        || cursor_screen_position.x >= (window_width - right_sidebar_width)
-    {
+    if is_cursor_over_ui_panel(cursor_screen_position, &ui_bounds) {
         debug_println!(
             debug_logging,
             "DEBUG TILE SELECTION: Cursor over UI panel (x: {}, y: {}), skipping tile selection",
             cursor_screen_position.x,
-            cursor_y_from_top
+            ui_bounds.window_height - cursor_screen_position.y
         );
         return;
     }

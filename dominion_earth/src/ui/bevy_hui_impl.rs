@@ -132,8 +132,7 @@ fn setup_main_ui(
             .with("game_title", "Dominion Earth")
             .with("current_turn", "1")
             .with("player_gold", "0")
-            .with("player_production", "0")
-
+            .with("player_production", "0"),
     ));
 
     cmd.spawn((
@@ -150,27 +149,44 @@ fn setup_main_ui(
             .with("production_queue_length", "0")
             .with("selected_position", "None")
             .with("selected_terrain", "None")
-            .with("civilizations_list", "Loading…")
+            .with("civilizations_list", "Loading…"),
     ));
 
     cmd.spawn((
         HtmlNode(server.load("ui/left_side_panel.html")),
         Name::new("left_side_panel"),
-        TemplateProperties::default()
+        TemplateProperties::default(),
     ));
 
-
     // Register custom components first
-    html_comps.register("left_side_top", server.load("ui/components/top_panel/left_side_top.html"));
-    html_comps.register("game_panel", server.load("ui/components/left_side_panel/game_panel.html"));
-    html_comps.register("statistics_panel", server.load("ui/components/left_side_panel/statistics_panel.html"));
-    html_comps.register("production_menu", server.load("ui/components/right_side_panel/production_menu.html"));
-    html_comps.register("tile_info", server.load("ui/components/right_side_panel/tile_info.html"));
+    html_comps.register(
+        "left_side_top",
+        server.load("ui/components/top_panel/left_side_top.html"),
+    );
+    html_comps.register(
+        "game_panel",
+        server.load("ui/components/left_side_panel/game_panel.html"),
+    );
+    html_comps.register(
+        "statistics_panel",
+        server.load("ui/components/left_side_panel/statistics_panel.html"),
+    );
+    html_comps.register(
+        "production_menu",
+        server.load("ui/components/right_side_panel/production_menu.html"),
+    );
+    html_comps.register(
+        "tile_info",
+        server.load("ui/components/right_side_panel/tile_info.html"),
+    );
     html_comps.register(
         "civilizations_list",
         server.load("ui/components/right_side_panel/civilizations_list.html"),
     );
-    html_comps.register("minimap", server.load("ui/components/right_side_panel/minimap.html"));
+    html_comps.register(
+        "minimap",
+        server.load("ui/components/right_side_panel/minimap.html"),
+    );
 }
 
 mod constants {

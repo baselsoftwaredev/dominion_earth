@@ -7,11 +7,12 @@
   <property name="current_production_name">None</property>
   <property name="current_production_progress">0</property>
   <property name="production_queue_length">0</property>
-  
+
   <property name="selected_position">None</property>
   <property name="selected_terrain">None</property>
 
   <property name="civilizations_list">Loading…</property>
+  <!-- UI dimensions from ui/constants.rs::display_layout::HEADER_HEIGHT (80px) and RIGHT_SIDEBAR_WIDTH (300px) -->
   <node
     position="absolute"
     right="0"
@@ -35,7 +36,7 @@
       selected_position="{selected_position}"
       selected_terrain="{selected_terrain}" />
 
-      <civilizations_list civilizations_list="{civilizations_list}" />
+    <civilizations_list civilizations_list="{civilizations_list}" />
 
     <minimap />
   </node>

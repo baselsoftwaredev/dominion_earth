@@ -7,6 +7,7 @@ pub mod resources;
 // pub mod tile_info; // Commented out - needs bevy_hui implementation
 pub mod bevy_hui_impl;
 pub mod traits;
+pub mod utilities;
 
 // pub use game_panel::*; // Commented out
 // pub use minimap::*; // Commented out
@@ -16,6 +17,7 @@ pub use resources::*;
 // pub use tile_info::*; // Commented out
 pub use bevy_hui_impl::*;
 pub use traits::*;
+pub use utilities::*;
 
 use crate::debug_utils::DebugLogging;
 use crate::game::GameState;
