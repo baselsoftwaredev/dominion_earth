@@ -1,15 +1,5 @@
-mod constants;
-mod debug_utils;
-mod game;
-mod input;
-mod plugins;
-mod production_input;
-mod rendering;
-mod ui;
-mod unit_assets;
-
 use crate::constants::{network, window};
-use crate::plugins::{resources::ResourceConfig, DominionEarthPlugins};
+use crate::plugins::{DominionEarthPlugins, resources::ResourceConfig};
 use bevy::prelude::*;
 use bevy_brp_extras::BrpExtrasPlugin;
 use clap::Parser;
@@ -26,14 +16,6 @@ struct CliArgs {
 fn main() {
     let args = CliArgs::parse();
 
-    let config = ResourceConfig {
-        auto_advance: false,
-        ai_only: false,
-        total_civs: 3,
-        seed: args.seed,
-        debug_logging: args.debug_logging,
-    };
-
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -43,7 +25,19 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(BrpExtrasPlugin::default())
-        .add_plugins(DominionEarthPlugins::with_config(config))
+        .add_plugins(BrpExtrasPlugin::default().with_bevy_remote_plugin(
+            bevy::remote::RemotePlugin {
+                address: format!("127.0.0.1:{}", network::DEFAULT_REMOTE_PORT).parse().unwrap(),
+                methods: vec![],
+            },
+        ))
+        .insert_resource(ResourceConfig {
+            auto_advance: false,
+            ai_only: false,
+            total_civs: 3,
+            seed: args.seed,
+            debug_logging: args.debug_logging,
+        })
+        .add_plugins(DominionEarthPlugins)
         .run();
 }

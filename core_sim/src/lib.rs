@@ -10,12 +10,6 @@ pub mod resources;
 pub mod systems;
 pub mod world_gen;
 
-// Temporarily disabled due to proc macro version issues
-// pub mod economy;
-// pub mod combat;
-// pub mod diplomacy;
-// pub mod serialization;
-
 pub mod tile;
 
 // Import specific components to avoid ambiguous glob reexports
