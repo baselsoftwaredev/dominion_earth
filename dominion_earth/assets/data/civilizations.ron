@@ -3,6 +3,7 @@
     civilizations: [
         (
             name: "Ancient Egypt",
+            capital_name: "Memphis",
             starting_position: (x: 52, y: 25),
             color: (1.0, 0.8, 0.0),
             personality: (
@@ -27,6 +28,7 @@
         ),
         (
             name: "Ancient Greece",
+            capital_name: "Athens",
             starting_position: (x: 50, y: 20),
             color: (0.0, 0.5, 1.0),
             personality: (
@@ -51,6 +53,7 @@
         ),
         (
             name: "Roman Empire",
+            capital_name: "Rome",
             starting_position: (x: 48, y: 19),
             color: (0.8, 0.2, 0.2),
             personality: (
@@ -75,6 +78,7 @@
         ),
         (
             name: "Han China",
+            capital_name: "Chang'an",
             starting_position: (x: 75, y: 22),
             color: (1.0, 0.0, 0.0),
             personality: (
@@ -100,6 +104,7 @@
         ),
         (
             name: "Persian Empire",
+            capital_name: "Persepolis",
             starting_position: (x: 58, y: 22),
             color: (0.5, 0.0, 0.5),
             personality: (

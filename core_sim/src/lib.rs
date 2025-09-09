@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 pub mod components;
 pub mod constants;
+pub mod data_loader;
 pub mod debug_utils;
 pub mod influence_map;
 pub mod pathfinding;
@@ -52,6 +53,7 @@ pub use components::{
 };
 
 pub use debug_utils::CoreDebugUtils;
+pub use data_loader::{CivilizationDataCollection, CivilizationDataLoader, CivilizationDefinition};
 
 // Import specific systems to avoid ambiguous glob reexports
 pub use systems::{

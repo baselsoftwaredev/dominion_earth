@@ -110,20 +110,53 @@ fn spawn_initial_civilizations(
     ai_only: bool,
     total_civilizations: u32,
 ) {
-    let starting_positions = world_gen::get_starting_positions();
-    let mut spawned_count = 0;
+    use core_sim::{CivilizationDataLoader, CivilizationDefinition};
+    use rand::seq::SliceRandom;
 
-    for (i, (name, position, color)) in starting_positions
+    // Load civilization data from RON file
+    let civilization_data = match CivilizationDataLoader::load_from_ron("dominion_earth/assets/data/civilizations.ron") {
+        Ok(data) => data,
+        Err(e) => {
+            DebugUtils::log_info(debug_logging, &format!("Failed to load civilization data: {}", e));
+            return;
+        }
+    };
+
+    // Select a random subset of civilizations
+    let mut available_civs = civilization_data.civilizations.clone();
+    available_civs.shuffle(rng);
+    let selected_civs: Vec<CivilizationDefinition> = available_civs
         .into_iter()
         .take(total_civilizations as usize)
-        .enumerate()
-    {
-        let civ_id = CivId(i as u32);
+        .collect();
 
-        // Check if the position is on a buildable tile
+    // Generate random starting positions instead of using the fixed ones from RON
+    let min_distance_between_civs = 5; // Minimum distance between civilizations
+    let random_positions = CivilizationDataLoader::generate_random_starting_positions(
+        &selected_civs,
+        world_map,
+        rng,
+        min_distance_between_civs,
+    );
+
+    let mut spawned_count = 0;
+
+    for (civ_index, civ_def) in selected_civs.into_iter().enumerate() {
+        let civ_id = CivId(civ_index as u32);
+        
+        // Get the random position for this civilization
+        let position = match random_positions.get(&civ_def.name) {
+            Some(&pos) => pos,
+            None => {
+                DebugUtils::log_capital_spawn_skip(&debug_logging, &civ_def.name, 0, 0);
+                continue;
+            }
+        };
+
+        // Check if the position is on a buildable tile (double-check from random generation)
         let is_buildable = if let Some(tile) = world_map.get_tile(position) {
             match tile.terrain {
-                core_sim::TerrainType::Plains | core_sim::TerrainType::Coast => true,
+                core_sim::TerrainType::Plains | core_sim::TerrainType::Coast | core_sim::TerrainType::Forest => true,
                 _ => false,
             }
         } else {
@@ -131,30 +164,17 @@ fn spawn_initial_civilizations(
         };
 
         if !is_buildable {
-            DebugUtils::log_capital_spawn_skip(&debug_logging, &name, position.x, position.y);
+            DebugUtils::log_capital_spawn_skip(&debug_logging, &civ_def.name, position.x, position.y);
             continue;
         }
 
-        // Create civilization with random personality
-        use rand::Rng;
-
-        let personality = CivPersonality {
-            land_hunger: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
-            industry_focus: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
-            tech_focus: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
-            interventionism: rng
-                .gen_range(personality::INTERVENTIONISM_MIN..personality::INTERVENTIONISM_MAX),
-            risk_tolerance: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
-            honor_treaties: rng
-                .gen_range(personality::HONOR_TREATIES_MIN..personality::HONOR_TREATIES_MAX),
-            militarism: rng.gen_range(personality::TRAIT_MIN..personality::TRAIT_MAX),
-            isolationism: rng
-                .gen_range(personality::ISOLATIONISM_MIN..personality::ISOLATIONISM_MAX),
-        };
+        // Convert civilization definition to game civilization
+        let color = [civ_def.color.0, civ_def.color.1, civ_def.color.2];
+        let personality = CivPersonality::from(civ_def.personality);
 
         let civilization = Civilization {
             id: civ_id,
-            name: name.clone(),
+            name: civ_def.name.clone(),
             color,
             capital: Some(position),
             personality,
@@ -167,23 +187,23 @@ fn spawn_initial_civilizations(
         let mut civ_entity_commands = commands.spawn((civilization, position, ActiveThisTurn));
 
         // Mark the first civilization as player-controlled if not ai_only mode
-        let civ_index = i as u32;
+        let civ_index = civ_index as u32;
         if !ai_only && civ_index == 0 {
             civ_entity_commands.insert(core_sim::PlayerControlled);
             DebugUtils::log_info(
                 &debug_logging,
-                &format!("Marking {} as player-controlled civilization", name),
+                &format!("Marking {} as player-controlled civilization", civ_def.name),
             );
         } else {
             DebugUtils::log_info(
                 &debug_logging,
-                &format!("Marking {} as AI-controlled civilization", name),
+                &format!("Marking {} as AI-controlled civilization", civ_def.name),
             );
         }
 
-        // Spawn capital city with Capital component
+        // Create capital city using the capital name from RON data
         let city = City {
-            name: format!("{} Capital", name),
+            name: civ_def.capital_name.clone(), // Use the actual capital name from RON
             owner: civ_id,
             population: 1000,
             production: 5.0,
@@ -203,7 +223,7 @@ fn spawn_initial_civilizations(
 
         DebugUtils::log_capital_spawn_success(
             &debug_logging,
-            &name,
+            &civ_def.capital_name,
             &position,
             capital.sprite_index as usize,
         );
@@ -222,12 +242,12 @@ fn spawn_initial_civilizations(
         // Claim starting territory
         if let Some(tile) = world_map.get_tile_mut(position) {
             tile.owner = Some(civ_id);
-            tile.city = Some(name);
+            tile.city = Some(civ_def.capital_name.clone()); // Use actual capital name
         }
 
         // Spawn initial military unit
         let initial_unit = MilitaryUnit {
-            id: i as u32,
+            id: civ_index as u32,
             owner: civ_id,
             unit_type: UnitType::Infantry,
             position,
