@@ -43,24 +43,6 @@ pub fn handle_production_input(
         skip_events.write(SkipProductionThisTurn);
     }
 
-    // Queue infantry with 1 key (if production menu is open)
-    if keyboard_input.just_pressed(KeyCode::Digit1) && selected_capital.show_production_menu {
-        if let (Some(capital_entity), Some(civ_entity)) = 
-            (selected_capital.capital_entity, selected_capital.civ_entity) {
-            
-            if let Ok(civ) = civs_query.get(civ_entity) {
-                let infantry_cost = ProductionItem::Unit(UnitType::Infantry).gold_cost();
-                if civ.economy.gold >= infantry_cost {
-                                production_orders.write(PlayerProductionOrder {
-                        capital_entity,
-                        civ_entity,
-                        item: ProductionItem::Unit(UnitType::Infantry),
-                    });
-                }
-            }
-        }
-    }
-
     // Close production menu with Escape
     if keyboard_input.just_pressed(KeyCode::Escape) {
         selected_capital.show_production_menu = false;

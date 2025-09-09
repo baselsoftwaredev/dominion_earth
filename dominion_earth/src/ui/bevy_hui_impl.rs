@@ -9,7 +9,7 @@ use bevy_hui::prelude::*;
 use core_sim::{
     components::{Capital, MilitaryUnit},
     resources::{CurrentTurn, WorldMap},
-    Civilization, Position, ProductionQueue,
+    Civilization, Position, ProductionQueue, PlayerProductionOrder,
 };
 
 /// Bevy HUI implementation of the UI system
@@ -121,6 +121,157 @@ fn setup_main_ui(
 
             props.insert("current_turn".to_string(), current_turn.0.to_string());
             cmd.trigger_targets(CompileContextEvent, **scope);
+        },
+    );
+
+    // Register production button functions
+    html_funcs.register(
+        "queue_infantry",
+        |In(entity): In<Entity>,
+         mut production_orders: EventWriter<PlayerProductionOrder>,
+         selected_capital: Res<SelectedCapital>,
+         civs_query: Query<&Civilization>,
+         debug_logging: Res<DebugLogging>,
+         mut cmd: Commands,
+         mut template_props: Query<&mut TemplateProperties>,
+         ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
+         names: Query<&Name>| {
+            debug_println!(debug_logging, "Infantry button clicked!");
+            if let (Some(capital_entity), Some(civ_entity)) = 
+                (selected_capital.capital_entity, selected_capital.civ_entity) {
+                if let Ok(civ) = civs_query.get(civ_entity) {
+                    let infantry_cost = core_sim::ProductionItem::Unit(core_sim::UnitType::Infantry).gold_cost();
+                    debug_println!(debug_logging, "Infantry cost: {}, Player gold: {}", infantry_cost, civ.economy.gold);
+                    if civ.economy.gold >= infantry_cost {
+                        production_orders.write(PlayerProductionOrder {
+                            capital_entity,
+                            civ_entity,
+                            item: core_sim::ProductionItem::Unit(core_sim::UnitType::Infantry),
+                        });
+                        debug_println!(debug_logging, "Infantry production order sent!");
+                        
+                        // Update UI immediately by finding and updating all relevant panels
+                        let new_gold = civ.economy.gold - infantry_cost;
+                        for ui_entity in ui_entities.iter() {
+                            if let (Ok(mut props), Ok(name)) = (template_props.get_mut(ui_entity), names.get(ui_entity)) {
+                                let name_str = name.as_str();
+                                if name_str == "top_panel" {
+                                    props.insert("player_gold".to_string(), new_gold.to_string());
+                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
+                                } else if name_str == "left_side_panel" {
+                                    props.insert("civilization_gold".to_string(), new_gold.to_string());
+                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
+                                }
+                            }
+                        }
+                        debug_println!(debug_logging, "UI updated with new gold: {}", new_gold);
+                    } else {
+                        debug_println!(debug_logging, "Insufficient gold for infantry!");
+                    }
+                }
+            } else {
+                debug_println!(debug_logging, "No capital selected for infantry production!");
+            }
+        },
+    );
+
+    html_funcs.register(
+        "queue_archer",
+        |In(entity): In<Entity>,
+         mut production_orders: EventWriter<PlayerProductionOrder>,
+         selected_capital: Res<SelectedCapital>,
+         civs_query: Query<&Civilization>,
+         debug_logging: Res<DebugLogging>,
+         mut cmd: Commands,
+         mut template_props: Query<&mut TemplateProperties>,
+         ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
+         names: Query<&Name>| {
+            debug_println!(debug_logging, "Archer button clicked!");
+            if let (Some(capital_entity), Some(civ_entity)) = 
+                (selected_capital.capital_entity, selected_capital.civ_entity) {
+                if let Ok(civ) = civs_query.get(civ_entity) {
+                    let archer_cost = core_sim::ProductionItem::Unit(core_sim::UnitType::Archer).gold_cost();
+                    debug_println!(debug_logging, "Archer cost: {}, Player gold: {}", archer_cost, civ.economy.gold);
+                    if civ.economy.gold >= archer_cost {
+                        production_orders.write(PlayerProductionOrder {
+                            capital_entity,
+                            civ_entity,
+                            item: core_sim::ProductionItem::Unit(core_sim::UnitType::Archer),
+                        });
+                        debug_println!(debug_logging, "Archer production order sent!");
+                        
+                        // Update UI immediately by finding and updating all relevant panels
+                        let new_gold = civ.economy.gold - archer_cost;
+                        for ui_entity in ui_entities.iter() {
+                            if let (Ok(mut props), Ok(name)) = (template_props.get_mut(ui_entity), names.get(ui_entity)) {
+                                let name_str = name.as_str();
+                                if name_str == "top_panel" {
+                                    props.insert("player_gold".to_string(), new_gold.to_string());
+                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
+                                } else if name_str == "left_side_panel" {
+                                    props.insert("civilization_gold".to_string(), new_gold.to_string());
+                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
+                                }
+                            }
+                        }
+                        debug_println!(debug_logging, "UI updated with new gold: {}", new_gold);
+                    } else {
+                        debug_println!(debug_logging, "Insufficient gold for archer!");
+                    }
+                }
+            } else {
+                debug_println!(debug_logging, "No capital selected for archer production!");
+            }
+        },
+    );
+
+    html_funcs.register(
+        "queue_cavalry",
+        |In(entity): In<Entity>,
+         mut production_orders: EventWriter<PlayerProductionOrder>,
+         selected_capital: Res<SelectedCapital>,
+         civs_query: Query<&Civilization>,
+         debug_logging: Res<DebugLogging>,
+         mut cmd: Commands,
+         mut template_props: Query<&mut TemplateProperties>,
+         ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
+         names: Query<&Name>| {
+            debug_println!(debug_logging, "Cavalry button clicked!");
+            if let (Some(capital_entity), Some(civ_entity)) = 
+                (selected_capital.capital_entity, selected_capital.civ_entity) {
+                if let Ok(civ) = civs_query.get(civ_entity) {
+                    let cavalry_cost = core_sim::ProductionItem::Unit(core_sim::UnitType::Cavalry).gold_cost();
+                    debug_println!(debug_logging, "Cavalry cost: {}, Player gold: {}", cavalry_cost, civ.economy.gold);
+                    if civ.economy.gold >= cavalry_cost {
+                        production_orders.write(PlayerProductionOrder {
+                            capital_entity,
+                            civ_entity,
+                            item: core_sim::ProductionItem::Unit(core_sim::UnitType::Cavalry),
+                        });
+                        debug_println!(debug_logging, "Cavalry production order sent!");
+                        
+                        // Update UI immediately by finding and updating all relevant panels
+                        let new_gold = civ.economy.gold - cavalry_cost;
+                        for ui_entity in ui_entities.iter() {
+                            if let (Ok(mut props), Ok(name)) = (template_props.get_mut(ui_entity), names.get(ui_entity)) {
+                                let name_str = name.as_str();
+                                if name_str == "top_panel" {
+                                    props.insert("player_gold".to_string(), new_gold.to_string());
+                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
+                                } else if name_str == "left_side_panel" {
+                                    props.insert("civilization_gold".to_string(), new_gold.to_string());
+                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
+                                }
+                            }
+                        }
+                        debug_println!(debug_logging, "UI updated with new gold: {}", new_gold);
+                    } else {
+                        debug_println!(debug_logging, "Insufficient gold for cavalry!");
+                    }
+                }
+            } else {
+                debug_println!(debug_logging, "No capital selected for cavalry production!");
+            }
         },
     );
 

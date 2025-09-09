@@ -52,8 +52,8 @@ pub use components::{
     CivId,
 };
 
-pub use debug_utils::CoreDebugUtils;
 pub use data_loader::{CivilizationDataCollection, CivilizationDataLoader, CivilizationDefinition};
+pub use debug_utils::CoreDebugUtils;
 
 // Import specific systems to avoid ambiguous glob reexports
 pub use systems::{

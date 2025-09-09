@@ -17,17 +17,26 @@
     border_radius="8px"
     margin="5px"
     flex_direction="column"
-    min_height="400px"
-  >
+    min_height="400px">
     <!-- Header -->
-    <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">Production Menu</text>
+    <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">
+      Production Menu
+    </text>
 
     <!-- Capital Information -->
     <node margin="0 0 10px 0" flex_direction="column">
-      <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">Capital: {capital_name}</text>
-      <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">Civilization: {civilization_name}</text>
-      <text font_size="14" font_color="#cccccc" margin="0 0 5px 0">Gold: {civilization_gold}</text>
-      <text font_size="14" font_color="#cccccc">Production: {civilization_production}</text>
+      <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">
+        Capital: {capital_name}
+      </text>
+      <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">
+        Civilization: {civilization_name}
+      </text>
+      <text font_size="14" font_color="#cccccc" margin="0 0 5px 0">
+        Gold: {civilization_gold}
+      </text>
+      <text font_size="14" font_color="#cccccc">
+        Production: {civilization_production}
+      </text>
     </node>
 
     <!-- Separator -->
@@ -35,109 +44,97 @@
 
     <!-- Available Units -->
     <node margin="0 0 15px 0" flex_direction="column">
-      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">Available Units:</text>
-      <text font_size="14" font_color="#cccccc" margin="0 0 5px 0">Press [1] to queue Infantry</text>
-      <text font_size="12" font_color="#999999">(Cost: 20 gold, 15 production)</text>
+      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">
+        Available Units:
+      </text>
+
+      <!-- Infantry Button -->
+      <button
+        hover:background="#404040"
+        pressed:background="#0aa"
+        background="#2d2d2d"
+        height="40px"
+        width="100%"
+        on_press="queue_infantry"
+        border="2px solid #666666"
+        hover:border_color="#ffcc00"
+        border_radius="5px"
+        justify_content="space_between"
+        align_items="center"
+        padding="10px"
+        margin="0 0 5px 0">
+        <text font_size="14" font_color="#ffffff">Infantry</text>
+        <text font_size="12" font_color="#999999">20 gold, 15 production</text>
+      </button>
+
+      <!-- Archer Button -->
+      <button
+        hover:background="#404040"
+        pressed:background="#0aa"
+        background="#2d2d2d"
+        height="40px"
+        width="100%"
+        on_press="queue_archer"
+        border="2px solid #666666"
+        hover:border_color="#ffcc00"
+        border_radius="5px"
+        justify_content="space_between"
+        align_items="center"
+        padding="10px"
+        margin="0 0 5px 0">
+        <text font_size="14" font_color="#ffffff">Archer</text>
+        <text font_size="12" font_color="#999999">25 gold, 20 production</text>
+      </button>
+
+      <!-- Cavalry Button -->
+      <button
+        hover:background="#404040"
+        pressed:background="#0aa"
+        background="#2d2d2d"
+        height="40px"
+        width="100%"
+        on_press="queue_cavalry"
+        border="2px solid #666666"
+        hover:border_color="#ffcc00"
+        border_radius="5px"
+        justify_content="space_between"
+        align_items="center"
+        padding="10px"
+        margin="0 0 5px 0">
+        <text font_size="14" font_color="#ffffff">Cavalry</text>
+        <text font_size="12" font_color="#999999">40 gold, 30 production</text>
+      </button>
     </node>
 
     <!-- Current Production -->
     <node margin="0 0 15px 0" flex_direction="column">
-      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">Currently Producing:</text>
-      <text font_size="14" font_color="#ffffff" margin="0 0 5px 0">{current_production_name}</text>
-      <text font_size="12" font_color="#cccccc">Progress: {current_production_progress}%</text>
+      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">
+        Currently Producing:
+      </text>
+      <text font_size="14" font_color="#ffffff" margin="0 0 5px 0">
+        {current_production_name}
+      </text>
+      <text font_size="12" font_color="#cccccc">
+        Progress: {current_production_progress}%
+      </text>
     </node>
 
     <!-- Production Queue -->
     <node margin="0 0 15px 0" flex_direction="column">
-      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">Queue Status:</text>
-      <text font_size="14" font_color="#cccccc">Queue length: {production_queue_length}</text>
+      <text font_size="16" font_color="#ffcc00" margin="0 0 10px 0">
+        Queue Status:
+      </text>
+      <text font_size="14" font_color="#cccccc">
+        Queue length: {production_queue_length}
+      </text>
     </node>
 
     <!-- Separator -->
     <node width="100%" height="2px" background="#444444" margin="10px 0"></node>
 
     <!-- Controls -->
-    <text font_size="12" font_color="#999999">Press [Esc] to close</text>
+    <text font_size="12" font_color="#999999">
+      Press [Esc] to close | Click buttons to queue units
+    </text>
   </node>
-</template>
-                Add to Queue:
-            </text>
-            
-            <!-- Unit production buttons -->
-            <button 
-                width="100%"
-                height="35px"
-                background="#4ade80"
-                border_radius="4px"
-                margin="0 0 5px 0"
-                hover:background="#3abe70"
-                on_press="select_production"
-                tag:production_item="warrior"
-            >
-                <text font_size="12" font_color="#ffffff">Warrior</text>
-            </button>
-            
-            <button 
-                width="100%"
-                height="35px"
-                background="#4ade80"
-                border_radius="4px"
-                margin="0 0 5px 0"
-                hover:background="#3abe70"
-                on_press="select_production"
-                tag:production_item="archer"
-            >
-                <text font_size="12" font_color="#ffffff">Archer</text>
-            </button>
-            
-            <!-- Building production buttons -->
-            <button 
-                width="100%"
-                height="35px"
-                background="#fbbf24"
-                border_radius="4px"
-                margin="0 0 5px 0"
-                hover:background="#f59e0b"
-                on_press="select_production"
-                tag:production_item="granary"
-            >
-                <text font_size="12" font_color="#ffffff">Granary</text>
-            </button>
-            
-            <button 
-                width="100%"
-                height="35px"
-                background="#fbbf24"
-                border_radius="4px"
-                margin="0 0 10px 0"
-                hover:background="#f59e0b"
-                on_press="select_production"
-                tag:production_item="barracks"
-            >
-                <text font_size="12" font_color="#ffffff">Barracks</text>
-            </button>
-            
-            <!-- Skip production button -->
-            <button 
-                width="100%"
-                height="35px"
-                background="#6b7280"
-                border_radius="4px"
-                hover:background="#5b6270"
-                on_press="skip_production"
-            >
-                <text font_size="12" font_color="#ffffff">Skip Production</text>
-            </button>
-        </node>
-        
-        <!-- No capital selected message -->
-        <node if_not="{has_selected_capital}" flex_direction="column">
-            <text 
-                font_size="14"
-                font_color="#888888"
-            >
-                Select a capital to manage production
-            </text>
-        </node>
-    </node>
 </template>

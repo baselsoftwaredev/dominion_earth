@@ -1,6 +1,4 @@
-use crate::{
-    components::{CivPersonality, Position, TerrainType},
-};
+use crate::components::{CivPersonality, Position, TerrainType};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -104,7 +102,9 @@ pub struct CivilizationDataCollection {
 pub struct CivilizationDataLoader;
 
 impl CivilizationDataLoader {
-    pub fn load_from_ron(path: &str) -> Result<CivilizationDataCollection, Box<dyn std::error::Error>> {
+    pub fn load_from_ron(
+        path: &str,
+    ) -> Result<CivilizationDataCollection, Box<dyn std::error::Error>> {
         let content = std::fs::read_to_string(path)?;
         let data: CivilizationDataCollection = ron::from_str(&content)?;
         Ok(data)
@@ -144,7 +144,11 @@ impl CivilizationDataLoader {
                 }
 
                 // Check distance from other civilizations
-                if Self::is_too_close_to_existing_civs(&used_positions, candidate_position, min_distance_between_civs) {
+                if Self::is_too_close_to_existing_civs(
+                    &used_positions,
+                    candidate_position,
+                    min_distance_between_civs,
+                ) {
                     continue;
                 }
 
