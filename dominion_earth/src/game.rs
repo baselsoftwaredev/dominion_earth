@@ -84,12 +84,21 @@ pub fn setup_game(
     *world_map =
         world_gen::generate_island_map(map::DEFAULT_WIDTH, map::DEFAULT_HEIGHT, &mut rng.0);
 
+    println!(
+        "World map generated with size {}x{}",
+        world_map.width, world_map.height
+    );
+
     // Initialize influence map
     // *influence_map = InfluenceMap::new(world_map.width, world_map.height);
     // influence_map.add_layer(InfluenceType::Strategic);
     // influence_map.add_layer(InfluenceType::Threat);
 
     // Spawn initial civilizations
+    println!(
+        "About to spawn {} civilizations",
+        game_state.total_civilizations
+    );
     spawn_initial_civilizations(
         &mut commands,
         &mut world_map,
@@ -98,6 +107,7 @@ pub fn setup_game(
         game_state.ai_only,
         game_state.total_civilizations,
     );
+    println!("Finished spawning civilizations");
 
     DebugUtils::log_world_initialization(&debug_logging, world_map.width, world_map.height);
 }
@@ -114,13 +124,25 @@ fn spawn_initial_civilizations(
     use rand::seq::SliceRandom;
 
     // Load civilization data from RON file
-    let civilization_data = match CivilizationDataLoader::load_from_ron("dominion_earth/assets/data/civilizations.ron") {
-        Ok(data) => data,
-        Err(e) => {
-            DebugUtils::log_info(debug_logging, &format!("Failed to load civilization data: {}", e));
-            return;
-        }
-    };
+    let civilization_data =
+        match CivilizationDataLoader::load_from_ron("dominion_earth/assets/data/civilizations.ron")
+        {
+            Ok(data) => {
+                println!(
+                    "Successfully loaded {} civilizations from RON file",
+                    data.civilizations.len()
+                );
+                data
+            }
+            Err(e) => {
+                println!("Failed to load civilization data: {}", e);
+                DebugUtils::log_info(
+                    debug_logging,
+                    &format!("Failed to load civilization data: {}", e),
+                );
+                return;
+            }
+        };
 
     // Select a random subset of civilizations
     let mut available_civs = civilization_data.civilizations.clone();
@@ -143,7 +165,7 @@ fn spawn_initial_civilizations(
 
     for (civ_index, civ_def) in selected_civs.into_iter().enumerate() {
         let civ_id = CivId(civ_index as u32);
-        
+
         // Get the random position for this civilization
         let position = match random_positions.get(&civ_def.name) {
             Some(&pos) => pos,
@@ -156,7 +178,9 @@ fn spawn_initial_civilizations(
         // Check if the position is on a buildable tile (double-check from random generation)
         let is_buildable = if let Some(tile) = world_map.get_tile(position) {
             match tile.terrain {
-                core_sim::TerrainType::Plains | core_sim::TerrainType::Coast | core_sim::TerrainType::Forest => true,
+                core_sim::TerrainType::Plains
+                | core_sim::TerrainType::Coast
+                | core_sim::TerrainType::Forest => true,
                 _ => false,
             }
         } else {
@@ -164,7 +188,12 @@ fn spawn_initial_civilizations(
         };
 
         if !is_buildable {
-            DebugUtils::log_capital_spawn_skip(&debug_logging, &civ_def.name, position.x, position.y);
+            DebugUtils::log_capital_spawn_skip(
+                &debug_logging,
+                &civ_def.name,
+                position.x,
+                position.y,
+            );
             continue;
         }
 
