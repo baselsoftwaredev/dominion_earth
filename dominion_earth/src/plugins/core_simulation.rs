@@ -21,7 +21,8 @@ impl Plugin for CoreSimulationPlugin {
                     core_sim::process_production_queues,
                     
                     // Movement and Actions
-                    core_sim::process_player_movement_orders,
+                    core_sim::execute_movement_orders,
+                    core_sim::clear_completed_movement_orders,
                     core_sim::check_player_actions_complete,
                     
                     // Turn Management

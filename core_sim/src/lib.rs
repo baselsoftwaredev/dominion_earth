@@ -54,7 +54,7 @@ pub use systems::{
     ai_decision::*,
     combat_resolution::*,
     economic_update::*,
-    movement::process_player_movement_orders,
+    movement::{execute_movement_orders, clear_completed_movement_orders},
     production::{
         check_player_actions_complete, handle_player_production_orders, handle_skip_production,
         initialize_production_queues, process_production_queues, reset_unit_movement,

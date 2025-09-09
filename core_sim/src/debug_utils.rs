@@ -131,6 +131,45 @@ impl CoreDebugUtils {
         }
     }
 
+    /// Log successful unit movement with cost and remaining points
+    pub fn log_unit_movement_success(
+        unit_id: u32,
+        from_x: i32,
+        from_y: i32,
+        to_x: i32,
+        to_y: i32,
+        movement_cost: u32,
+        remaining_points: u32,
+    ) {
+        if Self::is_debug_enabled() {
+            println!(
+                "Unit {} moved from ({}, {}) to ({}, {}) - Cost: {} - Remaining: {}",
+                unit_id, from_x, from_y, to_x, to_y, movement_cost, remaining_points
+            );
+        }
+    }
+
+    /// Log movement validation failure
+    pub fn log_unit_movement_failure(unit_id: u32, reason: &str) {
+        if Self::is_debug_enabled() {
+            println!("Unit {} movement blocked: {}", unit_id, reason);
+        }
+    }
+
+    /// Log insufficient movement points
+    pub fn log_insufficient_movement_points(
+        unit_id: u32,
+        required_points: u32,
+        available_points: u32,
+    ) {
+        if Self::is_debug_enabled() {
+            println!(
+                "Unit {} cannot move - insufficient movement points. Required: {}, Available: {}",
+                unit_id, required_points, available_points
+            );
+        }
+    }
+
     /// Log turn completion
     pub fn log_turn_complete(completed_turn: u32, starting_turn: u32) {
         if Self::is_debug_enabled() {

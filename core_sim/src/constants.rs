@@ -107,6 +107,15 @@ pub mod terrain_stats {
     pub const OCEAN_DEFENSE_BONUS: f32 = 0.0;
 }
 
+/// Movement validation constants
+pub mod movement_validation {
+    /// Maximum distance for adjacent tile movement
+    pub const ADJACENT_TILE_DISTANCE: u32 = 1;
+    
+    /// Default movement cost when terrain cost is zero
+    pub const DEFAULT_MOVEMENT_COST_WHEN_ZERO: u32 = 1;
+}
+
 /// Movement directions (4-directional)
 pub mod movement_directions {
     /// North direction vector (x, y)

@@ -1,34 +1,33 @@
-use crate::{Position, MilitaryUnit, PlayerMovementOrder, WorldMap, TerrainType};
+use crate::{
+    Position, MilitaryUnit, PlayerMovementOrder, WorldMap, TerrainType,
+    constants::{movement_validation, terrain_stats},
+    debug_utils::CoreDebugUtils,
+};
 use bevy::prelude::*;
 
-/// Calculate distance between two positions (Manhattan distance for grid-based movement)
-fn calculate_movement_distance(from: Position, to: Position) -> u32 {
-    let dx = (to.x - from.x).abs() as u32;
-    let dy = (to.y - from.y).abs() as u32;
-    dx + dy
+fn calculate_manhattan_distance_between_positions(from: Position, to: Position) -> u32 {
+    let x_distance = (to.x - from.x).abs() as u32;
+    let y_distance = (to.y - from.y).abs() as u32;
+    x_distance + y_distance
 }
 
-/// Check if movement is valid (adjacent tile and terrain allows movement)
-fn is_valid_movement(
+fn validate_movement_to_adjacent_tile(
     from: Position,
     to: Position,
     world_map: &WorldMap,
 ) -> Result<u32, &'static str> {
-    // Check if target is adjacent (distance of 1)
-    let distance = calculate_movement_distance(from, to);
-    if distance != 1 {
+    let distance = calculate_manhattan_distance_between_positions(from, to);
+    if distance != movement_validation::ADJACENT_TILE_DISTANCE {
         return Err("Can only move to adjacent tiles");
     }
     
-    // Check if target tile exists and is moveable
     if let Some(tile) = world_map.get_tile(to) {
         match tile.terrain {
             TerrainType::Ocean => Err("Cannot move into ocean"),
             _ => {
-                // Return movement cost for this terrain
                 let movement_cost = tile.movement_cost as u32;
                 if movement_cost == 0 {
-                    Ok(1) // Default cost if not set
+                    Ok(movement_validation::DEFAULT_MOVEMENT_COST_WHEN_ZERO)
                 } else {
                     Ok(movement_cost)
                 }
@@ -39,46 +38,52 @@ fn is_valid_movement(
     }
 }
 
-/// System to process player movement orders
-pub fn process_player_movement_orders(
+pub fn execute_movement_orders(
     mut commands: Commands,
     mut movement_query: Query<(Entity, &mut MilitaryUnit, &mut Position, &PlayerMovementOrder)>,
     world_map: Res<WorldMap>,
 ) {
     for (entity, mut unit, mut position, movement_order) in movement_query.iter_mut() {
-        let current_pos = *position;
-        let target_pos = movement_order.target_position;
+        let current_position = *position;
+        let target_position = movement_order.target_position;
         
-        // Always remove the movement order first
         commands.entity(entity).remove::<PlayerMovementOrder>();
         
-        // Validate movement
-        match is_valid_movement(current_pos, target_pos, &world_map) {
+        match validate_movement_to_adjacent_tile(current_position, target_position, &world_map) {
             Ok(movement_cost) => {
-                // Check if unit has enough movement points
                 if unit.movement_remaining >= movement_cost {
-                    // Execute movement
-                    *position = target_pos;
+                    *position = target_position;
                     unit.movement_remaining -= movement_cost;
                     
-                    info!(
-                        "Unit {} moved from ({}, {}) to ({}, {}) - Cost: {} - Remaining: {}", 
-                        unit.id, 
-                        current_pos.x, current_pos.y,
-                        target_pos.x, target_pos.y,
+                    CoreDebugUtils::log_unit_movement_success(
+                        unit.id,
+                        current_position.x,
+                        current_position.y,
+                        target_position.x,
+                        target_position.y,
                         movement_cost,
-                        unit.movement_remaining
+                        unit.movement_remaining,
                     );
                 } else {
-                    warn!(
-                        "Unit {} cannot move - insufficient movement points. Required: {}, Available: {}", 
-                        unit.id, movement_cost, unit.movement_remaining
+                    CoreDebugUtils::log_insufficient_movement_points(
+                        unit.id,
+                        movement_cost,
+                        unit.movement_remaining,
                     );
                 }
             }
             Err(reason) => {
-                warn!("Unit {} movement blocked: {}", unit.id, reason);
+                CoreDebugUtils::log_unit_movement_failure(unit.id, reason);
             }
         }
+    }
+}
+
+pub fn clear_completed_movement_orders(
+    mut commands: Commands,
+    query: Query<Entity, With<PlayerMovementOrder>>,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).remove::<PlayerMovementOrder>();
     }
 }
