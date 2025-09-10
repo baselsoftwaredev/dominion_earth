@@ -5,11 +5,12 @@ use crate::production_input::SelectedCapital;
 use crate::ui::resources::*;
 use crate::ui::traits::*;
 use bevy::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
 use bevy_hui::prelude::*;
 use core_sim::{
-    components::{Capital, MilitaryUnit},
+    components::{Capital, City, MilitaryUnit},
     resources::{CurrentTurn, WorldMap},
-    Civilization, Position, ProductionQueue, PlayerProductionOrder,
+    Civilization, PlayerProductionOrder, Position, ProductionQueue,
 };
 
 /// Bevy HUI implementation of the UI system
@@ -19,7 +20,14 @@ impl BevyHuiSystem {
     pub fn setup_plugins(app: &mut App) {
         app.add_plugins((HuiPlugin, HuiAutoLoadPlugin::new(&["ui"])))
             .add_systems(Startup, setup_main_ui)
-            .add_systems(Update, update_ui_properties);
+            .add_systems(
+                Update,
+                (
+                    update_ui_properties,
+                    spawn_capital_labels,
+                    update_capital_labels,
+                ),
+            );
     }
 }
 
@@ -137,11 +145,18 @@ fn setup_main_ui(
          ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
          names: Query<&Name>| {
             debug_println!(debug_logging, "Infantry button clicked!");
-            if let (Some(capital_entity), Some(civ_entity)) = 
-                (selected_capital.capital_entity, selected_capital.civ_entity) {
+            if let (Some(capital_entity), Some(civ_entity)) =
+                (selected_capital.capital_entity, selected_capital.civ_entity)
+            {
                 if let Ok(civ) = civs_query.get(civ_entity) {
-                    let infantry_cost = core_sim::ProductionItem::Unit(core_sim::UnitType::Infantry).gold_cost();
-                    debug_println!(debug_logging, "Infantry cost: {}, Player gold: {}", infantry_cost, civ.economy.gold);
+                    let infantry_cost =
+                        core_sim::ProductionItem::Unit(core_sim::UnitType::Infantry).gold_cost();
+                    debug_println!(
+                        debug_logging,
+                        "Infantry cost: {}, Player gold: {}",
+                        infantry_cost,
+                        civ.economy.gold
+                    );
                     if civ.economy.gold >= infantry_cost {
                         production_orders.write(PlayerProductionOrder {
                             capital_entity,
@@ -149,17 +164,22 @@ fn setup_main_ui(
                             item: core_sim::ProductionItem::Unit(core_sim::UnitType::Infantry),
                         });
                         debug_println!(debug_logging, "Infantry production order sent!");
-                        
+
                         // Update UI immediately by finding and updating all relevant panels
                         let new_gold = civ.economy.gold - infantry_cost;
                         for ui_entity in ui_entities.iter() {
-                            if let (Ok(mut props), Ok(name)) = (template_props.get_mut(ui_entity), names.get(ui_entity)) {
+                            if let (Ok(mut props), Ok(name)) =
+                                (template_props.get_mut(ui_entity), names.get(ui_entity))
+                            {
                                 let name_str = name.as_str();
                                 if name_str == "top_panel" {
                                     props.insert("player_gold".to_string(), new_gold.to_string());
                                     cmd.trigger_targets(CompileContextEvent, ui_entity);
                                 } else if name_str == "left_side_panel" {
-                                    props.insert("civilization_gold".to_string(), new_gold.to_string());
+                                    props.insert(
+                                        "civilization_gold".to_string(),
+                                        new_gold.to_string(),
+                                    );
                                     cmd.trigger_targets(CompileContextEvent, ui_entity);
                                 }
                             }
@@ -170,7 +190,10 @@ fn setup_main_ui(
                     }
                 }
             } else {
-                debug_println!(debug_logging, "No capital selected for infantry production!");
+                debug_println!(
+                    debug_logging,
+                    "No capital selected for infantry production!"
+                );
             }
         },
     );
@@ -187,11 +210,18 @@ fn setup_main_ui(
          ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
          names: Query<&Name>| {
             debug_println!(debug_logging, "Archer button clicked!");
-            if let (Some(capital_entity), Some(civ_entity)) = 
-                (selected_capital.capital_entity, selected_capital.civ_entity) {
+            if let (Some(capital_entity), Some(civ_entity)) =
+                (selected_capital.capital_entity, selected_capital.civ_entity)
+            {
                 if let Ok(civ) = civs_query.get(civ_entity) {
-                    let archer_cost = core_sim::ProductionItem::Unit(core_sim::UnitType::Archer).gold_cost();
-                    debug_println!(debug_logging, "Archer cost: {}, Player gold: {}", archer_cost, civ.economy.gold);
+                    let archer_cost =
+                        core_sim::ProductionItem::Unit(core_sim::UnitType::Archer).gold_cost();
+                    debug_println!(
+                        debug_logging,
+                        "Archer cost: {}, Player gold: {}",
+                        archer_cost,
+                        civ.economy.gold
+                    );
                     if civ.economy.gold >= archer_cost {
                         production_orders.write(PlayerProductionOrder {
                             capital_entity,
@@ -199,17 +229,22 @@ fn setup_main_ui(
                             item: core_sim::ProductionItem::Unit(core_sim::UnitType::Archer),
                         });
                         debug_println!(debug_logging, "Archer production order sent!");
-                        
+
                         // Update UI immediately by finding and updating all relevant panels
                         let new_gold = civ.economy.gold - archer_cost;
                         for ui_entity in ui_entities.iter() {
-                            if let (Ok(mut props), Ok(name)) = (template_props.get_mut(ui_entity), names.get(ui_entity)) {
+                            if let (Ok(mut props), Ok(name)) =
+                                (template_props.get_mut(ui_entity), names.get(ui_entity))
+                            {
                                 let name_str = name.as_str();
                                 if name_str == "top_panel" {
                                     props.insert("player_gold".to_string(), new_gold.to_string());
                                     cmd.trigger_targets(CompileContextEvent, ui_entity);
                                 } else if name_str == "left_side_panel" {
-                                    props.insert("civilization_gold".to_string(), new_gold.to_string());
+                                    props.insert(
+                                        "civilization_gold".to_string(),
+                                        new_gold.to_string(),
+                                    );
                                     cmd.trigger_targets(CompileContextEvent, ui_entity);
                                 }
                             }
@@ -237,11 +272,18 @@ fn setup_main_ui(
          ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
          names: Query<&Name>| {
             debug_println!(debug_logging, "Cavalry button clicked!");
-            if let (Some(capital_entity), Some(civ_entity)) = 
-                (selected_capital.capital_entity, selected_capital.civ_entity) {
+            if let (Some(capital_entity), Some(civ_entity)) =
+                (selected_capital.capital_entity, selected_capital.civ_entity)
+            {
                 if let Ok(civ) = civs_query.get(civ_entity) {
-                    let cavalry_cost = core_sim::ProductionItem::Unit(core_sim::UnitType::Cavalry).gold_cost();
-                    debug_println!(debug_logging, "Cavalry cost: {}, Player gold: {}", cavalry_cost, civ.economy.gold);
+                    let cavalry_cost =
+                        core_sim::ProductionItem::Unit(core_sim::UnitType::Cavalry).gold_cost();
+                    debug_println!(
+                        debug_logging,
+                        "Cavalry cost: {}, Player gold: {}",
+                        cavalry_cost,
+                        civ.economy.gold
+                    );
                     if civ.economy.gold >= cavalry_cost {
                         production_orders.write(PlayerProductionOrder {
                             capital_entity,
@@ -249,17 +291,22 @@ fn setup_main_ui(
                             item: core_sim::ProductionItem::Unit(core_sim::UnitType::Cavalry),
                         });
                         debug_println!(debug_logging, "Cavalry production order sent!");
-                        
+
                         // Update UI immediately by finding and updating all relevant panels
                         let new_gold = civ.economy.gold - cavalry_cost;
                         for ui_entity in ui_entities.iter() {
-                            if let (Ok(mut props), Ok(name)) = (template_props.get_mut(ui_entity), names.get(ui_entity)) {
+                            if let (Ok(mut props), Ok(name)) =
+                                (template_props.get_mut(ui_entity), names.get(ui_entity))
+                            {
                                 let name_str = name.as_str();
                                 if name_str == "top_panel" {
                                     props.insert("player_gold".to_string(), new_gold.to_string());
                                     cmd.trigger_targets(CompileContextEvent, ui_entity);
                                 } else if name_str == "left_side_panel" {
-                                    props.insert("civilization_gold".to_string(), new_gold.to_string());
+                                    props.insert(
+                                        "civilization_gold".to_string(),
+                                        new_gold.to_string(),
+                                    );
                                     cmd.trigger_targets(CompileContextEvent, ui_entity);
                                 }
                             }
@@ -341,6 +388,10 @@ fn setup_main_ui(
     html_comps.register(
         "minimap",
         server.load("ui/components/right_side_panel/minimap.html"),
+    );
+    html_comps.register(
+        "capital_label",
+        server.load("ui/components/capital_label.html"),
     );
 }
 
@@ -852,4 +903,148 @@ fn update_selected_tile_properties(
         "selected_terrain".to_string(),
         selected_tile_info.terrain_type_text.clone(),
     );
+}
+
+/// Component to mark capital label entities
+#[derive(Component)]
+pub struct CapitalLabel {
+    pub capital_entity: Entity,
+}
+
+/// System to spawn capital labels over capital tiles
+pub fn spawn_capital_labels(
+    mut commands: Commands,
+    server: Res<AssetServer>,
+    capitals_query: Query<(Entity, &Capital, &Position), (With<City>, Without<CapitalLabel>)>,
+    cities_query: Query<&City>,
+    tilemap_query: Query<(
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    existing_labels: Query<&CapitalLabel>,
+    debug_logging: Res<DebugLogging>,
+) {
+    debug_println!(debug_logging, "DEBUG: spawn_capital_labels system running");
+
+    // Get tilemap info for position conversion
+    let Ok((tilemap_size, tile_size, grid_size, map_type, anchor)) = tilemap_query.single() else {
+        debug_println!(debug_logging, "DEBUG: No tilemap found for capital labels");
+        return;
+    };
+
+    debug_println!(
+        debug_logging,
+        "DEBUG: Found {} capitals for label spawning",
+        capitals_query.iter().count()
+    );
+
+    for (capital_entity, _capital, position) in capitals_query.iter() {
+        // Check if a label already exists for this capital
+        let label_exists = existing_labels
+            .iter()
+            .any(|label| label.capital_entity == capital_entity);
+        if label_exists {
+            continue;
+        }
+
+        debug_println!(
+            debug_logging,
+            "DEBUG: Processing NEW capital at position ({}, {})",
+            position.x,
+            position.y
+        );
+
+        // Get the capital name from the City component
+        let capital_name = if let Ok(city) = cities_query.get(capital_entity) {
+            debug_println!(debug_logging, "DEBUG: Found capital name: {}", city.name);
+            city.name.clone()
+        } else {
+            debug_println!(
+                debug_logging,
+                "DEBUG: No city component found, using default name"
+            );
+            "Capital".to_string()
+        };
+
+        // Convert tile position to world position
+        let tile_pos = TilePos {
+            x: position.x as u32,
+            y: position.y as u32,
+        };
+
+        let world_pos =
+            tile_pos.center_in_world(tilemap_size, grid_size, tile_size, map_type, anchor);
+
+        // Offset the label to appear above the capital tile
+        let label_x = world_pos.x;
+        let label_y = world_pos.y + 40.0; // Position above the tile
+
+        debug_println!(
+            debug_logging,
+            "DEBUG: Spawning capital label '{}' at world position ({}, {})",
+            capital_name,
+            label_x,
+            label_y
+        );
+
+        // Spawn the capital label using bevy_hui
+        commands.spawn((
+            HtmlNode(server.load("ui/components/capital_label.html")),
+            TemplateProperties::default()
+                .with("capital_name", &capital_name)
+                .with("position_x", &label_x.to_string())
+                .with("position_y", &label_y.to_string()),
+            CapitalLabel { capital_entity },
+            Name::new("capital_label"),
+        ));
+    }
+}
+
+/// System to update capital label positions when needed
+pub fn update_capital_labels(
+    mut labels_query: Query<(&CapitalLabel, &mut TemplateProperties), Changed<Position>>,
+    capitals_query: Query<&Position, With<Capital>>,
+    cities_query: Query<&City, Changed<City>>,
+    tilemap_query: Query<(
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+) {
+    // Get tilemap info for position conversion
+    let Ok((tilemap_size, tile_size, grid_size, map_type, anchor)) = tilemap_query.single() else {
+        return;
+    };
+
+    for (label, mut properties) in labels_query.iter_mut() {
+        let mut needs_update = false;
+
+        // Update position if capital moved
+        if let Ok(position) = capitals_query.get(label.capital_entity) {
+            let tile_pos = TilePos {
+                x: position.x as u32,
+                y: position.y as u32,
+            };
+
+            let world_pos =
+                tile_pos.center_in_world(tilemap_size, grid_size, tile_size, map_type, anchor);
+            let label_x = world_pos.x;
+            let label_y = world_pos.y + 40.0;
+
+            properties.insert("position_x".to_string(), label_x.to_string());
+            properties.insert("position_y".to_string(), label_y.to_string());
+            needs_update = true;
+        }
+
+        // Update name if city name changed
+        if let Ok(city) = cities_query.get(label.capital_entity) {
+            properties.insert("capital_name".to_string(), city.name.clone());
+            needs_update = true;
+        }
+    }
 }
