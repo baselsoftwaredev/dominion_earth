@@ -1,7 +1,7 @@
 use crate::ui::resources::*;
 use bevy::prelude::*;
 use bevy_hui::prelude::*;
-use core_sim::{Civilization, resources::CurrentTurn};
+use core_sim::{resources::CurrentTurn, Civilization};
 
 use super::constants;
 use super::production_orders::register_production_order_functions;
@@ -231,10 +231,6 @@ fn register_utility_component_templates(
     html_components.register(
         constants::ui_component_names::MINIMAP_NAME,
         asset_server.load(constants::ui_templates::MINIMAP_PATH),
-    );
-    html_components.register(
-        constants::ui_component_names::CAPITAL_LABEL_NAME,
-        asset_server.load(constants::ui_templates::CAPITAL_LABEL_PATH),
     );
 }
 

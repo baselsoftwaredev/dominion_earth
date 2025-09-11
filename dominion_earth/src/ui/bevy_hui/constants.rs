@@ -19,7 +19,6 @@ pub mod ui_templates {
     pub const TOP_PANEL_PATH: &str = "ui/top_panel.html";
     pub const RIGHT_SIDE_PANEL_PATH: &str = "ui/right_side_panel.html";
     pub const LEFT_SIDE_PANEL_PATH: &str = "ui/left_side_panel.html";
-    pub const CAPITAL_LABEL_PATH: &str = "ui/components/capital_label.html";
     pub const LEFT_SIDE_TOP_PATH: &str = "ui/components/top_panel/left_side_top.html";
     pub const GAME_PANEL_PATH: &str = "ui/components/left_side_panel/game_panel.html";
     pub const PRODUCTION_MENU_PATH: &str = "ui/components/right_side_panel/production_menu.html";
@@ -34,7 +33,6 @@ pub mod ui_component_names {
     pub const TOP_PANEL_NAME: &str = "top_panel";
     pub const RIGHT_SIDE_PANEL_NAME: &str = "right_side_panel";
     pub const LEFT_SIDE_PANEL_NAME: &str = "left_side_panel";
-    pub const CAPITAL_LABEL_NAME: &str = "capital_label";
     pub const LEFT_SIDE_TOP_NAME: &str = "left_side_top";
     pub const GAME_PANEL_NAME: &str = "game_panel";
     pub const PRODUCTION_MENU_NAME: &str = "production_menu";
@@ -75,18 +73,6 @@ pub mod ui_initial_values {
 pub mod capital_labels {
     pub const LABEL_VERTICAL_OFFSET: f32 = 40.0;
     pub const DEFAULT_CAPITAL_NAME: &str = "Capital";
-    pub const CAPITAL_LABEL_COMPONENT_NAME: &str = "capital_label";
-    pub const CAPITAL_LABEL_TEMPLATE_PATH: &str = "ui/components/capital_label.html";
-    pub const CAPITAL_NAME_PROPERTY_KEY: &str = "capital_name";
-    pub const POSITION_X_PROPERTY_KEY: &str = "position_x";
-    pub const POSITION_Y_PROPERTY_KEY: &str = "position_y";
-    pub const DEBUG_CAPITAL_PROCESSING_MESSAGE: &str = "Processing NEW capital at position";
-    pub const DEBUG_CAPITAL_NAME_FOUND_MESSAGE: &str = "Found capital name";
-    pub const DEBUG_NO_CITY_COMPONENT_MESSAGE: &str = "No city component found, using default name";
-    pub const DEBUG_SPAWNING_LABEL_MESSAGE: &str = "Spawning capital label";
-    pub const DEBUG_NO_TILEMAP_MESSAGE: &str = "No tilemap found for capital labels";
-    pub const DEBUG_SPAWN_SYSTEM_RUNNING_MESSAGE: &str = "spawn_capital_labels system running";
-    pub const DEBUG_FOUND_CAPITALS_MESSAGE: &str = "Found {} capitals for label spawning";
 }
 
 pub mod production_orders {
