@@ -11,6 +11,7 @@ We've successfully implemented a comprehensive action queue system for Dominion 
 **Purpose**: Each civilization gets its own action queue to manage AI decisions.
 
 **Key Features**:
+
 - **Per-Civilization Queues**: Each civ maintains its own independent action queue
 - **Priority System**: Actions are automatically sorted by priority (Defense > Attack > Units > Diplomacy > Research > Expansion > Buildings > Trade)
 - **Turn-Based Processing**: Configurable actions per turn limit (default: 3 actions/turn)
@@ -19,6 +20,7 @@ We've successfully implemented a comprehensive action queue system for Dominion 
 - **Queue Management**: Automatic capacity management and overflow protection
 
 **Configuration Constants**:
+
 ```rust
 pub const DEFAULT_MAX_QUEUE_SIZE: usize = 20;           // Max actions in queue
 pub const DEFAULT_ACTIONS_PER_TURN: usize = 3;         // Actions processed per turn
@@ -26,6 +28,7 @@ pub const DEFAULT_MAX_RETRIES: u8 = 2;                 // Retry attempts for fai
 ```
 
 **Priority Bonuses**:
+
 - Defense: +10.0 (highest priority - defending territory)
 - Attack: +8.0 (military actions)
 - Diplomacy: +6.0 (diplomatic relations)
@@ -38,22 +41,26 @@ pub const DEFAULT_MAX_RETRIES: u8 = 2;                 // Retry attempts for fai
 ### 2. Queue Management Systems (`core_sim/src/systems/action_queue.rs`)
 
 **spawn_action_queues_for_new_civilizations**:
+
 - Automatically creates action queues for newly spawned civilizations
 - Ensures every civ has its own independent queue
 
 **process_civilization_action_queues**:
+
 - Processes queued actions for all civilizations each turn
 - Respects per-turn action limits
 - Handles action execution and retry logic
 - Manages failed action requeuing
 
 **populate_action_queues_from_ai_decisions**:
+
 - Takes AI-generated decisions and adds them to appropriate civilization queues
 - Handles queue capacity checking and overflow
 
 ### 3. Integration with Game Systems
 
 **Core Simulation Plugin** (`dominion_earth/src/plugins/core_simulation.rs`):
+
 ```rust
 // Action Queue Systems (run first in the update cycle)
 core_sim::spawn_action_queues_for_new_civilizations,
@@ -90,7 +97,7 @@ Actions are automatically prioritized to ensure sensible AI behavior:
 ```
 Turn 1: AI Coordinator generates decisions for Civilization A
 ├── Attack enemy position (Priority: 8.0 + base = 15.0)
-├── Build defensive unit (Priority: 5.0 + base = 12.0)  
+├── Build defensive unit (Priority: 5.0 + base = 12.0)
 ├── Research new technology (Priority: 3.0 + base = 8.0)
 └── Expand to new territory (Priority: 4.0 + base = 7.0)
 
@@ -132,6 +139,7 @@ The system is designed to be extensible:
 The system has been integrated into the main game loop and will be active when civilizations are spawned. Each civilization will automatically get its own action queue and begin processing AI decisions independently.
 
 To observe the system in action:
+
 1. Run the game with multiple AI civilizations
 2. Each civ will process up to 3 actions per turn
 3. Actions will be executed in priority order

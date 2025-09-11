@@ -386,3 +386,61 @@ pub fn game_update_system(
 //         // Could trigger end game logic here
 //     }
 // }
+
+/// System to generate AI decisions and populate action queues
+pub fn generate_and_populate_ai_decisions(
+    mut game_state: ResMut<GameState>,
+    mut action_queues: Query<(&mut core_sim::ActionQueue, &CivId)>,
+    civs: Query<(&Civilization, &CivId), Without<PlayerControlled>>,
+    current_turn: Res<core_sim::resources::CurrentTurn>,
+    debug_logging: Res<DebugLogging>,
+) {
+    // Only generate decisions every few turns to avoid overwhelming the queues
+    if current_turn.0 % 3 != 0 {
+        return;
+    }
+
+    // Collect civilization data for AI coordinator
+    let mut civilization_data = std::collections::HashMap::new();
+    for (civilization, civ_id) in civs.iter() {
+        let civ_data = core_sim::CivilizationData {
+            civilization: civilization.clone(),
+            cities: Vec::new(), // TODO: populate with actual city data when available
+            territories: Vec::new(), // TODO: populate with actual territory data when available
+            diplomatic_relations: Vec::new(), // TODO: populate with actual diplomatic relations when available
+        };
+        civilization_data.insert(*civ_id, civ_data);
+    }
+
+    // Create a game state for the AI coordinator
+    let ai_game_state = core_sim::GameState {
+        turn: current_turn.0,
+        civilizations: civilization_data,
+        current_player: None,
+    };
+
+    // Generate AI decisions
+    let ai_decisions = game_state
+        ._ai_coordinator
+        .generate_turn_decisions(&ai_game_state);
+
+    DebugUtils::log_info(
+        &debug_logging,
+        &format!(
+            "Generated {} AI decisions for turn {}",
+            ai_decisions.len(),
+            current_turn.0
+        ),
+    );
+
+    // Convert HashMap to Vec for the populate function
+    let ai_decisions_vec: Vec<(CivId, Vec<core_sim::AIAction>)> =
+        ai_decisions.into_iter().collect();
+
+    // Populate action queues with AI decisions
+    core_sim::populate_action_queues_from_ai_decisions(
+        ai_decisions_vec,
+        action_queues,
+        current_turn,
+    );
+}

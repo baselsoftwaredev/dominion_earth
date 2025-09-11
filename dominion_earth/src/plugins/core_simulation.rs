@@ -15,6 +15,7 @@ impl Plugin for CoreSimulationPlugin {
                 (
                     // Action Queue Systems (run first)
                     core_sim::spawn_action_queues_for_new_civilizations,
+                    game::generate_and_populate_ai_decisions,
                     core_sim::process_civilization_action_queues,
                     // Production and Economy Systems
                     core_sim::initialize_production_queues,
@@ -28,7 +29,8 @@ impl Plugin for CoreSimulationPlugin {
                     // Turn Management
                     core_sim::handle_turn_advance_requests,
                     core_sim::auto_advance_turn_system,
-                ).chain(),
+                )
+                    .chain(),
             );
     }
 }

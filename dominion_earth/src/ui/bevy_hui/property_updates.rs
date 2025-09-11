@@ -5,9 +5,9 @@ use crate::ui::resources::*;
 use bevy::prelude::*;
 use bevy_hui::prelude::*;
 use core_sim::{
+    ActionQueue, Civilization, Position, ProductionQueue,
     components::{Capital, City},
     resources::CurrentTurn,
-    Civilization, Position, ProductionQueue,
 };
 
 use super::constants;
@@ -34,6 +34,8 @@ pub struct UiProductionMenuData {
     pub current_production_name: String,
     pub current_production_progress: i32,
     pub production_queue_length: usize,
+    pub action_queue_length: usize,
+    pub current_action_name: String,
 }
 
 pub struct TerrainStatistics {
@@ -59,6 +61,7 @@ pub fn update_ui_properties(
     capitals: Query<(&Capital, &Position)>,
     cities: Query<(&core_sim::City, &Position)>,
     production_queues: Query<&ProductionQueue>,
+    action_queues: Query<&ActionQueue>,
     mut ui_nodes: Query<(Entity, &mut TemplateProperties), With<HtmlNode>>,
     mut cmd: Commands,
 ) {
@@ -74,7 +77,7 @@ pub fn update_ui_properties(
 
         let player_stats = calculate_player_statistics(&game_data, &production_queues);
         let production_menu_data =
-            build_production_menu_data(&selected_capital, &civs, &production_queues);
+            build_production_menu_data(&selected_capital, &civs, &production_queues, &action_queues);
         let capital_names_text = format_capital_and_city_names(&game_data);
         let civilization_details_text = format_civilization_details(&game_data, &player_civs);
         let terrain_stats = calculate_terrain_statistics(&terrain_counts);
@@ -159,6 +162,7 @@ fn build_production_menu_data(
     selected_capital: &SelectedCapital,
     civs: &Query<&Civilization>,
     production_queues: &Query<&ProductionQueue>,
+    action_queues: &Query<&ActionQueue>,
 ) -> UiProductionMenuData {
     if !selected_capital.show_production_menu {
         return create_hidden_production_menu_data();
@@ -166,7 +170,7 @@ fn build_production_menu_data(
 
     match (selected_capital.capital_entity, selected_capital.civ_entity) {
         (Some(capital_entity), Some(civ_entity)) => {
-            create_visible_production_menu_data(capital_entity, civ_entity, civs, production_queues)
+            create_visible_production_menu_data(capital_entity, civ_entity, civs, production_queues, action_queues)
         }
         _ => create_hidden_production_menu_data(),
     }
@@ -182,6 +186,8 @@ fn create_hidden_production_menu_data() -> UiProductionMenuData {
         current_production_name: constants::ui_update::NO_PRODUCTION_NAME.to_string(),
         current_production_progress: 0,
         production_queue_length: 0,
+        action_queue_length: 0,
+        current_action_name: "No Action".to_string(),
     }
 }
 
@@ -190,6 +196,7 @@ fn create_visible_production_menu_data(
     civ_entity: Entity,
     civs: &Query<&Civilization>,
     production_queues: &Query<&ProductionQueue>,
+    action_queues: &Query<&core_sim::ActionQueue>,
 ) -> UiProductionMenuData {
     let capital_name = "Capital".to_string(); // TODO: Get actual capital name
 
@@ -198,6 +205,9 @@ fn create_visible_production_menu_data(
 
     let (current_production_name, current_production_progress, production_queue_length) =
         extract_production_queue_information(capital_entity, production_queues);
+
+    let (action_queue_length, current_action_name) =
+        extract_action_queue_information(civ_entity, action_queues);
 
     UiProductionMenuData {
         display_style: constants::ui_update::PRODUCTION_MENU_DISPLAY_FLEX.to_string(),
@@ -208,6 +218,8 @@ fn create_visible_production_menu_data(
         current_production_name,
         current_production_progress,
         production_queue_length,
+        action_queue_length,
+        current_action_name,
     }
 }
 
@@ -250,6 +262,35 @@ fn extract_production_queue_information(
             (current_production_name, progress_percentage, queue_length)
         }
         Err(_) => (constants::ui_update::NO_PRODUCTION_NAME.to_string(), 0, 0),
+    }
+}
+
+fn extract_action_queue_information(
+    civ_entity: Entity,
+    action_queues: &Query<&ActionQueue>,
+) -> (usize, String) {
+    match action_queues.get(civ_entity) {
+        Ok(action_queue) => {
+            let queue_length = action_queue.get_queue_length();
+            
+            let current_action_name = if let Some(next_action) = action_queue.peek_next_action(0) {
+                match &next_action.action {
+                    core_sim::AIAction::BuildUnit { unit_type, .. } => format!("Build {:?}", unit_type),
+                    core_sim::AIAction::Research { technology, .. } => format!("Research {}", technology),
+                    core_sim::AIAction::Expand { .. } => "Expand Territory".to_string(),
+                    core_sim::AIAction::BuildBuilding { building_type, .. } => format!("Build {:?}", building_type),
+                    core_sim::AIAction::Trade { .. } => "Trade".to_string(),
+                    core_sim::AIAction::Attack { .. } => "Attack".to_string(),
+                    core_sim::AIAction::Diplomacy { .. } => "Diplomacy".to_string(),
+                    core_sim::AIAction::Defend { .. } => "Defend".to_string(),
+                }
+            } else {
+                "No Actions Queued".to_string()
+            };
+
+            (queue_length, current_action_name)
+        }
+        Err(_) => (0, "No Queue".to_string()),
     }
 }
 
@@ -456,6 +497,14 @@ fn update_production_menu_properties(
     template_properties.insert(
         "production_queue_length".to_string(),
         production_menu_data.production_queue_length.to_string(),
+    );
+    template_properties.insert(
+        "action_queue_length".to_string(),
+        production_menu_data.action_queue_length.to_string(),
+    );
+    template_properties.insert(
+        "current_action_name".to_string(),
+        production_menu_data.current_action_name.clone(),
     );
 }
 

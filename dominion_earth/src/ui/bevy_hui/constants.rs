@@ -55,6 +55,8 @@ pub mod ui_properties {
     pub const CURRENT_PRODUCTION_NAME_PROPERTY: &str = "current_production_name";
     pub const CURRENT_PRODUCTION_PROGRESS_PROPERTY: &str = "current_production_progress";
     pub const PRODUCTION_QUEUE_LENGTH_PROPERTY: &str = "production_queue_length";
+    pub const ACTION_QUEUE_LENGTH_PROPERTY: &str = "action_queue_length";
+    pub const CURRENT_ACTION_NAME_PROPERTY: &str = "current_action_name";
     pub const POSITION_X_PROPERTY: &str = "position_x";
     pub const POSITION_Y_PROPERTY: &str = "position_y";
 }

@@ -8,6 +8,8 @@
   <property name="current_production_name">None</property>
   <property name="current_production_progress">0</property>
   <property name="production_queue_length">0</property>
+  <property name="action_queue_length">0</property>
+  <property name="current_action_name">None</property>
 
   <node
     display="{show_production_menu}"
@@ -126,6 +128,19 @@
       </text>
       <text font_size="14" font_color="#cccccc">
         Queue length: {production_queue_length}
+      </text>
+    </node>
+
+    <!-- Action Queue -->
+    <node margin="0 0 15px 0" flex_direction="column">
+      <text font_size="16" font_color="#ff9900" margin="0 0 10px 0">
+        AI Action Queue:
+      </text>
+      <text font_size="14" font_color="#ffffff" margin="0 0 5px 0">
+        Current Action: {current_action_name}
+      </text>
+      <text font_size="12" font_color="#cccccc">
+        Actions queued: {action_queue_length}
       </text>
     </node>
 
