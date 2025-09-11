@@ -11,6 +11,7 @@ mod unit_assets;
 use crate::constants::{network, window};
 use crate::plugins::{resources::ResourceConfig, DominionEarthPlugins};
 use bevy::prelude::*;
+use bevy::window::MonitorSelection;
 use bevy_brp_extras::BrpExtrasPlugin;
 use clap::Parser;
 
@@ -39,6 +40,7 @@ fn main() {
             primary_window: Some(Window {
                 title: window::TITLE.to_string(),
                 resolution: (window::DEFAULT_WIDTH, window::DEFAULT_HEIGHT).into(),
+                mode: bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Current),
                 ..default()
             }),
             ..default()
