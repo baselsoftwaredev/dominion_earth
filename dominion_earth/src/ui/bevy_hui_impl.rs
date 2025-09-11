@@ -81,318 +81,499 @@ impl UiComponent for HuiComponent {
 
 /// Setup main UI with proper component registration
 fn setup_main_ui(
-    mut cmd: Commands,
-    server: Res<AssetServer>,
-    mut html_comps: HtmlComponents,
-    mut html_funcs: HtmlFunctions,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut html_components: HtmlComponents,
+    mut html_functions: HtmlFunctions,
 ) {
-    // Register function bindings for dynamic updates (following bevy_hui example pattern)
-    html_funcs.register(
+    register_ui_update_functions(&mut html_functions);
+    register_production_order_functions(&mut html_functions);
+    spawn_main_ui_layout_panels(&mut commands, &asset_server);
+    register_html_component_templates(&mut html_components, &asset_server);
+}
+
+/// Register UI update function handlers for dynamic property updates
+fn register_ui_update_functions(html_functions: &mut HtmlFunctions) {
+    register_player_gold_update_function(html_functions);
+    register_turn_update_function(html_functions);
+}
+
+/// Register player gold update function for UI property binding
+fn register_player_gold_update_function(html_functions: &mut HtmlFunctions) {
+    html_functions.register(
         "update_player_gold",
         |In(entity): In<Entity>,
-         mut cmd: Commands,
-         mut template_props: Query<&mut TemplateProperties>,
-         scopes: Query<&TemplateScope>,
-         player_civs: Query<&Civilization, With<core_sim::PlayerControlled>>| {
-            let Ok(scope) = scopes.get(entity) else {
-                return;
-            };
-            let Ok(mut props) = template_props.get_mut(**scope) else {
-                return;
+         mut commands: Commands,
+         mut template_properties: Query<&mut TemplateProperties>,
+         template_scopes: Query<&TemplateScope>,
+         player_civilizations: Query<&Civilization, With<core_sim::PlayerControlled>>| {
+            let scope_entity = match template_scopes.get(entity) {
+                Ok(scope) => **scope,
+                Err(_) => return,
             };
 
-            // Get latest player gold
-            let player_gold = player_civs
-                .iter()
-                .next()
-                .map(|civ| civ.economy.gold as i32)
-                .unwrap_or(0);
+            let mut properties = match template_properties.get_mut(scope_entity) {
+                Ok(props) => props,
+                Err(_) => return,
+            };
 
-            props.insert("player_gold".to_string(), player_gold.to_string());
-            cmd.trigger_targets(CompileContextEvent, **scope);
+            let player_gold_amount = extract_player_gold_amount(&player_civilizations);
+            update_player_gold_property(&mut properties, player_gold_amount);
+            commands.trigger_targets(CompileContextEvent, scope_entity);
         },
     );
+}
 
-    html_funcs.register(
+/// Register turn update function for UI property binding
+fn register_turn_update_function(html_functions: &mut HtmlFunctions) {
+    html_functions.register(
         "update_turn",
         |In(entity): In<Entity>,
-         mut cmd: Commands,
-         mut template_props: Query<&mut TemplateProperties>,
-         scopes: Query<&TemplateScope>,
+         mut commands: Commands,
+         mut template_properties: Query<&mut TemplateProperties>,
+         template_scopes: Query<&TemplateScope>,
          current_turn: Res<CurrentTurn>| {
-            let Ok(scope) = scopes.get(entity) else {
-                return;
-            };
-            let Ok(mut props) = template_props.get_mut(**scope) else {
-                return;
+            let scope_entity = match template_scopes.get(entity) {
+                Ok(scope) => **scope,
+                Err(_) => return,
             };
 
-            props.insert("current_turn".to_string(), current_turn.0.to_string());
-            cmd.trigger_targets(CompileContextEvent, **scope);
+            let mut properties = match template_properties.get_mut(scope_entity) {
+                Ok(props) => props,
+                Err(_) => return,
+            };
+
+            update_current_turn_property(&mut properties, current_turn.0);
+            commands.trigger_targets(CompileContextEvent, scope_entity);
         },
     );
+}
 
-    // Register production button functions
-    html_funcs.register(
+/// Register production order function handlers for unit creation
+fn register_production_order_functions(html_functions: &mut HtmlFunctions) {
+    register_infantry_production_function(html_functions);
+    register_archer_production_function(html_functions);
+    register_cavalry_production_function(html_functions);
+}
+
+/// Register infantry production function for UI button binding
+fn register_infantry_production_function(html_functions: &mut HtmlFunctions) {
+    html_functions.register(
         "queue_infantry",
         |In(entity): In<Entity>,
          mut production_orders: EventWriter<PlayerProductionOrder>,
          selected_capital: Res<SelectedCapital>,
-         civs_query: Query<&Civilization>,
+         civilizations_query: Query<&Civilization>,
          debug_logging: Res<DebugLogging>,
-         mut cmd: Commands,
-         mut template_props: Query<&mut TemplateProperties>,
+         mut commands: Commands,
+         mut template_properties: Query<&mut TemplateProperties>,
          ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
-         names: Query<&Name>| {
-            debug_println!(debug_logging, "Infantry button clicked!");
-            if let (Some(capital_entity), Some(civ_entity)) =
-                (selected_capital.capital_entity, selected_capital.civ_entity)
-            {
-                if let Ok(civ) = civs_query.get(civ_entity) {
-                    let infantry_cost =
-                        core_sim::ProductionItem::Unit(core_sim::UnitType::Infantry).gold_cost();
-                    debug_println!(
-                        debug_logging,
-                        "Infantry cost: {}, Player gold: {}",
-                        infantry_cost,
-                        civ.economy.gold
-                    );
-                    if civ.economy.gold >= infantry_cost {
-                        production_orders.write(PlayerProductionOrder {
-                            capital_entity,
-                            civ_entity,
-                            item: core_sim::ProductionItem::Unit(core_sim::UnitType::Infantry),
-                        });
-                        debug_println!(debug_logging, "Infantry production order sent!");
-
-                        // Update UI immediately by finding and updating all relevant panels
-                        let new_gold = civ.economy.gold - infantry_cost;
-                        for ui_entity in ui_entities.iter() {
-                            if let (Ok(mut props), Ok(name)) =
-                                (template_props.get_mut(ui_entity), names.get(ui_entity))
-                            {
-                                let name_str = name.as_str();
-                                if name_str == "top_panel" {
-                                    props.insert("player_gold".to_string(), new_gold.to_string());
-                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
-                                } else if name_str == "left_side_panel" {
-                                    props.insert(
-                                        "civilization_gold".to_string(),
-                                        new_gold.to_string(),
-                                    );
-                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
-                                }
-                            }
-                        }
-                        debug_println!(debug_logging, "UI updated with new gold: {}", new_gold);
-                    } else {
-                        debug_println!(debug_logging, "Insufficient gold for infantry!");
-                    }
-                }
-            } else {
-                debug_println!(
-                    debug_logging,
-                    "No capital selected for infantry production!"
-                );
-            }
+         entity_names: Query<&Name>| {
+            process_unit_production_order(
+                core_sim::UnitType::Infantry,
+                &mut production_orders,
+                &selected_capital,
+                &civilizations_query,
+                &debug_logging,
+                &mut commands,
+                &mut template_properties,
+                &ui_entities,
+                &entity_names,
+            );
         },
     );
+}
 
-    html_funcs.register(
+/// Register archer production function for UI button binding
+fn register_archer_production_function(html_functions: &mut HtmlFunctions) {
+    html_functions.register(
         "queue_archer",
         |In(entity): In<Entity>,
          mut production_orders: EventWriter<PlayerProductionOrder>,
          selected_capital: Res<SelectedCapital>,
-         civs_query: Query<&Civilization>,
+         civilizations_query: Query<&Civilization>,
          debug_logging: Res<DebugLogging>,
-         mut cmd: Commands,
-         mut template_props: Query<&mut TemplateProperties>,
+         mut commands: Commands,
+         mut template_properties: Query<&mut TemplateProperties>,
          ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
-         names: Query<&Name>| {
-            debug_println!(debug_logging, "Archer button clicked!");
-            if let (Some(capital_entity), Some(civ_entity)) =
-                (selected_capital.capital_entity, selected_capital.civ_entity)
-            {
-                if let Ok(civ) = civs_query.get(civ_entity) {
-                    let archer_cost =
-                        core_sim::ProductionItem::Unit(core_sim::UnitType::Archer).gold_cost();
-                    debug_println!(
-                        debug_logging,
-                        "Archer cost: {}, Player gold: {}",
-                        archer_cost,
-                        civ.economy.gold
-                    );
-                    if civ.economy.gold >= archer_cost {
-                        production_orders.write(PlayerProductionOrder {
-                            capital_entity,
-                            civ_entity,
-                            item: core_sim::ProductionItem::Unit(core_sim::UnitType::Archer),
-                        });
-                        debug_println!(debug_logging, "Archer production order sent!");
-
-                        // Update UI immediately by finding and updating all relevant panels
-                        let new_gold = civ.economy.gold - archer_cost;
-                        for ui_entity in ui_entities.iter() {
-                            if let (Ok(mut props), Ok(name)) =
-                                (template_props.get_mut(ui_entity), names.get(ui_entity))
-                            {
-                                let name_str = name.as_str();
-                                if name_str == "top_panel" {
-                                    props.insert("player_gold".to_string(), new_gold.to_string());
-                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
-                                } else if name_str == "left_side_panel" {
-                                    props.insert(
-                                        "civilization_gold".to_string(),
-                                        new_gold.to_string(),
-                                    );
-                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
-                                }
-                            }
-                        }
-                        debug_println!(debug_logging, "UI updated with new gold: {}", new_gold);
-                    } else {
-                        debug_println!(debug_logging, "Insufficient gold for archer!");
-                    }
-                }
-            } else {
-                debug_println!(debug_logging, "No capital selected for archer production!");
-            }
+         entity_names: Query<&Name>| {
+            process_unit_production_order(
+                core_sim::UnitType::Archer,
+                &mut production_orders,
+                &selected_capital,
+                &civilizations_query,
+                &debug_logging,
+                &mut commands,
+                &mut template_properties,
+                &ui_entities,
+                &entity_names,
+            );
         },
     );
+}
 
-    html_funcs.register(
+/// Register cavalry production function for UI button binding  
+fn register_cavalry_production_function(html_functions: &mut HtmlFunctions) {
+    html_functions.register(
         "queue_cavalry",
         |In(entity): In<Entity>,
          mut production_orders: EventWriter<PlayerProductionOrder>,
          selected_capital: Res<SelectedCapital>,
-         civs_query: Query<&Civilization>,
+         civilizations_query: Query<&Civilization>,
          debug_logging: Res<DebugLogging>,
-         mut cmd: Commands,
-         mut template_props: Query<&mut TemplateProperties>,
+         mut commands: Commands,
+         mut template_properties: Query<&mut TemplateProperties>,
          ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
-         names: Query<&Name>| {
-            debug_println!(debug_logging, "Cavalry button clicked!");
-            if let (Some(capital_entity), Some(civ_entity)) =
-                (selected_capital.capital_entity, selected_capital.civ_entity)
-            {
-                if let Ok(civ) = civs_query.get(civ_entity) {
-                    let cavalry_cost =
-                        core_sim::ProductionItem::Unit(core_sim::UnitType::Cavalry).gold_cost();
-                    debug_println!(
-                        debug_logging,
-                        "Cavalry cost: {}, Player gold: {}",
-                        cavalry_cost,
-                        civ.economy.gold
-                    );
-                    if civ.economy.gold >= cavalry_cost {
-                        production_orders.write(PlayerProductionOrder {
-                            capital_entity,
-                            civ_entity,
-                            item: core_sim::ProductionItem::Unit(core_sim::UnitType::Cavalry),
-                        });
-                        debug_println!(debug_logging, "Cavalry production order sent!");
-
-                        // Update UI immediately by finding and updating all relevant panels
-                        let new_gold = civ.economy.gold - cavalry_cost;
-                        for ui_entity in ui_entities.iter() {
-                            if let (Ok(mut props), Ok(name)) =
-                                (template_props.get_mut(ui_entity), names.get(ui_entity))
-                            {
-                                let name_str = name.as_str();
-                                if name_str == "top_panel" {
-                                    props.insert("player_gold".to_string(), new_gold.to_string());
-                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
-                                } else if name_str == "left_side_panel" {
-                                    props.insert(
-                                        "civilization_gold".to_string(),
-                                        new_gold.to_string(),
-                                    );
-                                    cmd.trigger_targets(CompileContextEvent, ui_entity);
-                                }
-                            }
-                        }
-                        debug_println!(debug_logging, "UI updated with new gold: {}", new_gold);
-                    } else {
-                        debug_println!(debug_logging, "Insufficient gold for cavalry!");
-                    }
-                }
-            } else {
-                debug_println!(debug_logging, "No capital selected for cavalry production!");
-            }
+         entity_names: Query<&Name>| {
+            process_unit_production_order(
+                core_sim::UnitType::Cavalry,
+                &mut production_orders,
+                &selected_capital,
+                &civilizations_query,
+                &debug_logging,
+                &mut commands,
+                &mut template_properties,
+                &ui_entities,
+                &entity_names,
+            );
         },
     );
+}
 
-    // Spawn main UI layout
-    cmd.spawn((
-        HtmlNode(server.load("ui/top_panel.html")),
-        Name::new("top_panel"),
+/// Spawn main UI layout panels with initial properties
+fn spawn_main_ui_layout_panels(commands: &mut Commands, asset_server: &AssetServer) {
+    spawn_top_panel(commands, asset_server);
+    spawn_right_side_panel(commands, asset_server);
+    spawn_left_side_panel(commands, asset_server);
+}
+
+/// Spawn top panel with game information display
+fn spawn_top_panel(commands: &mut Commands, asset_server: &AssetServer) {
+    commands.spawn((
+        HtmlNode(asset_server.load(constants::ui_templates::TOP_PANEL_PATH)),
+        Name::new(constants::ui_component_names::TOP_PANEL_NAME),
         TemplateProperties::default()
-            .with("game_title", "Dominion Earth")
-            .with("current_turn", "1")
-            .with("player_gold", "0")
-            .with("player_production", "0"),
+            .with(
+                constants::ui_properties::GAME_TITLE_PROPERTY,
+                "Dominion Earth",
+            )
+            .with(
+                constants::ui_properties::CURRENT_TURN_PROPERTY,
+                constants::ui_initial_values::INITIAL_TURN_VALUE,
+            )
+            .with(
+                constants::ui_properties::PLAYER_GOLD_PROPERTY,
+                constants::ui_initial_values::INITIAL_GOLD_VALUE,
+            )
+            .with(
+                constants::ui_properties::PLAYER_PRODUCTION_PROPERTY,
+                constants::ui_initial_values::INITIAL_PRODUCTION_VALUE,
+            ),
     ));
+}
 
-    cmd.spawn((
-        HtmlNode(server.load("ui/right_side_panel.html")),
-        Name::new("right_side_panel"),
+/// Spawn right side panel with terrain and civilization information
+fn spawn_right_side_panel(commands: &mut Commands, asset_server: &AssetServer) {
+    commands.spawn((
+        HtmlNode(asset_server.load(constants::ui_templates::RIGHT_SIDE_PANEL_PATH)),
+        Name::new(constants::ui_component_names::RIGHT_SIDE_PANEL_NAME),
         TemplateProperties::default()
-            .with("current_turn", "1")
-            .with("terrain_land_count", "0")
-            .with("terrain_water_count", "0")
-            .with("terrain_mountain_count", "0")
-            .with("selected_position", "None")
-            .with("selected_terrain", "None")
-            .with("civilizations_list", "Loading…"),
+            .with(
+                constants::ui_properties::CURRENT_TURN_PROPERTY,
+                constants::ui_initial_values::INITIAL_TURN_VALUE,
+            )
+            .with(
+                "terrain_land_count",
+                constants::ui_initial_values::INITIAL_TERRAIN_COUNT_VALUE,
+            )
+            .with(
+                "terrain_water_count",
+                constants::ui_initial_values::INITIAL_TERRAIN_COUNT_VALUE,
+            )
+            .with(
+                "terrain_mountain_count",
+                constants::ui_initial_values::INITIAL_TERRAIN_COUNT_VALUE,
+            )
+            .with(
+                "selected_position",
+                constants::ui_update::POSITION_NONE_TEXT,
+            )
+            .with("selected_terrain", constants::ui_update::TERRAIN_NONE_TEXT)
+            .with(
+                "civilizations_list",
+                constants::ui_initial_values::LOADING_CIVILIZATIONS_MESSAGE,
+            ),
     ));
+}
 
-    cmd.spawn((
-        HtmlNode(server.load("ui/left_side_panel.html")),
-        Name::new("left_side_panel"),
+/// Spawn left side panel with production and capital information
+fn spawn_left_side_panel(commands: &mut Commands, asset_server: &AssetServer) {
+    commands.spawn((
+        HtmlNode(asset_server.load(constants::ui_templates::LEFT_SIDE_PANEL_PATH)),
+        Name::new(constants::ui_component_names::LEFT_SIDE_PANEL_NAME),
         TemplateProperties::default()
-            .with("show_production_menu", "none")
-            .with("capital_name", "Unknown Capital")
-            .with("civilization_name", "Unknown Civilization")
-            .with("civilization_gold", "0")
-            .with("civilization_production", "0")
-            .with("current_production_name", "None")
-            .with("current_production_progress", "0")
-            .with("production_queue_length", "0"),
+            .with(
+                constants::ui_properties::SHOW_PRODUCTION_MENU_PROPERTY,
+                constants::ui_initial_values::MENU_DISPLAY_NONE_VALUE,
+            )
+            .with(
+                constants::ui_properties::CAPITAL_NAME_PROPERTY,
+                constants::ui_update::UNKNOWN_CAPITAL_NAME,
+            )
+            .with(
+                constants::ui_properties::CIVILIZATION_NAME_PROPERTY,
+                constants::ui_update::UNKNOWN_CIVILIZATION_NAME,
+            )
+            .with(
+                constants::ui_properties::CIVILIZATION_GOLD_PROPERTY,
+                constants::ui_initial_values::INITIAL_GOLD_VALUE,
+            )
+            .with(
+                constants::ui_properties::CIVILIZATION_PRODUCTION_PROPERTY,
+                constants::ui_initial_values::INITIAL_PRODUCTION_VALUE,
+            )
+            .with(
+                constants::ui_properties::CURRENT_PRODUCTION_NAME_PROPERTY,
+                constants::ui_update::NO_PRODUCTION_NAME,
+            )
+            .with(
+                constants::ui_properties::CURRENT_PRODUCTION_PROGRESS_PROPERTY,
+                constants::ui_initial_values::INITIAL_PRODUCTION_VALUE,
+            )
+            .with(
+                constants::ui_properties::PRODUCTION_QUEUE_LENGTH_PROPERTY,
+                constants::ui_initial_values::INITIAL_PRODUCTION_VALUE,
+            ),
     ));
+}
 
-    // Register custom components first
-    html_comps.register(
-        "left_side_top",
-        server.load("ui/components/top_panel/left_side_top.html"),
+/// Register HTML component templates for dynamic UI elements
+fn register_html_component_templates(
+    html_components: &mut HtmlComponents,
+    asset_server: &AssetServer,
+) {
+    register_panel_component_templates(html_components, asset_server);
+    register_utility_component_templates(html_components, asset_server);
+}
+
+/// Register main panel component templates
+fn register_panel_component_templates(
+    html_components: &mut HtmlComponents,
+    asset_server: &AssetServer,
+) {
+    html_components.register(
+        constants::ui_component_names::LEFT_SIDE_TOP_NAME,
+        asset_server.load(constants::ui_templates::LEFT_SIDE_TOP_PATH),
     );
-    html_comps.register(
-        "game_panel",
-        server.load("ui/components/left_side_panel/game_panel.html"),
+    html_components.register(
+        constants::ui_component_names::GAME_PANEL_NAME,
+        asset_server.load(constants::ui_templates::GAME_PANEL_PATH),
     );
-    html_comps.register(
-        "production_menu",
-        server.load("ui/components/right_side_panel/production_menu.html"),
+    html_components.register(
+        constants::ui_component_names::PRODUCTION_MENU_NAME,
+        asset_server.load(constants::ui_templates::PRODUCTION_MENU_PATH),
     );
-    html_comps.register(
-        "statistics_panel",
-        server.load("ui/components/left_side_panel/statistics_panel.html"),
+    html_components.register(
+        constants::ui_component_names::STATISTICS_PANEL_NAME,
+        asset_server.load(constants::ui_templates::STATISTICS_PANEL_PATH),
     );
-    html_comps.register(
-        "tile_info",
-        server.load("ui/components/right_side_panel/tile_info.html"),
+}
+
+/// Register utility component templates for information display
+fn register_utility_component_templates(
+    html_components: &mut HtmlComponents,
+    asset_server: &AssetServer,
+) {
+    html_components.register(
+        constants::ui_component_names::TILE_INFO_NAME,
+        asset_server.load(constants::ui_templates::TILE_INFO_PATH),
     );
-    html_comps.register(
-        "civilizations_list",
-        server.load("ui/components/right_side_panel/civilizations_list.html"),
+    html_components.register(
+        constants::ui_component_names::CIVILIZATIONS_LIST_NAME,
+        asset_server.load(constants::ui_templates::CIVILIZATIONS_LIST_PATH),
     );
-    html_comps.register(
-        "minimap",
-        server.load("ui/components/right_side_panel/minimap.html"),
+    html_components.register(
+        constants::ui_component_names::MINIMAP_NAME,
+        asset_server.load(constants::ui_templates::MINIMAP_PATH),
     );
-    html_comps.register(
-        "capital_label",
-        server.load("ui/components/capital_label.html"),
+    html_components.register(
+        constants::ui_component_names::CAPITAL_LABEL_NAME,
+        asset_server.load(constants::ui_templates::CAPITAL_LABEL_PATH),
     );
+}
+
+/// Extract player gold amount from civilization query
+fn extract_player_gold_amount(
+    player_civilizations: &Query<&Civilization, With<core_sim::PlayerControlled>>,
+) -> i32 {
+    player_civilizations
+        .iter()
+        .next()
+        .map(|civilization| civilization.economy.gold as i32)
+        .unwrap_or(constants::ui_initial_values::HTML_FUNCTION_ENTITY_RAW_VALUE as i32)
+}
+
+/// Update player gold property in template properties
+fn update_player_gold_property(template_properties: &mut TemplateProperties, gold_amount: i32) {
+    template_properties.insert(
+        constants::ui_properties::PLAYER_GOLD_PROPERTY.to_string(),
+        gold_amount.to_string(),
+    );
+}
+
+/// Update current turn property in template properties
+fn update_current_turn_property(template_properties: &mut TemplateProperties, turn_number: u32) {
+    template_properties.insert(
+        constants::ui_properties::CURRENT_TURN_PROPERTY.to_string(),
+        turn_number.to_string(),
+    );
+}
+
+/// Process unit production order with unified logic for all unit types
+fn process_unit_production_order(
+    unit_type: core_sim::UnitType,
+    production_orders: &mut EventWriter<PlayerProductionOrder>,
+    selected_capital: &SelectedCapital,
+    civilizations_query: &Query<&Civilization>,
+    debug_logging: &DebugLogging,
+    commands: &mut Commands,
+    template_properties: &mut Query<&mut TemplateProperties>,
+    ui_entities: &Query<Entity, (With<TemplateProperties>, With<Name>)>,
+    entity_names: &Query<&Name>,
+) {
+    let unit_type_name = format!("{:?}", unit_type);
+    debug_println!(debug_logging, "{} button clicked!", unit_type_name);
+
+    let (capital_entity, civilization_entity) =
+        match extract_selected_capital_entities(selected_capital, debug_logging, &unit_type_name) {
+            Some(entities) => entities,
+            None => return,
+        };
+
+    let civilization = match civilizations_query.get(civilization_entity) {
+        Ok(civ) => civ,
+        Err(_) => return,
+    };
+
+    let unit_production_item = core_sim::ProductionItem::Unit(unit_type);
+    let unit_cost = unit_production_item.gold_cost();
+
+    debug_println!(
+        debug_logging,
+        "{} cost: {}, Player gold: {}",
+        unit_type_name,
+        unit_cost,
+        civilization.economy.gold
+    );
+
+    if civilization.economy.gold >= unit_cost {
+        send_production_order(
+            production_orders,
+            capital_entity,
+            civilization_entity,
+            unit_production_item,
+        );
+        debug_println!(debug_logging, "{} production order sent!", unit_type_name);
+
+        let updated_gold_amount = (civilization.economy.gold - unit_cost) as u32;
+        update_ui_panels_with_new_gold(
+            commands,
+            template_properties,
+            ui_entities,
+            entity_names,
+            updated_gold_amount,
+        );
+        debug_println!(
+            debug_logging,
+            "UI updated with new gold: {}",
+            updated_gold_amount
+        );
+    } else {
+        debug_println!(
+            debug_logging,
+            "Insufficient gold for {}!",
+            unit_type_name.to_lowercase()
+        );
+    }
+}
+
+/// Extract selected capital entities with validation
+fn extract_selected_capital_entities(
+    selected_capital: &SelectedCapital,
+    debug_logging: &DebugLogging,
+    unit_type_name: &str,
+) -> Option<(Entity, Entity)> {
+    match (selected_capital.capital_entity, selected_capital.civ_entity) {
+        (Some(capital_entity), Some(civ_entity)) => Some((capital_entity, civ_entity)),
+        _ => {
+            debug_println!(
+                debug_logging,
+                "No capital selected for {} production!",
+                unit_type_name.to_lowercase()
+            );
+            None
+        }
+    }
+}
+
+/// Send production order to event writer
+fn send_production_order(
+    production_orders: &mut EventWriter<PlayerProductionOrder>,
+    capital_entity: Entity,
+    civilization_entity: Entity,
+    production_item: core_sim::ProductionItem,
+) {
+    production_orders.write(PlayerProductionOrder {
+        capital_entity,
+        civ_entity: civilization_entity,
+        item: production_item,
+    });
+}
+
+/// Update UI panels with new gold amount after production order
+fn update_ui_panels_with_new_gold(
+    commands: &mut Commands,
+    template_properties: &mut Query<&mut TemplateProperties>,
+    ui_entities: &Query<Entity, (With<TemplateProperties>, With<Name>)>,
+    entity_names: &Query<&Name>,
+    new_gold_amount: u32,
+) {
+    for ui_entity in ui_entities.iter() {
+        let (mut properties, entity_name) = match (
+            template_properties.get_mut(ui_entity),
+            entity_names.get(ui_entity),
+        ) {
+            (Ok(props), Ok(name)) => (props, name),
+            _ => continue,
+        };
+
+        let entity_name_string = entity_name.as_str();
+        update_panel_gold_property_by_name(&mut properties, entity_name_string, new_gold_amount);
+        commands.trigger_targets(CompileContextEvent, ui_entity);
+    }
+}
+
+/// Update gold property based on panel name
+fn update_panel_gold_property_by_name(
+    template_properties: &mut TemplateProperties,
+    panel_name: &str,
+    gold_amount: u32,
+) {
+    match panel_name {
+        constants::ui_component_names::TOP_PANEL_NAME => {
+            template_properties.insert(
+                constants::ui_properties::PLAYER_GOLD_PROPERTY.to_string(),
+                gold_amount.to_string(),
+            );
+        }
+        constants::ui_component_names::LEFT_SIDE_PANEL_NAME => {
+            template_properties.insert(
+                constants::ui_properties::CIVILIZATION_GOLD_PROPERTY.to_string(),
+                gold_amount.to_string(),
+            );
+        }
+        _ => {}
+    }
 }
 
 mod constants {
@@ -411,6 +592,83 @@ mod constants {
         pub const PLAYER_CIVILIZATION_TYPE: &str = "Player";
         pub const AI_CIVILIZATION_TYPE: &str = "AI";
         pub const PERCENTAGE_MULTIPLIER: f32 = 100.0;
+    }
+
+    pub mod ui_templates {
+        pub const TOP_PANEL_PATH: &str = "ui/top_panel.html";
+        pub const RIGHT_SIDE_PANEL_PATH: &str = "ui/right_side_panel.html";
+        pub const LEFT_SIDE_PANEL_PATH: &str = "ui/left_side_panel.html";
+        pub const CAPITAL_LABEL_PATH: &str = "ui/components/capital_label.html";
+        pub const LEFT_SIDE_TOP_PATH: &str = "ui/components/top_panel/left_side_top.html";
+        pub const GAME_PANEL_PATH: &str = "ui/components/left_side_panel/game_panel.html";
+        pub const PRODUCTION_MENU_PATH: &str =
+            "ui/components/right_side_panel/production_menu.html";
+        pub const STATISTICS_PANEL_PATH: &str =
+            "ui/components/left_side_panel/statistics_panel.html";
+        pub const TILE_INFO_PATH: &str = "ui/components/right_side_panel/tile_info.html";
+        pub const CIVILIZATIONS_LIST_PATH: &str =
+            "ui/components/right_side_panel/civilizations_list.html";
+        pub const MINIMAP_PATH: &str = "ui/components/right_side_panel/minimap.html";
+    }
+
+    pub mod ui_component_names {
+        pub const TOP_PANEL_NAME: &str = "top_panel";
+        pub const RIGHT_SIDE_PANEL_NAME: &str = "right_side_panel";
+        pub const LEFT_SIDE_PANEL_NAME: &str = "left_side_panel";
+        pub const CAPITAL_LABEL_NAME: &str = "capital_label";
+        pub const LEFT_SIDE_TOP_NAME: &str = "left_side_top";
+        pub const GAME_PANEL_NAME: &str = "game_panel";
+        pub const PRODUCTION_MENU_NAME: &str = "production_menu";
+        pub const STATISTICS_PANEL_NAME: &str = "statistics_panel";
+        pub const TILE_INFO_NAME: &str = "tile_info";
+        pub const CIVILIZATIONS_LIST_NAME: &str = "civilizations_list";
+        pub const MINIMAP_NAME: &str = "minimap";
+    }
+
+    pub mod ui_properties {
+        pub const GAME_TITLE_PROPERTY: &str = "game_title";
+        pub const CURRENT_TURN_PROPERTY: &str = "current_turn";
+        pub const PLAYER_GOLD_PROPERTY: &str = "player_gold";
+        pub const PLAYER_PRODUCTION_PROPERTY: &str = "player_production";
+        pub const SHOW_PRODUCTION_MENU_PROPERTY: &str = "show_production_menu";
+        pub const CAPITAL_NAME_PROPERTY: &str = "capital_name";
+        pub const CIVILIZATION_NAME_PROPERTY: &str = "civilization_name";
+        pub const CIVILIZATION_GOLD_PROPERTY: &str = "civilization_gold";
+        pub const CIVILIZATION_PRODUCTION_PROPERTY: &str = "civilization_production";
+        pub const CURRENT_PRODUCTION_NAME_PROPERTY: &str = "current_production_name";
+        pub const CURRENT_PRODUCTION_PROGRESS_PROPERTY: &str = "current_production_progress";
+        pub const PRODUCTION_QUEUE_LENGTH_PROPERTY: &str = "production_queue_length";
+        pub const POSITION_X_PROPERTY: &str = "position_x";
+        pub const POSITION_Y_PROPERTY: &str = "position_y";
+    }
+
+    pub mod ui_initial_values {
+        pub const INITIAL_TURN_VALUE: &str = "1";
+        pub const INITIAL_GOLD_VALUE: &str = "0";
+        pub const INITIAL_PRODUCTION_VALUE: &str = "0";
+        pub const INITIAL_TERRAIN_COUNT_VALUE: &str = "0";
+        pub const LOADING_CIVILIZATIONS_MESSAGE: &str = "Loading…";
+        pub const MENU_DISPLAY_NONE_VALUE: &str = "none";
+        pub const DEFAULT_CAPITAL_NAME_FALLBACK: &str = "Capital";
+        pub const HTML_FUNCTION_ENTITY_RAW_VALUE: u32 = 0;
+    }
+
+    pub mod capital_labels {
+        pub const LABEL_VERTICAL_OFFSET: f32 = 40.0;
+        pub const DEFAULT_CAPITAL_NAME: &str = "Capital";
+        pub const CAPITAL_LABEL_COMPONENT_NAME: &str = "capital_label";
+        pub const CAPITAL_LABEL_TEMPLATE_PATH: &str = "ui/components/capital_label.html";
+        pub const CAPITAL_NAME_PROPERTY_KEY: &str = "capital_name";
+        pub const POSITION_X_PROPERTY_KEY: &str = "position_x";
+        pub const POSITION_Y_PROPERTY_KEY: &str = "position_y";
+        pub const DEBUG_CAPITAL_PROCESSING_MESSAGE: &str = "Processing NEW capital at position";
+        pub const DEBUG_CAPITAL_NAME_FOUND_MESSAGE: &str = "Found capital name";
+        pub const DEBUG_NO_CITY_COMPONENT_MESSAGE: &str =
+            "No city component found, using default name";
+        pub const DEBUG_SPAWNING_LABEL_MESSAGE: &str = "Spawning capital label";
+        pub const DEBUG_NO_TILEMAP_MESSAGE: &str = "No tilemap found for capital labels";
+        pub const DEBUG_SPAWN_SYSTEM_RUNNING_MESSAGE: &str = "spawn_capital_labels system running";
+        pub const DEBUG_FOUND_CAPITALS_MESSAGE: &str = "Found {} capitals for label spawning";
     }
 }
 
@@ -913,102 +1171,206 @@ pub struct CapitalLabel {
 
 /// System to spawn capital labels over capital tiles
 pub fn spawn_capital_labels(
-    mut commands: Commands,
-    server: Res<AssetServer>,
-    capitals_query: Query<(Entity, &Capital, &Position), (With<City>, Without<CapitalLabel>)>,
-    cities_query: Query<&City>,
-    tilemap_query: Query<(
+    mut commands_for_spawning: Commands,
+    asset_server: Res<AssetServer>,
+    capitals_requiring_labels: Query<
+        (Entity, &Capital, &Position),
+        (With<City>, Without<CapitalLabel>),
+    >,
+    cities_with_names: Query<&City>,
+    tilemap_for_coordinate_conversion: Query<(
         &TilemapSize,
         &TilemapTileSize,
         &TilemapGridSize,
         &TilemapType,
         &TilemapAnchor,
     )>,
-    existing_labels: Query<&CapitalLabel>,
+    existing_capital_labels: Query<&CapitalLabel>,
     debug_logging: Res<DebugLogging>,
 ) {
     debug_println!(debug_logging, "DEBUG: spawn_capital_labels system running");
 
-    // Get tilemap info for position conversion
-    let Ok((tilemap_size, tile_size, grid_size, map_type, anchor)) = tilemap_query.single() else {
-        debug_println!(debug_logging, "DEBUG: No tilemap found for capital labels");
-        return;
+    let tilemap_data = match extract_tilemap_information_for_coordinate_conversion(
+        &tilemap_for_coordinate_conversion,
+        &debug_logging,
+    ) {
+        Some(data) => data,
+        None => return,
     };
 
     debug_println!(
         debug_logging,
         "DEBUG: Found {} capitals for label spawning",
-        capitals_query.iter().count()
+        capitals_requiring_labels.iter().count()
     );
 
-    for (capital_entity, _capital, position) in capitals_query.iter() {
-        // Check if a label already exists for this capital
-        let label_exists = existing_labels
-            .iter()
-            .any(|label| label.capital_entity == capital_entity);
-        if label_exists {
+    for (capital_entity, _capital_component, capital_position) in capitals_requiring_labels.iter() {
+        if capital_label_already_exists_for_entity(capital_entity, &existing_capital_labels) {
             continue;
         }
 
         debug_println!(
             debug_logging,
             "DEBUG: Processing NEW capital at position ({}, {})",
-            position.x,
-            position.y
+            capital_position.x,
+            capital_position.y
         );
 
-        // Get the capital name from the City component
-        let capital_name = if let Ok(city) = cities_query.get(capital_entity) {
+        let capital_display_name = extract_capital_display_name_from_city_component(
+            capital_entity,
+            &cities_with_names,
+            &debug_logging,
+        );
+
+        let label_world_coordinates =
+            calculate_capital_label_world_position(capital_position, &tilemap_data);
+
+        spawn_single_capital_label_entity(
+            &mut commands_for_spawning,
+            &asset_server,
+            capital_entity,
+            &capital_display_name,
+            &label_world_coordinates,
+            &debug_logging,
+        );
+    }
+}
+
+struct TilemapCoordinateData {
+    tilemap_size: TilemapSize,
+    tile_size: TilemapTileSize,
+    grid_size: TilemapGridSize,
+    map_type: TilemapType,
+    anchor: TilemapAnchor,
+}
+
+struct LabelWorldCoordinates {
+    x: f32,
+    y: f32,
+}
+
+fn extract_tilemap_information_for_coordinate_conversion(
+    tilemap_query: &Query<(
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    debug_logging: &DebugLogging,
+) -> Option<TilemapCoordinateData> {
+    match tilemap_query.single() {
+        Ok((tilemap_size, tile_size, grid_size, map_type, anchor)) => Some(TilemapCoordinateData {
+            tilemap_size: *tilemap_size,
+            tile_size: *tile_size,
+            grid_size: *grid_size,
+            map_type: *map_type,
+            anchor: *anchor,
+        }),
+        Err(_) => {
+            debug_println!(debug_logging, "DEBUG: No tilemap found for capital labels");
+            None
+        }
+    }
+}
+
+fn capital_label_already_exists_for_entity(
+    capital_entity: Entity,
+    existing_labels: &Query<&CapitalLabel>,
+) -> bool {
+    existing_labels
+        .iter()
+        .any(|label| label.capital_entity == capital_entity)
+}
+
+fn extract_capital_display_name_from_city_component(
+    capital_entity: Entity,
+    cities_query: &Query<&City>,
+    debug_logging: &DebugLogging,
+) -> String {
+    match cities_query.get(capital_entity) {
+        Ok(city) => {
             debug_println!(debug_logging, "DEBUG: Found capital name: {}", city.name);
             city.name.clone()
-        } else {
+        }
+        Err(_) => {
             debug_println!(
                 debug_logging,
                 "DEBUG: No city component found, using default name"
             );
-            "Capital".to_string()
-        };
-
-        // Convert tile position to world position
-        let tile_pos = TilePos {
-            x: position.x as u32,
-            y: position.y as u32,
-        };
-
-        let world_pos =
-            tile_pos.center_in_world(tilemap_size, grid_size, tile_size, map_type, anchor);
-
-        // Offset the label to appear above the capital tile
-        let label_x = world_pos.x;
-        let label_y = world_pos.y + 40.0; // Position above the tile
-
-        debug_println!(
-            debug_logging,
-            "DEBUG: Spawning capital label '{}' at world position ({}, {})",
-            capital_name,
-            label_x,
-            label_y
-        );
-
-        // Spawn the capital label using bevy_hui
-        commands.spawn((
-            HtmlNode(server.load("ui/components/capital_label.html")),
-            TemplateProperties::default()
-                .with("capital_name", &capital_name)
-                .with("position_x", &label_x.to_string())
-                .with("position_y", &label_y.to_string()),
-            CapitalLabel { capital_entity },
-            Name::new("capital_label"),
-        ));
+            constants::capital_labels::DEFAULT_CAPITAL_NAME.to_string()
+        }
     }
+}
+
+fn calculate_capital_label_world_position(
+    capital_position: &Position,
+    tilemap_data: &TilemapCoordinateData,
+) -> LabelWorldCoordinates {
+    let tile_position = TilePos {
+        x: capital_position.x as u32,
+        y: capital_position.y as u32,
+    };
+
+    let world_position = tile_position.center_in_world(
+        &tilemap_data.tilemap_size,
+        &tilemap_data.grid_size,
+        &tilemap_data.tile_size,
+        &tilemap_data.map_type,
+        &tilemap_data.anchor,
+    );
+
+    LabelWorldCoordinates {
+        x: world_position.x,
+        y: world_position.y + constants::capital_labels::LABEL_VERTICAL_OFFSET,
+    }
+}
+
+fn spawn_single_capital_label_entity(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    capital_entity: Entity,
+    capital_name: &str,
+    world_coordinates: &LabelWorldCoordinates,
+    debug_logging: &DebugLogging,
+) {
+    debug_println!(
+        debug_logging,
+        "DEBUG: Spawning capital label '{}' at world position ({}, {})",
+        capital_name,
+        world_coordinates.x,
+        world_coordinates.y
+    );
+
+    commands.spawn((
+        HtmlNode(asset_server.load(constants::capital_labels::CAPITAL_LABEL_TEMPLATE_PATH)),
+        TemplateProperties::default()
+            .with(
+                constants::capital_labels::CAPITAL_NAME_PROPERTY_KEY,
+                capital_name,
+            )
+            .with(
+                constants::capital_labels::POSITION_X_PROPERTY_KEY,
+                &world_coordinates.x.to_string(),
+            )
+            .with(
+                constants::capital_labels::POSITION_Y_PROPERTY_KEY,
+                &world_coordinates.y.to_string(),
+            ),
+        CapitalLabel { capital_entity },
+        Name::new(constants::capital_labels::CAPITAL_LABEL_COMPONENT_NAME),
+    ));
 }
 
 /// System to update capital label positions when needed
 pub fn update_capital_labels(
-    mut labels_query: Query<(&CapitalLabel, &mut TemplateProperties), Changed<Position>>,
-    capitals_query: Query<&Position, With<Capital>>,
-    cities_query: Query<&City, Changed<City>>,
-    tilemap_query: Query<(
+    mut capital_labels_requiring_updates: Query<
+        (&CapitalLabel, &mut TemplateProperties),
+        Changed<Position>,
+    >,
+    capital_positions: Query<&Position, With<Capital>>,
+    capital_city_names: Query<&City, Changed<City>>,
+    tilemap_for_coordinate_conversion: Query<(
         &TilemapSize,
         &TilemapTileSize,
         &TilemapGridSize,
@@ -1016,35 +1378,60 @@ pub fn update_capital_labels(
         &TilemapAnchor,
     )>,
 ) {
-    // Get tilemap info for position conversion
-    let Ok((tilemap_size, tile_size, grid_size, map_type, anchor)) = tilemap_query.single() else {
-        return;
+    let tilemap_data = match extract_tilemap_information_for_coordinate_conversion(
+        &tilemap_for_coordinate_conversion,
+        &DebugLogging(false),
+    ) {
+        Some(data) => data,
+        None => return,
     };
 
-    for (label, mut properties) in labels_query.iter_mut() {
-        let mut needs_update = false;
+    for (capital_label, mut template_properties) in capital_labels_requiring_updates.iter_mut() {
+        update_capital_label_position_if_changed(
+            capital_label,
+            &mut template_properties,
+            &capital_positions,
+            &tilemap_data,
+        );
 
-        // Update position if capital moved
-        if let Ok(position) = capitals_query.get(label.capital_entity) {
-            let tile_pos = TilePos {
-                x: position.x as u32,
-                y: position.y as u32,
-            };
+        update_capital_label_name_if_changed(
+            capital_label,
+            &mut template_properties,
+            &capital_city_names,
+        );
+    }
+}
 
-            let world_pos =
-                tile_pos.center_in_world(tilemap_size, grid_size, tile_size, map_type, anchor);
-            let label_x = world_pos.x;
-            let label_y = world_pos.y + 40.0;
+fn update_capital_label_position_if_changed(
+    capital_label: &CapitalLabel,
+    template_properties: &mut TemplateProperties,
+    capital_positions: &Query<&Position, With<Capital>>,
+    tilemap_data: &TilemapCoordinateData,
+) {
+    if let Ok(capital_position) = capital_positions.get(capital_label.capital_entity) {
+        let label_world_coordinates =
+            calculate_capital_label_world_position(capital_position, tilemap_data);
 
-            properties.insert("position_x".to_string(), label_x.to_string());
-            properties.insert("position_y".to_string(), label_y.to_string());
-            needs_update = true;
-        }
+        template_properties.insert(
+            constants::capital_labels::POSITION_X_PROPERTY_KEY.to_string(),
+            label_world_coordinates.x.to_string(),
+        );
+        template_properties.insert(
+            constants::capital_labels::POSITION_Y_PROPERTY_KEY.to_string(),
+            label_world_coordinates.y.to_string(),
+        );
+    }
+}
 
-        // Update name if city name changed
-        if let Ok(city) = cities_query.get(label.capital_entity) {
-            properties.insert("capital_name".to_string(), city.name.clone());
-            needs_update = true;
-        }
+fn update_capital_label_name_if_changed(
+    capital_label: &CapitalLabel,
+    template_properties: &mut TemplateProperties,
+    capital_city_names: &Query<&City, Changed<City>>,
+) {
+    if let Ok(city) = capital_city_names.get(capital_label.capital_entity) {
+        template_properties.insert(
+            constants::capital_labels::CAPITAL_NAME_PROPERTY_KEY.to_string(),
+            city.name.clone(),
+        );
     }
 }

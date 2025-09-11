@@ -5,6 +5,7 @@ pub mod constants;
 pub mod resources;
 // pub mod statistics_panel; // Commented out - needs bevy_hui implementation
 // pub mod tile_info; // Commented out - needs bevy_hui implementation
+pub mod bevy_hui;
 pub mod bevy_hui_impl;
 pub mod traits;
 pub mod utilities;
