@@ -70,11 +70,6 @@ pub mod ui_initial_values {
     pub const HTML_FUNCTION_ENTITY_RAW_VALUE: u32 = 0;
 }
 
-pub mod capital_labels {
-    pub const LABEL_VERTICAL_OFFSET: f32 = 40.0;
-    pub const DEFAULT_CAPITAL_NAME: &str = "Capital";
-}
-
 pub mod production_orders {
     pub const UNIT_INFANTRY_TYPE_NAME: &str = "Infantry";
     pub const UNIT_ARCHER_TYPE_NAME: &str = "Archer";
