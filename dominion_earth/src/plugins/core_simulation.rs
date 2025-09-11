@@ -13,6 +13,9 @@ impl Plugin for CoreSimulationPlugin {
             .add_systems(
                 Update,
                 (
+                    // Action Queue Systems (run first)
+                    core_sim::spawn_action_queues_for_new_civilizations,
+                    core_sim::process_civilization_action_queues,
                     // Production and Economy Systems
                     core_sim::initialize_production_queues,
                     core_sim::handle_player_production_orders,

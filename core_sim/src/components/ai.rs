@@ -57,7 +57,7 @@ pub enum AIAction {
     },
     Trade {
         partner: CivId,
-        resource: crate::GameResource,
+        resource: crate::resources::Resource,
         priority: f32,
     },
     Attack {

@@ -51,6 +51,10 @@ pub use debug_utils::CoreDebugUtils;
 
 // Import specific systems to avoid ambiguous glob reexports
 pub use systems::{
+    action_queue::{
+        process_civilization_action_queues, spawn_action_queues_for_new_civilizations,
+        populate_action_queues_from_ai_decisions, log_all_action_queue_status,
+    },
     ai_decision::*,
     combat_resolution::*,
     economic_update::*,
