@@ -101,11 +101,9 @@ pub fn spawn_capital_labels(
 
 /// System to update capital label positions when camera moves
 pub fn update_capital_labels(
-    mut commands: Commands,
+    mut label_style_query: Query<(&mut Node, &CapitalLabel)>,
     camera_query: Query<(&Camera, &GlobalTransform), Changed<GlobalTransform>>,
-    capital_labels_query: Query<(Entity, &CapitalLabel)>,
-    capitals_query: Query<(Entity, &Position, &Capital, &City)>,
-    civilizations_query: Query<&Civilization>,
+    capitals_query: Query<(&Position, &Capital, &City)>,
     tilemap_query: Query<(
         &TilemapSize,
         &TilemapTileSize,
@@ -127,36 +125,27 @@ pub fn update_capital_labels(
         return;
     };
 
-    // Remove all existing labels
-    for (label_entity, _) in capital_labels_query.iter() {
-        commands.entity(label_entity).despawn();
-    }
+    // Update existing label positions instead of recreating them
+    for (mut node_style, capital_label) in label_style_query.iter_mut() {
+        if let Ok((position, _capital, _city)) = capitals_query.get(capital_label.capital_entity) {
+            // Calculate the north neighboring tile position for label placement (like Civilization games)
+            let north_tile_pos = TilePos {
+                x: position.x as u32,
+                y: (position.y + 1) as u32, // Move one tile north (positive Y direction)
+            };
+            let north_world_pos =
+                north_tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
 
-    // Recreate labels with updated positions for all capitals
-    for (capital_entity, position, capital, city) in capitals_query.iter() {
-        let civilization_name = civilizations_query
-            .iter()
-            .find(|civ| civ.id == capital.owner)
-            .map(|civ| civ.name.clone())
-            .unwrap_or_else(|| "Unknown".to_string());
-
-        // Calculate the north neighboring tile position for label placement (like Civilization games)
-        let north_tile_pos = TilePos {
-            x: position.x as u32,
-            y: (position.y + 1) as u32, // Move one tile north (positive Y direction)
-        };
-        let north_world_pos = north_tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
-
-        // Convert north tile world coordinates to screen coordinates for label positioning
-        if let Ok(screen_pos) = camera.world_to_viewport(camera_transform, north_world_pos.extend(0.0)) {
-            spawn_capital_label_ui_node(
-                &mut commands,
-                capital_entity,
-                *position,
-                &city.name,
-                &civilization_name,
-                screen_pos,
-            );
+            // Convert north tile world coordinates to screen coordinates for label positioning
+            if let Ok(screen_pos) =
+                camera.world_to_viewport(camera_transform, north_world_pos.extend(0.0))
+            {
+                // Update the existing label position
+                node_style.left =
+                    Val::Px(screen_pos.x - constants::CAPITAL_LABEL_HORIZONTAL_CENTER_OFFSET);
+                node_style.top =
+                    Val::Px(screen_pos.y + constants::CAPITAL_LABEL_VERTICAL_CENTER_OFFSET);
+            }
         }
     }
 }
