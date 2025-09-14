@@ -1,9 +1,8 @@
-use crate::{
-    City, MilitaryUnit, Position, WorldMap, 
-    Capital, Civilization, PlayerControlled, CivId
-};
-use crate::components::production::{ProductionItem, ProductionQueue, PlayerActionsComplete};
+use crate::components::production::{PlayerActionsComplete, ProductionItem, ProductionQueue};
 use crate::resources::CurrentTurn;
+use crate::{
+    Capital, City, CivId, Civilization, MilitaryUnit, PlayerControlled, Position, WorldMap,
+};
 use bevy::prelude::*;
 
 /// System to process production queues each turn
@@ -55,7 +54,7 @@ fn spawn_completed_production(
         }
         ProductionItem::Building(building_type) => {
             // Add building to city
-                        city.add_building(building_type.clone());
+            city.add_building(building_type.clone());
         }
     }
 }
@@ -99,8 +98,8 @@ pub fn check_player_actions_complete(
     // Player can either:
     // 1. Have no capitals (no production decisions required)
     // 2. Have made production decisions or explicitly skipped
-    player_actions.all_productions_queued = player_capitals.is_empty() || 
-        player_actions.production_decisions_made_this_turn;
+    player_actions.all_productions_queued =
+        player_capitals.is_empty() || player_actions.production_decisions_made_this_turn;
 
     player_actions.update_can_end_turn();
 }
@@ -108,10 +107,7 @@ pub fn check_player_actions_complete(
 /// System to initialize production queues for capitals
 pub fn initialize_production_queues(
     mut commands: Commands,
-    capitals_without_queues: Query<
-        (Entity, &Capital),
-        (With<Capital>, Without<ProductionQueue>),
-    >,
+    capitals_without_queues: Query<(Entity, &Capital), (With<Capital>, Without<ProductionQueue>)>,
 ) {
     for (entity, capital) in capitals_without_queues.iter() {
         commands
@@ -123,25 +119,13 @@ pub fn initialize_production_queues(
 /// System to handle player production orders
 pub fn handle_player_production_orders(
     mut production_orders: EventReader<PlayerProductionOrder>,
-    mut production_queues: Query<&mut ProductionQueue>,
-    mut civilizations: Query<&mut Civilization>,
     mut player_actions: ResMut<PlayerActionsComplete>,
 ) {
-    for order in production_orders.read() {
-        if let Ok(mut queue) = production_queues.get_mut(order.capital_entity) {
-            if let Ok(mut civ) = civilizations.get_mut(order.civ_entity) {
-                let item_cost = order.item.gold_cost();
-                
-                // Check if civilization can afford the item
-                if civ.economy.gold >= item_cost {
-                    civ.economy.gold -= item_cost;
-                    queue.add_to_queue(order.item.clone());
-                    
-                    // Mark that player has made production decisions this turn
-                    player_actions.production_decisions_made_this_turn = true;
-                }
-            }
-        }
+    for _order in production_orders.read() {
+        // Mark that player has made production decisions this turn
+        // Note: The actual order processing (gold deduction and queue addition)
+        // is now handled directly in the UI for immediate feedback
+        player_actions.production_decisions_made_this_turn = true;
     }
 }
 
@@ -175,7 +159,7 @@ pub fn reset_unit_movement(
     for mut unit in units.iter_mut() {
         unit.reset_movement();
     }
-    
+
     // Reset player actions tracking
     player_actions.reset();
 }

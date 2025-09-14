@@ -78,7 +78,8 @@ impl ProductionQueue {
     }
 
     pub fn queue_length(&self) -> usize {
-        self.queue.len()
+        let current_count = if self.current_production.is_some() { 1 } else { 0 };
+        current_count + self.queue.len()
     }
 }
 

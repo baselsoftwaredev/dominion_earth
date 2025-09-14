@@ -205,3 +205,16 @@ pub mod tile_passes {
     /// Neighbor offset for checking adjacent tiles
     pub const NEIGHBOR_OFFSET: u32 = 1;
 }
+
+// ============================================================================
+// CIVILIZATION MANAGEMENT
+// ============================================================================
+
+/// Civilization identification and management constants
+pub mod civilization_management {
+    /// The civilization ID reserved for player-controlled civilizations
+    pub const PLAYER_CIVILIZATION_ID: u32 = 0;
+
+    /// Starting unit ID counter value
+    pub const STARTING_UNIT_ID_COUNTER: u32 = 0;
+}

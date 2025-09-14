@@ -27,7 +27,7 @@ impl City {
             name,
             owner,
             population: 1000,
-            production: 5.0,
+            production: 5.0, // Restored to proper turn-based production value
             defense: 10.0,
             buildings: vec![Building {
                 building_type: BuildingType::Granary,

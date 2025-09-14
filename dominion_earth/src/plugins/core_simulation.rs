@@ -21,7 +21,7 @@ impl Plugin for CoreSimulationPlugin {
                     core_sim::initialize_production_queues,
                     core_sim::handle_player_production_orders,
                     core_sim::handle_skip_production,
-                    core_sim::process_production_queues,
+                    // Note: process_production_queues now runs only when turns advance
                     // Movement and Actions
                     core_sim::execute_movement_orders,
                     core_sim::clear_completed_movement_orders,
