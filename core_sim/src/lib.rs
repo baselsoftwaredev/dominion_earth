@@ -66,7 +66,10 @@ pub use systems::{
         initialize_production_queues, process_production_queues, reset_unit_movement,
         PlayerProductionOrder, SkipProductionThisTurn,
     },
-    turn_management::{auto_advance_turn_system, handle_turn_advance_requests, RequestTurnAdvance},
+    turn_management::{
+        auto_advance_turn_system, handle_turn_advance_requests, ProductionUpdated,
+        RequestTurnAdvance,
+    },
 };
 
 // Import specific items from resources to avoid Resource trait conflict

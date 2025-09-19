@@ -10,15 +10,21 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 
+#[derive(Event)]
+pub struct ProductionUpdated {
+    pub capital_entity: Entity,
+}
+
 pub fn handle_turn_advance_requests(
     mut turn_requests: EventReader<RequestTurnAdvance>,
     mut current_turn: ResMut<CurrentTurn>,
     mut player_actions: ResMut<PlayerActionsComplete>,
     mut units: Query<&mut MilitaryUnit>,
-    mut production_query: Query<(&mut ProductionQueue, &mut City, &Capital, &Position)>,
+    mut production_query: Query<(Entity, &mut ProductionQueue, &mut City, &Capital, &Position)>,
     mut commands: Commands,
     mut unit_id_counter: Local<u32>,
     world_map: Res<WorldMap>,
+    mut production_events: EventWriter<ProductionUpdated>,
 ) {
     for _request in turn_requests.read() {
         let next_turn_number = calculate_next_turn_number(current_turn.0);
@@ -29,6 +35,7 @@ pub fn handle_turn_advance_requests(
             &mut unit_id_counter,
             &world_map,
             next_turn_number,
+            &mut production_events,
         );
 
         advance_current_turn(&mut current_turn);
@@ -58,13 +65,17 @@ fn reset_player_action_tracking(player_actions: &mut ResMut<PlayerActionsComplet
 }
 
 fn process_all_city_production_for_turn(
-    production_query: &mut Query<(&mut ProductionQueue, &mut City, &Capital, &Position)>,
+    production_query: &mut Query<(Entity, &mut ProductionQueue, &mut City, &Capital, &Position)>,
     commands: &mut Commands,
     unit_id_counter: &mut Local<u32>,
     world_map: &WorldMap,
     turn_number: u32,
+    production_events: &mut EventWriter<ProductionUpdated>,
 ) {
-    for (mut production_queue, mut city, capital, position) in production_query.iter_mut() {
+    for (entity, mut production_queue, mut city, capital, position) in production_query.iter_mut() {
+        let had_production_before =
+            production_queue.current_production.is_some() || !production_queue.queue.is_empty();
+
         if let Some(completed_item) = production_queue.add_production(city.production) {
             spawn_completed_production_item(
                 commands,
@@ -76,6 +87,15 @@ fn process_all_city_production_for_turn(
                 world_map,
                 turn_number,
             );
+        }
+
+        let has_production_after =
+            production_queue.current_production.is_some() || !production_queue.queue.is_empty();
+
+        if had_production_before || has_production_after {
+            production_events.write(ProductionUpdated {
+                capital_entity: entity,
+            });
         }
     }
 }

@@ -390,3 +390,55 @@ fn update_panel_current_production_properties_by_name(
         _ => {}
     }
 }
+
+pub fn handle_production_updated_events(
+    mut production_events: EventReader<core_sim::ProductionUpdated>,
+    mut commands: Commands,
+    mut template_properties: Query<&mut TemplateProperties>,
+    ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,
+    entity_names: Query<&Name>,
+    production_queues: Query<&core_sim::ProductionQueue>,
+) {
+    for event in production_events.read() {
+        if let Ok(production_queue) = production_queues.get(event.capital_entity) {
+            update_ui_panels_with_production_queue_changes(
+                &mut commands,
+                &mut template_properties,
+                &ui_entities,
+                &entity_names,
+                production_queue,
+            );
+        }
+    }
+}
+
+fn update_ui_panels_with_production_queue_changes(
+    commands: &mut Commands,
+    template_properties: &mut Query<&mut TemplateProperties>,
+    ui_entities: &Query<Entity, (With<TemplateProperties>, With<Name>)>,
+    entity_names: &Query<&Name>,
+    production_queue: &core_sim::ProductionQueue,
+) {
+    for ui_entity in ui_entities.iter() {
+        let (mut properties, entity_name) = match (
+            template_properties.get_mut(ui_entity),
+            entity_names.get(ui_entity),
+        ) {
+            (Ok(props), Ok(name)) => (props, name),
+            _ => continue,
+        };
+
+        let entity_name_string = entity_name.as_str();
+        update_panel_queue_length_property_by_name(
+            &mut properties,
+            entity_name_string,
+            production_queue.queue_length(),
+        );
+        update_panel_current_production_properties_by_name(
+            &mut properties,
+            entity_name_string,
+            production_queue,
+        );
+        commands.trigger_targets(CompileContextEvent, ui_entity);
+    }
+}

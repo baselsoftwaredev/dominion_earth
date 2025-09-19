@@ -35,12 +35,18 @@ fn main() {
         debug_logging: args.debug_logging,
     };
 
+    let window_mode = if args.debug_logging {
+        bevy::window::WindowMode::Windowed
+    } else {
+        bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Current)
+    };
+
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: window::TITLE.to_string(),
                 resolution: (window::DEFAULT_WIDTH, window::DEFAULT_HEIGHT).into(),
-                mode: bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Current),
+                mode: window_mode,
                 ..default()
             }),
             ..default()
