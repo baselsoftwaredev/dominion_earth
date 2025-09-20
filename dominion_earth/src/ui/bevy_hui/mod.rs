@@ -12,7 +12,7 @@ use core_sim::components::MilitaryUnit;
 
 pub use capital_labels::{spawn_capital_labels, update_capital_labels, CapitalLabel};
 pub use main_ui::setup_main_ui;
-pub use property_updates::update_ui_properties;
+pub use property_updates::update_ui_properties_system;
 
 /// Bevy HUI implementation of the UI system
 pub struct BevyHuiSystem;
@@ -24,7 +24,7 @@ impl BevyHuiSystem {
             .add_systems(
                 Update,
                 (
-                    update_ui_properties,
+                    update_ui_properties_system,
                     spawn_capital_labels,
                     update_capital_labels,
                 ),

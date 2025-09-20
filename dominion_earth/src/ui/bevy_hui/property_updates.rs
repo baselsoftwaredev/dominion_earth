@@ -5,9 +5,9 @@ use crate::ui::resources::*;
 use bevy::prelude::*;
 use bevy_hui::prelude::*;
 use core_sim::{
-    ActionQueue, Civilization, Position, ProductionQueue,
     components::{Capital, City},
     resources::CurrentTurn,
+    ActionQueue, Civilization, Position, ProductionQueue,
 };
 
 use super::constants;
@@ -50,63 +50,75 @@ pub struct SelectedTileInformation {
 }
 
 /// Update UI properties with current game data
-pub fn update_ui_properties(
+pub fn update_ui_properties_system(
+    mut ui_nodes: Query<(Entity, &mut TemplateProperties), With<HtmlNode>>,
+    mut cmd: Commands,
+    civs: Query<&Civilization>,
+    player_civs: Query<&Civilization, With<core_sim::PlayerControlled>>,
+    capitals: Query<(&Capital, &Position)>,
+    cities: Query<(&City, &Position)>,
+    production_queues: Query<&ProductionQueue>,
+    changed_production_queues: Query<Entity, Changed<ProductionQueue>>,
+    action_queues: Query<&ActionQueue>,
     current_turn: Res<CurrentTurn>,
     terrain_counts: Res<TerrainCounts>,
     selected_tile: Res<SelectedTile>,
     selected_capital: Res<SelectedCapital>,
     debug_logging: Res<DebugLogging>,
-    civs: Query<&Civilization>,
-    player_civs: Query<&Civilization, With<core_sim::PlayerControlled>>,
-    capitals: Query<(&Capital, &Position)>,
-    cities: Query<(&core_sim::City, &Position)>,
-    production_queues: Query<&ProductionQueue>,
-    action_queues: Query<&ActionQueue>,
-    mut ui_nodes: Query<(Entity, &mut TemplateProperties), With<HtmlNode>>,
-    mut cmd: Commands,
 ) {
-    if should_update_ui_properties(
+    if !should_update_ui_properties(
         &current_turn,
         &terrain_counts,
         &selected_tile,
         &selected_capital,
+        &changed_production_queues,
     ) {
-        let game_data = collect_game_data_from_queries(&civs, &player_civs, &capitals, &cities);
-
-        log_collected_game_data(&debug_logging, &game_data);
-
-        let player_stats = calculate_player_statistics(&game_data, &production_queues);
-        let production_menu_data =
-            build_production_menu_data(&selected_capital, &civs, &production_queues, &action_queues);
-        let capital_names_text = format_capital_and_city_names(&game_data);
-        let civilization_details_text = format_civilization_details(&game_data, &player_civs);
-        let terrain_stats = calculate_terrain_statistics(&terrain_counts);
-        let selected_tile_info = format_selected_tile_information(&selected_tile);
-
-        update_all_ui_node_properties(
-            &mut ui_nodes,
-            &mut cmd,
-            &current_turn,
-            &player_stats,
-            &production_menu_data,
-            &capital_names_text,
-            &civilization_details_text,
-            &terrain_stats,
-            &selected_tile_info,
-        );
+        return;
     }
-}
 
+    let game_data = collect_game_data_from_queries(&civs, &player_civs, &capitals, &cities);
+    log_collected_game_data(&debug_logging, &game_data);
+
+    let player_stats = calculate_player_statistics(&game_data, &production_queues);
+    let production_menu_data =
+        build_production_menu_data(&selected_capital, &civs, &production_queues, &action_queues);
+
+    debug_println!(
+        debug_logging,
+        "UI SYSTEM: Updating production menu - current_production_name: '{}', progress: {}%",
+        production_menu_data.current_production_name,
+        production_menu_data.current_production_progress
+    );
+
+    let capital_names_text = format_capital_and_city_names(&game_data);
+    let civilization_details_text = format_civilization_details(&game_data, &player_civs);
+    let terrain_stats = calculate_terrain_statistics(&terrain_counts);
+    let selected_tile_info = format_selected_tile_information(&selected_tile);
+
+    update_all_ui_node_properties(
+        &mut ui_nodes,
+        &mut cmd,
+        &current_turn,
+        &player_stats,
+        &production_menu_data,
+        &capital_names_text,
+        &civilization_details_text,
+        &terrain_stats,
+        &selected_tile_info,
+    );
+}
 fn should_update_ui_properties(
     current_turn: &Res<CurrentTurn>,
     terrain_counts: &Res<TerrainCounts>,
     selected_tile: &Res<SelectedTile>,
     selected_capital: &Res<SelectedCapital>,
+    changed_production_queues: &Query<Entity, Changed<ProductionQueue>>,
 ) -> bool {
     current_turn.is_changed()
         || terrain_counts.is_changed()
         || selected_tile.is_changed()
         || selected_capital.is_changed()
+        || !changed_production_queues.is_empty()
 }
 
 fn collect_game_data_from_queries<'a>(
@@ -169,9 +181,13 @@ fn build_production_menu_data(
     }
 
     match (selected_capital.capital_entity, selected_capital.civ_entity) {
-        (Some(capital_entity), Some(civ_entity)) => {
-            create_visible_production_menu_data(capital_entity, civ_entity, civs, production_queues, action_queues)
-        }
+        (Some(capital_entity), Some(civ_entity)) => create_visible_production_menu_data(
+            capital_entity,
+            civ_entity,
+            civs,
+            production_queues,
+            action_queues,
+        ),
         _ => create_hidden_production_menu_data(),
     }
 }
@@ -272,13 +288,19 @@ fn extract_action_queue_information(
     match action_queues.get(civ_entity) {
         Ok(action_queue) => {
             let queue_length = action_queue.get_queue_length();
-            
+
             let current_action_name = if let Some(next_action) = action_queue.peek_next_action(0) {
                 match &next_action.action {
-                    core_sim::AIAction::BuildUnit { unit_type, .. } => format!("Build {:?}", unit_type),
-                    core_sim::AIAction::Research { technology, .. } => format!("Research {}", technology),
+                    core_sim::AIAction::BuildUnit { unit_type, .. } => {
+                        format!("Build {:?}", unit_type)
+                    }
+                    core_sim::AIAction::Research { technology, .. } => {
+                        format!("Research {}", technology)
+                    }
                     core_sim::AIAction::Expand { .. } => "Expand Territory".to_string(),
-                    core_sim::AIAction::BuildBuilding { building_type, .. } => format!("Build {:?}", building_type),
+                    core_sim::AIAction::BuildBuilding { building_type, .. } => {
+                        format!("Build {:?}", building_type)
+                    }
                     core_sim::AIAction::Trade { .. } => "Trade".to_string(),
                     core_sim::AIAction::Attack { .. } => "Attack".to_string(),
                     core_sim::AIAction::Diplomacy { .. } => "Diplomacy".to_string(),

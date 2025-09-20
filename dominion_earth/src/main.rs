@@ -41,17 +41,23 @@ fn main() {
         bevy::window::WindowMode::BorderlessFullscreen(MonitorSelection::Current)
     };
 
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: window::TITLE.to_string(),
-                resolution: (window::DEFAULT_WIDTH, window::DEFAULT_HEIGHT).into(),
-                mode: window_mode,
-                ..default()
-            }),
+    let mut app = App::new();
+
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: window::TITLE.to_string(),
+            resolution: (window::DEFAULT_WIDTH, window::DEFAULT_HEIGHT).into(),
+            mode: window_mode,
             ..default()
-        }))
-        .add_plugins(BrpExtrasPlugin::default())
-        .add_plugins(DominionEarthPlugins::with_config(config))
+        }),
+        ..default()
+    }));
+
+    // Only add BRP plugin in debug mode
+    if args.debug_logging {
+        app.add_plugins(BrpExtrasPlugin::default());
+    }
+
+    app.add_plugins(DominionEarthPlugins::with_config(config))
         .run();
 }

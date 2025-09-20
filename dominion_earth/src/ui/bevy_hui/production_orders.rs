@@ -303,11 +303,7 @@ fn update_ui_panels_with_production_changes(
             entity_name_string,
             new_queue_length,
         );
-        update_panel_current_production_properties_by_name(
-            &mut properties,
-            entity_name_string,
-            production_queue,
-        );
+        // Note: Current production properties are now handled by property_updates.rs system
         commands.trigger_targets(CompileContextEvent, ui_entity);
     }
 }
@@ -434,11 +430,7 @@ fn update_ui_panels_with_production_queue_changes(
             entity_name_string,
             production_queue.queue_length(),
         );
-        update_panel_current_production_properties_by_name(
-            &mut properties,
-            entity_name_string,
-            production_queue,
-        );
+        // Note: Current production properties are now handled by property_updates.rs system
         commands.trigger_targets(CompileContextEvent, ui_entity);
     }
 }
