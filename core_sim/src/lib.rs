@@ -45,7 +45,7 @@ pub use components::{
     // Terrain components
     terrain::TerrainType,
     // Turn phases components
-    turn_phases::{TurnPhase, ProcessAITurn, AITurnComplete, AllAITurnsComplete, StartPlayerTurn},
+    turn_phases::{AITurnComplete, AllAITurnsComplete, ProcessAITurn, StartPlayerTurn, TurnPhase},
     // Core component types
     CivId,
 };
@@ -62,15 +62,18 @@ pub use systems::{
     ai_decision::*,
     combat_resolution::*,
     economic_update::*,
-    movement::{clear_completed_movement_orders, execute_movement_orders},
+    movement::{
+        clear_completed_movement_orders, execute_ai_movement_orders, execute_movement_orders,
+    },
     production::{
         check_player_actions_complete, handle_player_production_orders, handle_skip_production,
         initialize_production_queues, process_production_queues, reset_unit_movement,
         PlayerProductionOrder, SkipProductionThisTurn,
     },
     turn_management::{
-        auto_advance_turn_system, handle_turn_advance_requests, handle_ai_turn_processing,
-        handle_ai_turn_completion, handle_all_ai_turns_complete, ProductionUpdated, RequestTurnAdvance,
+        auto_advance_turn_system, handle_ai_turn_completion, handle_ai_turn_processing,
+        handle_all_ai_turns_complete, handle_turn_advance_requests, ProductionUpdated,
+        RequestTurnAdvance,
     },
 };
 

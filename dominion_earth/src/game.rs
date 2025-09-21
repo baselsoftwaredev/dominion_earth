@@ -395,10 +395,7 @@ pub fn generate_and_populate_ai_decisions(
     current_turn: Res<core_sim::resources::CurrentTurn>,
     debug_logging: Res<DebugLogging>,
 ) {
-    // Only generate decisions every few turns to avoid overwhelming the queues
-    if current_turn.0 % 3 != 0 {
-        return;
-    }
+    // Generate AI decisions every turn to ensure units move consistently
 
     // Collect civilization data for AI coordinator
     let mut civilization_data = std::collections::HashMap::new();

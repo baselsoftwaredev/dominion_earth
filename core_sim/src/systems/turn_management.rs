@@ -1,16 +1,16 @@
 use crate::{
     components::{
         city::City,
+        position::MovementOrder,
         production::{ProductionItem, ProductionQueue},
         turn_phases::{
             AITurnComplete, AllAITurnsComplete, ProcessAITurn, StartPlayerTurn, TurnPhase,
         },
         Capital, Civilization, MilitaryUnit, PlayerActionsComplete, PlayerControlled,
-        position::MovementOrder,
     },
     constants::civilization_management::{PLAYER_CIVILIZATION_ID, STARTING_UNIT_ID_COUNTER},
-    resources::CurrentTurn,
     pathfinding::Pathfinder,
+    resources::CurrentTurn,
     CivId, Position, WorldMap,
 };
 use bevy_ecs::prelude::*;
@@ -129,13 +129,7 @@ fn process_ai_civilization_turn(
         for (entity, mut unit, mut position) in units_query.iter_mut() {
             if unit.owner == civ_id && unit.can_move() {
                 // Simple AI movement: try to move to an adjacent valid tile
-                move_ai_unit_simple(
-                    entity,
-                    &mut unit,
-                    &mut position,
-                    commands,
-                    world_map,
-                );
+                move_ai_unit_simple(entity, &mut unit, &mut position, commands, world_map);
             }
         }
 
@@ -153,16 +147,15 @@ fn move_ai_unit_simple(
 ) {
     let current_pos = *position;
     let adjacent_positions = current_pos.adjacent_positions();
-    
+
     // Try to move to the first valid adjacent position
     for target_pos in adjacent_positions.iter() {
         if is_valid_move_target(current_pos, *target_pos, world_map) {
             // Add a movement order for this AI unit
-            commands.entity(entity).insert(MovementOrder::new(
-                vec![*target_pos],
-                *target_pos,
-            ));
-            
+            commands
+                .entity(entity)
+                .insert(MovementOrder::new(vec![*target_pos], *target_pos));
+
             tracing::debug!(
                 "AI unit {} planned movement from ({}, {}) to ({}, {})",
                 unit.id,
@@ -171,7 +164,7 @@ fn move_ai_unit_simple(
                 target_pos.x,
                 target_pos.y
             );
-            
+
             // Only move to one position per turn
             break;
         }

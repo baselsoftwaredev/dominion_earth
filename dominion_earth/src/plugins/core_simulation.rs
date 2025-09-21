@@ -23,6 +23,7 @@ impl Plugin for CoreSimulationPlugin {
                     core_sim::handle_player_production_orders,
                     core_sim::handle_skip_production,
                     core_sim::execute_movement_orders,
+                    core_sim::execute_ai_movement_orders,
                     core_sim::clear_completed_movement_orders,
                     core_sim::check_player_actions_complete,
                     core_sim::handle_turn_advance_requests,

@@ -1,8 +1,8 @@
 use crate::{
-    Position, MilitaryUnit, PlayerMovementOrder, WorldMap, TerrainType,
+    components::position::MovementOrder,
     constants::{movement_validation, terrain_stats},
     debug_utils::CoreDebugUtils,
-    components::position::MovementOrder,
+    MilitaryUnit, PlayerMovementOrder, Position, TerrainType, WorldMap,
 };
 use bevy::prelude::*;
 
@@ -21,7 +21,7 @@ fn validate_movement_to_adjacent_tile(
     if distance != movement_validation::ADJACENT_TILE_DISTANCE {
         return Err("Can only move to adjacent tiles");
     }
-    
+
     if let Some(tile) = world_map.get_tile(to) {
         match tile.terrain {
             TerrainType::Ocean => Err("Cannot move into ocean"),
@@ -41,21 +41,26 @@ fn validate_movement_to_adjacent_tile(
 
 pub fn execute_movement_orders(
     mut commands: Commands,
-    mut movement_query: Query<(Entity, &mut MilitaryUnit, &mut Position, &PlayerMovementOrder)>,
+    mut movement_query: Query<(
+        Entity,
+        &mut MilitaryUnit,
+        &mut Position,
+        &PlayerMovementOrder,
+    )>,
     world_map: Res<WorldMap>,
 ) {
     for (entity, mut unit, mut position, movement_order) in movement_query.iter_mut() {
         let current_position = *position;
         let target_position = movement_order.target_position;
-        
+
         commands.entity(entity).remove::<PlayerMovementOrder>();
-        
+
         match validate_movement_to_adjacent_tile(current_position, target_position, &world_map) {
             Ok(movement_cost) => {
                 if unit.movement_remaining >= movement_cost {
                     *position = target_position;
                     unit.movement_remaining -= movement_cost;
-                    
+
                     CoreDebugUtils::log_unit_movement_success(
                         unit.id,
                         current_position.x,
@@ -97,17 +102,17 @@ pub fn execute_ai_movement_orders(
 ) {
     for (entity, mut unit, mut position, movement_order) in movement_query.iter_mut() {
         let current_position = *position;
-        
+
         // Process the next step in the movement order
         if let Some(next_position) = movement_order.next_position() {
             commands.entity(entity).remove::<MovementOrder>();
-            
+
             match validate_movement_to_adjacent_tile(current_position, next_position, &world_map) {
                 Ok(movement_cost) => {
                     if unit.movement_remaining >= movement_cost {
                         *position = next_position;
                         unit.movement_remaining -= movement_cost;
-                        
+
                         CoreDebugUtils::log_unit_movement_success(
                             unit.id,
                             current_position.x,
