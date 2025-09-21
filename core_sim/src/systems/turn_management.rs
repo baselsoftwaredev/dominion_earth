@@ -2,11 +2,14 @@ use crate::{
     components::{
         city::City,
         production::{ProductionItem, ProductionQueue},
-        Capital, MilitaryUnit, PlayerActionsComplete, PlayerControlled,
+        turn_phases::{
+            AITurnComplete, AllAITurnsComplete, ProcessAITurn, StartPlayerTurn, TurnPhase,
+        },
+        Capital, Civilization, MilitaryUnit, PlayerActionsComplete, PlayerControlled,
     },
     constants::civilization_management::{PLAYER_CIVILIZATION_ID, STARTING_UNIT_ID_COUNTER},
     resources::CurrentTurn,
-    Position, WorldMap,
+    CivId, Position, WorldMap,
 };
 use bevy_ecs::prelude::*;
 
@@ -17,6 +20,112 @@ pub struct ProductionUpdated {
 
 pub fn handle_turn_advance_requests(
     mut turn_requests: EventReader<RequestTurnAdvance>,
+    mut turn_phase: ResMut<TurnPhase>,
+    civilizations: Query<(Entity, &Civilization), Without<PlayerControlled>>,
+    mut ai_turn_events: EventWriter<ProcessAITurn>,
+) {
+    for _request in turn_requests.read() {
+        tracing::info!("Player requested turn advancement");
+
+        // Start AI turn sequence
+        let ai_civs: Vec<CivId> = civilizations.iter().map(|(_, civ)| civ.id).collect();
+
+        if ai_civs.is_empty() {
+            tracing::info!("No AI civilizations found, advancing turn immediately");
+            *turn_phase = TurnPhase::TurnTransition;
+        } else {
+            tracing::info!(
+                "Starting AI turn sequence for {} civilizations",
+                ai_civs.len()
+            );
+            if let Some(first_ai) = ai_civs.first() {
+                let remaining_ais = ai_civs.iter().skip(1).cloned().collect();
+                *turn_phase = TurnPhase::AITurn {
+                    current_ai: *first_ai,
+                    remaining_ais,
+                };
+                ai_turn_events.write(ProcessAITurn { civ_id: *first_ai });
+            }
+        }
+    }
+}
+
+/// System to process AI turns in sequence
+pub fn handle_ai_turn_processing(
+    mut ai_turn_events: EventReader<ProcessAITurn>,
+    mut ai_complete_events: EventWriter<AITurnComplete>,
+    civilizations: Query<&Civilization>,
+) {
+    for ai_event in ai_turn_events.read() {
+        tracing::info!("Processing AI turn for civilization {:?}", ai_event.civ_id);
+
+        // Here we would process the AI's turn (movement, production, etc.)
+        // For now, we'll just simulate the AI taking their turn
+        process_ai_civilization_turn(ai_event.civ_id, &civilizations);
+
+        // Signal that this AI has completed their turn
+        ai_complete_events.write(AITurnComplete {
+            civ_id: ai_event.civ_id,
+        });
+    }
+}
+
+/// System to handle AI turn completion and advance to next AI or complete all turns
+pub fn handle_ai_turn_completion(
+    mut ai_complete_events: EventReader<AITurnComplete>,
+    mut turn_phase: ResMut<TurnPhase>,
+    mut next_ai_events: EventWriter<ProcessAITurn>,
+    mut all_ai_complete_events: EventWriter<AllAITurnsComplete>,
+) {
+    for _ai_event in ai_complete_events.read() {
+        // Check if there are more AIs to process
+        if let TurnPhase::AITurn {
+            current_ai: _,
+            remaining_ais,
+        } = turn_phase.as_ref()
+        {
+            if remaining_ais.is_empty() {
+                // All AIs have completed their turns
+                tracing::info!("All AI civilizations have completed their turns");
+                all_ai_complete_events.write(AllAITurnsComplete);
+                *turn_phase = TurnPhase::TurnTransition;
+            } else {
+                // Move to next AI
+                let next_ai = remaining_ais[0];
+                let new_remaining: Vec<CivId> = remaining_ais.iter().skip(1).cloned().collect();
+                *turn_phase = TurnPhase::AITurn {
+                    current_ai: next_ai,
+                    remaining_ais: new_remaining,
+                };
+                next_ai_events.write(ProcessAITurn { civ_id: next_ai });
+            }
+        }
+    }
+}
+
+/// Process a single AI civilization's turn
+fn process_ai_civilization_turn(civ_id: CivId, civilizations: &Query<&Civilization>) {
+    // Find the AI civilization
+    if let Some(civ) = civilizations.iter().find(|civ| civ.id == civ_id) {
+        tracing::info!("AI {} ({}) is taking their turn", civ.name, civ_id.0);
+
+        // TODO: Implement AI decision making
+        // This would include:
+        // 1. Move units
+        // 2. Queue production
+        // 3. Make diplomatic decisions
+        // 4. Research technologies
+        // 5. Build buildings
+
+        // For now, just log that the AI took their turn
+        tracing::info!("AI {} completed their turn", civ.name);
+    }
+}
+
+/// System to handle completion of all AI turns and advance to next player turn
+pub fn handle_all_ai_turns_complete(
+    mut ai_complete_events: EventReader<AllAITurnsComplete>,
+    mut turn_phase: ResMut<TurnPhase>,
     mut current_turn: ResMut<CurrentTurn>,
     mut player_actions: ResMut<PlayerActionsComplete>,
     mut units: Query<&mut MilitaryUnit>,
@@ -25,8 +134,11 @@ pub fn handle_turn_advance_requests(
     mut unit_id_counter: Local<u32>,
     world_map: Res<WorldMap>,
     mut production_events: EventWriter<ProductionUpdated>,
+    mut start_player_events: EventWriter<StartPlayerTurn>,
 ) {
-    for _request in turn_requests.read() {
+    for _event in ai_complete_events.read() {
+        tracing::info!("All AI turns complete, advancing to next turn");
+
         let next_turn_number = calculate_next_turn_number(current_turn.0);
 
         process_all_city_production_for_turn(
@@ -42,7 +154,11 @@ pub fn handle_turn_advance_requests(
         reset_all_unit_movement_points(&mut units);
         reset_player_action_tracking(&mut player_actions);
 
-        tracing::info!("Advanced to turn {}", current_turn.0);
+        // Start next player turn
+        *turn_phase = TurnPhase::PlayerTurn;
+        start_player_events.write(StartPlayerTurn);
+
+        tracing::info!("Advanced to turn {} - Player turn begins", current_turn.0);
     }
 }
 

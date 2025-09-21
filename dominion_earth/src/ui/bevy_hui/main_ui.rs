@@ -23,6 +23,7 @@ pub fn setup_main_ui(
 fn register_ui_update_functions(html_functions: &mut HtmlFunctions) {
     register_player_gold_update_function(html_functions);
     register_turn_update_function(html_functions);
+    register_turn_advancement_function(html_functions);
 }
 
 /// Register player gold update function for UI property binding
@@ -72,6 +73,18 @@ fn register_turn_update_function(html_functions: &mut HtmlFunctions) {
 
             update_current_turn_property(&mut properties, current_turn.0);
             commands.trigger_targets(CompileContextEvent, scope_entity);
+        },
+    );
+}
+
+/// Register turn advancement function for next turn button
+fn register_turn_advancement_function(html_functions: &mut HtmlFunctions) {
+    html_functions.register(
+        "advance_turn",
+        |In(_entity): In<Entity>,
+         mut turn_advance_events: EventWriter<core_sim::RequestTurnAdvance>| {
+            turn_advance_events.write(core_sim::RequestTurnAdvance);
+            info!("Player requested turn advancement");
         },
     );
 }

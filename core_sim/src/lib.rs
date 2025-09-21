@@ -44,6 +44,8 @@ pub use components::{
     rendering::SpriteEntityReference,
     // Terrain components
     terrain::TerrainType,
+    // Turn phases components
+    turn_phases::{TurnPhase, ProcessAITurn, AITurnComplete, AllAITurnsComplete, StartPlayerTurn},
     // Core component types
     CivId,
 };
@@ -67,8 +69,8 @@ pub use systems::{
         PlayerProductionOrder, SkipProductionThisTurn,
     },
     turn_management::{
-        auto_advance_turn_system, handle_turn_advance_requests, ProductionUpdated,
-        RequestTurnAdvance,
+        auto_advance_turn_system, handle_turn_advance_requests, handle_ai_turn_processing,
+        handle_ai_turn_completion, handle_all_ai_turns_complete, ProductionUpdated, RequestTurnAdvance,
     },
 };
 

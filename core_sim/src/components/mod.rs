@@ -10,6 +10,7 @@ pub mod orders;
 pub mod rendering;
 pub mod player;
 pub mod production;
+pub mod turn_phases;
 
 // Re-export all components for compatibility
 pub use position::*;
@@ -24,3 +25,4 @@ pub use orders::*;
 pub use rendering::*;
 pub use player::*;
 pub use production::*;
+pub use turn_phases::*;
