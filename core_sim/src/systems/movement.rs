@@ -2,6 +2,7 @@ use crate::{
     Position, MilitaryUnit, PlayerMovementOrder, WorldMap, TerrainType,
     constants::{movement_validation, terrain_stats},
     debug_utils::CoreDebugUtils,
+    components::position::MovementOrder,
 };
 use bevy::prelude::*;
 
@@ -85,5 +86,52 @@ pub fn clear_completed_movement_orders(
 ) {
     for entity in query.iter() {
         commands.entity(entity).remove::<PlayerMovementOrder>();
+    }
+}
+
+/// Execute AI movement orders (similar to player movement but uses MovementOrder instead of PlayerMovementOrder)
+pub fn execute_ai_movement_orders(
+    mut commands: Commands,
+    mut movement_query: Query<(Entity, &mut MilitaryUnit, &mut Position, &MovementOrder)>,
+    world_map: Res<WorldMap>,
+) {
+    for (entity, mut unit, mut position, movement_order) in movement_query.iter_mut() {
+        let current_position = *position;
+        
+        // Process the next step in the movement order
+        if let Some(next_position) = movement_order.next_position() {
+            commands.entity(entity).remove::<MovementOrder>();
+            
+            match validate_movement_to_adjacent_tile(current_position, next_position, &world_map) {
+                Ok(movement_cost) => {
+                    if unit.movement_remaining >= movement_cost {
+                        *position = next_position;
+                        unit.movement_remaining -= movement_cost;
+                        
+                        CoreDebugUtils::log_unit_movement_success(
+                            unit.id,
+                            current_position.x,
+                            current_position.y,
+                            next_position.x,
+                            next_position.y,
+                            movement_cost,
+                            unit.movement_remaining,
+                        );
+                    } else {
+                        CoreDebugUtils::log_insufficient_movement_points(
+                            unit.id,
+                            movement_cost,
+                            unit.movement_remaining,
+                        );
+                    }
+                }
+                Err(reason) => {
+                    CoreDebugUtils::log_unit_movement_failure(unit.id, reason);
+                }
+            }
+        } else {
+            // Movement order is complete, remove it
+            commands.entity(entity).remove::<MovementOrder>();
+        }
     }
 }

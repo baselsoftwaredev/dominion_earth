@@ -6,9 +6,11 @@ use crate::{
             AITurnComplete, AllAITurnsComplete, ProcessAITurn, StartPlayerTurn, TurnPhase,
         },
         Capital, Civilization, MilitaryUnit, PlayerActionsComplete, PlayerControlled,
+        position::MovementOrder,
     },
     constants::civilization_management::{PLAYER_CIVILIZATION_ID, STARTING_UNIT_ID_COUNTER},
     resources::CurrentTurn,
+    pathfinding::Pathfinder,
     CivId, Position, WorldMap,
 };
 use bevy_ecs::prelude::*;
@@ -55,13 +57,21 @@ pub fn handle_ai_turn_processing(
     mut ai_turn_events: EventReader<ProcessAITurn>,
     mut ai_complete_events: EventWriter<AITurnComplete>,
     civilizations: Query<&Civilization>,
+    mut commands: Commands,
+    mut units_query: Query<(Entity, &mut MilitaryUnit, &mut Position), Without<PlayerControlled>>,
+    world_map: Res<WorldMap>,
 ) {
     for ai_event in ai_turn_events.read() {
         tracing::info!("Processing AI turn for civilization {:?}", ai_event.civ_id);
 
-        // Here we would process the AI's turn (movement, production, etc.)
-        // For now, we'll just simulate the AI taking their turn
-        process_ai_civilization_turn(ai_event.civ_id, &civilizations);
+        // Process the AI's turn (movement, production, etc.)
+        process_ai_civilization_turn(
+            ai_event.civ_id,
+            &civilizations,
+            &mut commands,
+            &mut units_query,
+            &world_map,
+        );
 
         // Signal that this AI has completed their turn
         ai_complete_events.write(AITurnComplete {
@@ -104,21 +114,84 @@ pub fn handle_ai_turn_completion(
 }
 
 /// Process a single AI civilization's turn
-fn process_ai_civilization_turn(civ_id: CivId, civilizations: &Query<&Civilization>) {
+fn process_ai_civilization_turn(
+    civ_id: CivId,
+    civilizations: &Query<&Civilization>,
+    commands: &mut Commands,
+    units_query: &mut Query<(Entity, &mut MilitaryUnit, &mut Position), Without<PlayerControlled>>,
+    world_map: &WorldMap,
+) {
     // Find the AI civilization
     if let Some(civ) = civilizations.iter().find(|civ| civ.id == civ_id) {
         tracing::info!("AI {} ({}) is taking their turn", civ.name, civ_id.0);
 
-        // TODO: Implement AI decision making
-        // This would include:
-        // 1. Move units
-        // 2. Queue production
-        // 3. Make diplomatic decisions
-        // 4. Research technologies
-        // 5. Build buildings
+        // Move all AI units for this civilization
+        for (entity, mut unit, mut position) in units_query.iter_mut() {
+            if unit.owner == civ_id && unit.can_move() {
+                // Simple AI movement: try to move to an adjacent valid tile
+                move_ai_unit_simple(
+                    entity,
+                    &mut unit,
+                    &mut position,
+                    commands,
+                    world_map,
+                );
+            }
+        }
 
-        // For now, just log that the AI took their turn
         tracing::info!("AI {} completed their turn", civ.name);
+    }
+}
+
+/// Simple AI unit movement - moves to the first valid adjacent tile
+fn move_ai_unit_simple(
+    entity: Entity,
+    unit: &mut MilitaryUnit,
+    position: &mut Position,
+    commands: &mut Commands,
+    world_map: &WorldMap,
+) {
+    let current_pos = *position;
+    let adjacent_positions = current_pos.adjacent_positions();
+    
+    // Try to move to the first valid adjacent position
+    for target_pos in adjacent_positions.iter() {
+        if is_valid_move_target(current_pos, *target_pos, world_map) {
+            // Add a movement order for this AI unit
+            commands.entity(entity).insert(MovementOrder::new(
+                vec![*target_pos],
+                *target_pos,
+            ));
+            
+            tracing::debug!(
+                "AI unit {} planned movement from ({}, {}) to ({}, {})",
+                unit.id,
+                current_pos.x,
+                current_pos.y,
+                target_pos.x,
+                target_pos.y
+            );
+            
+            // Only move to one position per turn
+            break;
+        }
+    }
+}
+
+/// Check if a move from one position to another is valid
+fn is_valid_move_target(from: Position, to: Position, world_map: &WorldMap) -> bool {
+    // Check if target is within map bounds
+    if let Some(tile) = world_map.get_tile(to) {
+        // Check if the tile is walkable (not ocean)
+        match tile.terrain {
+            crate::TerrainType::Ocean => false,
+            _ => {
+                // Check if it's adjacent (Manhattan distance of 1)
+                from.manhattan_distance_to(&to) == 1
+            }
+        }
+    } else {
+        false
     }
 }
 
