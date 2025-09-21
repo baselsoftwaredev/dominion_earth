@@ -391,7 +391,7 @@ pub fn game_update_system(
 pub fn generate_and_populate_ai_decisions(
     mut game_state: ResMut<GameState>,
     mut action_queues: Query<(&mut core_sim::ActionQueue, &CivId)>,
-    civs: Query<(&Civilization, &CivId), Without<PlayerControlled>>,
+    civs: Query<&Civilization, Without<PlayerControlled>>,
     current_turn: Res<core_sim::resources::CurrentTurn>,
     debug_logging: Res<DebugLogging>,
 ) {
@@ -399,14 +399,14 @@ pub fn generate_and_populate_ai_decisions(
 
     // Collect civilization data for AI coordinator
     let mut civilization_data = std::collections::HashMap::new();
-    for (civilization, civ_id) in civs.iter() {
+    for civilization in civs.iter() {
         let civ_data = core_sim::CivilizationData {
             civilization: civilization.clone(),
             cities: Vec::new(), // TODO: populate with actual city data when available
             territories: Vec::new(), // TODO: populate with actual territory data when available
             diplomatic_relations: Vec::new(), // TODO: populate with actual diplomatic relations when available
         };
-        civilization_data.insert(*civ_id, civ_data);
+        civilization_data.insert(civilization.id, civ_data);
     }
 
     // Create a game state for the AI coordinator
@@ -424,9 +424,10 @@ pub fn generate_and_populate_ai_decisions(
     DebugUtils::log_info(
         &debug_logging,
         &format!(
-            "Generated {} AI decisions for turn {}",
+            "Generated {} AI decisions for turn {} (civs found: {})",
             ai_decisions.len(),
-            current_turn.0
+            current_turn.0,
+            civs.iter().count()
         ),
     );
 

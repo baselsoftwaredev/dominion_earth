@@ -125,15 +125,29 @@ fn process_ai_civilization_turn(
     if let Some(civ) = civilizations.iter().find(|civ| civ.id == civ_id) {
         tracing::info!("AI {} ({}) is taking their turn", civ.name, civ_id.0);
 
-        // Move all AI units for this civilization
+        // Count and move all AI units for this civilization
+        let mut unit_count = 0;
+        let mut moved_units = 0;
+
         for (entity, mut unit, mut position) in units_query.iter_mut() {
-            if unit.owner == civ_id && unit.can_move() {
-                // Simple AI movement: try to move to an adjacent valid tile
-                move_ai_unit_simple(entity, &mut unit, &mut position, commands, world_map);
+            if unit.owner == civ_id {
+                unit_count += 1;
+                tracing::debug!("Found AI unit {} for civilization {}", unit.id, civ_id.0);
+
+                if unit.can_move() {
+                    // Simple AI movement: try to move to an adjacent valid tile
+                    move_ai_unit_simple(entity, &mut unit, &mut position, commands, world_map);
+                    moved_units += 1;
+                }
             }
         }
 
-        tracing::info!("AI {} completed their turn", civ.name);
+        tracing::info!(
+            "AI {} completed their turn (processed {} units, {} could move)",
+            civ.name,
+            unit_count,
+            moved_units
+        );
     }
 }
 
@@ -148,15 +162,31 @@ fn move_ai_unit_simple(
     let current_pos = *position;
     let adjacent_positions = current_pos.adjacent_positions();
 
+    tracing::debug!(
+        "AI unit {} at ({}, {}) checking {} adjacent positions",
+        unit.id,
+        current_pos.x,
+        current_pos.y,
+        adjacent_positions.len()
+    );
+
     // Try to move to the first valid adjacent position
-    for target_pos in adjacent_positions.iter() {
+    for (i, target_pos) in adjacent_positions.iter().enumerate() {
+        tracing::debug!(
+            "AI unit {} checking position {} ({}, {})",
+            unit.id,
+            i,
+            target_pos.x,
+            target_pos.y
+        );
+
         if is_valid_move_target(current_pos, *target_pos, world_map) {
             // Add a movement order for this AI unit
             commands
                 .entity(entity)
                 .insert(MovementOrder::new(vec![*target_pos], *target_pos));
 
-            tracing::debug!(
+            tracing::info!(
                 "AI unit {} planned movement from ({}, {}) to ({}, {})",
                 unit.id,
                 current_pos.x,
@@ -166,9 +196,18 @@ fn move_ai_unit_simple(
             );
 
             // Only move to one position per turn
-            break;
+            return;
+        } else {
+            tracing::debug!(
+                "AI unit {} invalid move to ({}, {})",
+                unit.id,
+                target_pos.x,
+                target_pos.y
+            );
         }
     }
+
+    tracing::debug!("AI unit {} found no valid moves", unit.id);
 }
 
 /// Check if a move from one position to another is valid
