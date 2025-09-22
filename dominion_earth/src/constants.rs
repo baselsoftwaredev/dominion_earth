@@ -115,8 +115,8 @@ pub mod game {
 
 /// Window and application constants
 pub mod window {
-    pub const DEFAULT_WIDTH: f32 = 1200.0;
-    pub const DEFAULT_HEIGHT: f32 = 800.0;
+    pub const DEFAULT_WIDTH: f32 = 1400.0;
+    pub const DEFAULT_HEIGHT: f32 = 1000.0;
     pub const TITLE: &str = "Dominion Earth";
 }
 
