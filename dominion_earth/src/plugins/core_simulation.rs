@@ -17,7 +17,7 @@ impl Plugin for CoreSimulationPlugin {
                 Update,
                 (
                     core_sim::spawn_action_queues_for_new_civilizations,
-                    game::generate_and_populate_ai_decisions,
+                    crate::ai_decision_systems::generate_ai_decisions_on_ai_turn,
                     core_sim::process_civilization_action_queues,
                     core_sim::initialize_production_queues,
                     core_sim::handle_player_production_orders,

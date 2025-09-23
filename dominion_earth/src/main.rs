@@ -1,3 +1,5 @@
+mod ai_decision_systems;
+mod civilization_spawning;
 mod constants;
 mod debug_utils;
 mod game;
