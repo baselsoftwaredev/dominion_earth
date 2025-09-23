@@ -23,7 +23,8 @@ pub mod ui_templates {
     pub const GAME_PANEL_PATH: &str = "ui/components/left_side_panel/game_panel.html";
     pub const PRODUCTION_MENU_PATH: &str = "ui/components/right_side_panel/production_menu.html";
     pub const STATISTICS_PANEL_PATH: &str = "ui/components/left_side_panel/statistics_panel.html";
-    pub const TILE_INFO_PATH: &str = "ui/components/right_side_panel/tile_info.html";
+    pub const HOVERED_TILE_INFO_PATH: &str =
+        "ui/components/right_side_panel/hovered_tile_info.html";
     pub const CIVILIZATIONS_LIST_PATH: &str =
         "ui/components/right_side_panel/civilizations_list.html";
     pub const MINIMAP_PATH: &str = "ui/components/right_side_panel/minimap.html";
@@ -37,7 +38,7 @@ pub mod ui_component_names {
     pub const GAME_PANEL_NAME: &str = "game_panel";
     pub const PRODUCTION_MENU_NAME: &str = "production_menu";
     pub const STATISTICS_PANEL_NAME: &str = "statistics_panel";
-    pub const TILE_INFO_NAME: &str = "tile_info";
+    pub const HOVERED_TILE_INFO_NAME: &str = "hovered_tile_info";
     pub const CIVILIZATIONS_LIST_NAME: &str = "civilizations_list";
     pub const MINIMAP_NAME: &str = "minimap";
 }

@@ -1,0 +1,28 @@
+<!-- Hovered Tile Info Component -->
+<template>
+  <property name="hovered_position">None</property>
+  <property name="hovered_terrain">None</property>
+
+  <node
+    width="100%"
+    min_height="120px"
+    background="#2d2d2d"
+    border="2px solid #444444"
+    border_radius="8px"
+    padding="15px"
+    margin="5px"
+    flex_direction="column">
+    <!-- Panel title -->
+    <text font_size="20" font_color="#ffcc00" margin="0 0 15px 0">
+      Hovered Tile
+    </text>
+
+    <!-- Tile position -->
+    <text font_size="16" font_color="#ffffff" margin="0 0 5px 0">
+      Position: {hovered_position}
+    </text>
+
+    <!-- Tile terrain -->
+    <text font_size="16" font_color="#ffffff">Terrain: {hovered_terrain}</text>
+  </node>
+</template>

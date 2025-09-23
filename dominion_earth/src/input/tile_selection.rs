@@ -2,7 +2,7 @@ use super::coordinates::convert_cursor_position_to_tile_coordinates;
 use crate::debug_println;
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::production_input::SelectedCapital;
-use crate::ui::resources::SelectedTile;
+use crate::ui::resources::{HoveredTile, SelectedTile};
 use crate::ui::utilities::{is_cursor_over_ui_panel, UiPanelBounds};
 use bevy::prelude::*;
 use core_sim::components::Position;
@@ -263,6 +263,66 @@ pub fn handle_tile_selection_on_mouse_click(
         Err(coordinate_conversion_error_message) => {
             DebugUtils::log_info(&debug_logging, coordinate_conversion_error_message);
             selected_tile.position = None;
+        }
+    }
+}
+
+pub fn handle_tile_hover_on_mouse_move(
+    windows_query: Query<&Window>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    mut hovered_tile: ResMut<HoveredTile>,
+    tile_query: Query<(Entity, &WorldTile, &TileNeighbors)>,
+) {
+    // Get cursor position
+    let Ok(primary_window) = windows_query.single() else {
+        return;
+    };
+
+    let Some(cursor_screen_position) = primary_window.cursor_position() else {
+        // No cursor position available - clear hovered tile
+        hovered_tile.position = None;
+        hovered_tile.terrain_type = None;
+        return;
+    };
+
+    // Check if cursor is over UI panels to avoid processing tile hover when over UI
+    let ui_bounds = UiPanelBounds::from_window(primary_window);
+    if is_cursor_over_ui_panel(cursor_screen_position, &ui_bounds) {
+        // Cursor is over UI - clear hovered tile
+        hovered_tile.position = None;
+        hovered_tile.terrain_type = None;
+        return;
+    }
+
+    // Get camera and transform
+    let Ok((camera, camera_global_transform)) = camera_query.single() else {
+        return;
+    };
+
+    // Convert cursor position to tile coordinates
+    match convert_cursor_position_to_tile_coordinates(
+        cursor_screen_position,
+        camera,
+        camera_global_transform,
+    ) {
+        Ok(tile_position) => {
+            // Find the tile at this position
+            if let Some((_, world_tile, _)) =
+                locate_tile_entity_at_specified_position(tile_position, &tile_query)
+            {
+                // Update hovered tile with position and terrain
+                hovered_tile.position = Some(tile_position);
+                hovered_tile.terrain_type = Some(world_tile.terrain_type.clone());
+            } else {
+                // No tile found at this position
+                hovered_tile.position = None;
+                hovered_tile.terrain_type = None;
+            }
+        }
+        Err(_) => {
+            // Invalid position - clear hovered tile
+            hovered_tile.position = None;
+            hovered_tile.terrain_type = None;
         }
     }
 }

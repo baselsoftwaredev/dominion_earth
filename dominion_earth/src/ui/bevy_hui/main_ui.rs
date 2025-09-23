@@ -234,8 +234,8 @@ fn register_utility_component_templates(
     asset_server: &AssetServer,
 ) {
     html_components.register(
-        constants::ui_component_names::TILE_INFO_NAME,
-        asset_server.load(constants::ui_templates::TILE_INFO_PATH),
+        constants::ui_component_names::HOVERED_TILE_INFO_NAME,
+        asset_server.load(constants::ui_templates::HOVERED_TILE_INFO_PATH),
     );
     html_components.register(
         constants::ui_component_names::CIVILIZATIONS_LIST_NAME,

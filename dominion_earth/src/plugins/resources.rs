@@ -1,12 +1,12 @@
-use bevy::prelude::*;
 use crate::debug_utils::DebugLogging;
 use crate::ui;
+use crate::{game, production_input};
+use bevy::prelude::*;
 use core_sim::{
     influence_map::InfluenceMap,
     resources::{ActiveCivTurn, CurrentTurn, GameConfig, GameRng, WorldMap},
     PlayerActionsComplete,
 };
-use crate::{game, production_input};
 
 /// Plugin for initializing all game resources
 pub struct ResourcesPlugin;
@@ -17,9 +17,9 @@ impl Plugin for ResourcesPlugin {
             // UI Resources
             .init_resource::<ui::TerrainCounts>()
             .init_resource::<ui::SelectedTile>()
+            .init_resource::<ui::HoveredTile>()
             .init_resource::<ui::LastLoggedTile>()
             .insert_resource(ui::UiSystemResource::new(Box::new(ui::BevyHuiSystem)))
-            
             // Core Simulation Resources
             .init_resource::<CurrentTurn>()
             .init_resource::<ActiveCivTurn>()
@@ -29,10 +29,8 @@ impl Plugin for ResourcesPlugin {
             .init_resource::<core_sim::resources::TurnAdvanceRequest>()
             .init_resource::<InfluenceMap>()
             .init_resource::<PlayerActionsComplete>()
-            
             // Production Resources
             .init_resource::<production_input::SelectedCapital>()
-            
             // Events
             .add_event::<core_sim::PlayerProductionOrder>()
             .add_event::<core_sim::SkipProductionThisTurn>()
@@ -65,10 +63,9 @@ impl Plugin for ResourcesPluginWithConfig {
     fn build(&self, app: &mut App) {
         // First add the base resources
         app.add_plugins(ResourcesPlugin);
-        
+
         // Then add configured resources
-        app
-            .insert_resource(bevy::winit::WinitSettings::game())
+        app.insert_resource(bevy::winit::WinitSettings::game())
             .insert_resource({
                 let mut game_config = GameConfig::default();
                 if let Some(seed) = self.config.seed {

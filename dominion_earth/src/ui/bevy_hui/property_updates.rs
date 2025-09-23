@@ -5,12 +5,26 @@ use crate::ui::resources::*;
 use bevy::prelude::*;
 use bevy_hui::prelude::*;
 use core_sim::{
-    components::{Capital, City},
+    components::{Capital, City, TerrainType},
     resources::CurrentTurn,
     ActionQueue, Civilization, Position, ProductionQueue,
 };
 
 use super::constants;
+
+fn format_terrain_type_display(terrain: &TerrainType) -> String {
+    match terrain {
+        TerrainType::Plains => "Plains".to_string(),
+        TerrainType::Hills => "Hills".to_string(),
+        TerrainType::Mountains => "Mountains".to_string(),
+        TerrainType::Forest => "Forest".to_string(),
+        TerrainType::Desert => "Desert".to_string(),
+        TerrainType::Coast => "Coast".to_string(),
+        TerrainType::ShallowCoast => "Shallow Coast".to_string(),
+        TerrainType::Ocean => "Ocean".to_string(),
+        TerrainType::River => "River".to_string(),
+    }
+}
 
 pub struct GameDataCollection<'a> {
     pub all_civilizations: Vec<&'a Civilization>,
@@ -44,7 +58,7 @@ pub struct TerrainStatistics {
     pub mountain_count: usize,
 }
 
-pub struct SelectedTileInformation {
+pub struct HoveredTileInformation {
     pub position_text: String,
     pub terrain_type_text: String,
 }
@@ -62,14 +76,14 @@ pub fn update_ui_properties_system(
     action_queues: Query<&ActionQueue>,
     current_turn: Res<CurrentTurn>,
     terrain_counts: Res<TerrainCounts>,
-    selected_tile: Res<SelectedTile>,
+    hovered_tile: Res<HoveredTile>,
     selected_capital: Res<SelectedCapital>,
     debug_logging: Res<DebugLogging>,
 ) {
     if !should_update_ui_properties(
         &current_turn,
         &terrain_counts,
-        &selected_tile,
+        &hovered_tile,
         &selected_capital,
         &changed_production_queues,
     ) {
@@ -93,7 +107,7 @@ pub fn update_ui_properties_system(
     let capital_names_text = format_capital_and_city_names(&game_data);
     let civilization_details_text = format_civilization_details(&game_data, &player_civs);
     let terrain_stats = calculate_terrain_statistics(&terrain_counts);
-    let selected_tile_info = format_selected_tile_information(&selected_tile);
+    let hovered_tile_info = format_hovered_tile_information(&hovered_tile);
 
     update_all_ui_node_properties(
         &mut ui_nodes,
@@ -104,19 +118,19 @@ pub fn update_ui_properties_system(
         &capital_names_text,
         &civilization_details_text,
         &terrain_stats,
-        &selected_tile_info,
+        &hovered_tile_info,
     );
 }
 fn should_update_ui_properties(
     current_turn: &Res<CurrentTurn>,
     terrain_counts: &Res<TerrainCounts>,
-    selected_tile: &Res<SelectedTile>,
+    hovered_tile: &Res<HoveredTile>,
     selected_capital: &Res<SelectedCapital>,
     changed_production_queues: &Query<Entity, Changed<ProductionQueue>>,
 ) -> bool {
     current_turn.is_changed()
         || terrain_counts.is_changed()
-        || selected_tile.is_changed()
+        || hovered_tile.is_changed()
         || selected_capital.is_changed()
         || !changed_production_queues.is_empty()
 }
@@ -417,13 +431,19 @@ fn calculate_terrain_statistics(terrain_counts: &TerrainCounts) -> TerrainStatis
     }
 }
 
-fn format_selected_tile_information(selected_tile: &SelectedTile) -> SelectedTileInformation {
-    match selected_tile.position {
-        Some(position) => SelectedTileInformation {
-            position_text: format!("({}, {})", position.x, position.y),
-            terrain_type_text: constants::ui_update::UNKNOWN_TERRAIN_TYPE.to_string(),
-        },
-        None => SelectedTileInformation {
+fn format_hovered_tile_information(hovered_tile: &HoveredTile) -> HoveredTileInformation {
+    match hovered_tile.position {
+        Some(position) => {
+            let terrain_text = match &hovered_tile.terrain_type {
+                Some(terrain) => format_terrain_type_display(terrain),
+                None => constants::ui_update::UNKNOWN_TERRAIN_TYPE.to_string(),
+            };
+            HoveredTileInformation {
+                position_text: format!("({}, {})", position.x, position.y),
+                terrain_type_text: terrain_text,
+            }
+        }
+        None => HoveredTileInformation {
             position_text: constants::ui_update::POSITION_NONE_TEXT.to_string(),
             terrain_type_text: constants::ui_update::TERRAIN_NONE_TEXT.to_string(),
         },
@@ -439,7 +459,7 @@ fn update_all_ui_node_properties(
     capital_names_text: &str,
     civilization_details_text: &str,
     terrain_stats: &TerrainStatistics,
-    selected_tile_info: &SelectedTileInformation,
+    hovered_tile_info: &HoveredTileInformation,
 ) {
     for (entity, mut template_properties) in ui_nodes.iter_mut() {
         update_game_state_properties(&mut template_properties, current_turn, player_stats);
@@ -450,7 +470,7 @@ fn update_all_ui_node_properties(
             civilization_details_text,
         );
         update_terrain_statistics_properties(&mut template_properties, terrain_stats);
-        update_selected_tile_properties(&mut template_properties, selected_tile_info);
+        update_hovered_tile_properties(&mut template_properties, hovered_tile_info);
 
         cmd.trigger_targets(CompileContextEvent, entity);
     }
@@ -560,16 +580,16 @@ fn update_terrain_statistics_properties(
     );
 }
 
-fn update_selected_tile_properties(
+fn update_hovered_tile_properties(
     template_properties: &mut TemplateProperties,
-    selected_tile_info: &SelectedTileInformation,
+    hovered_tile_info: &HoveredTileInformation,
 ) {
     template_properties.insert(
-        "selected_position".to_string(),
-        selected_tile_info.position_text.clone(),
+        "hovered_position".to_string(),
+        hovered_tile_info.position_text.clone(),
     );
     template_properties.insert(
-        "selected_terrain".to_string(),
-        selected_tile_info.terrain_type_text.clone(),
+        "hovered_terrain".to_string(),
+        hovered_tile_info.terrain_type_text.clone(),
     );
 }
