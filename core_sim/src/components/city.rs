@@ -1,11 +1,13 @@
 use super::civilization::CivId;
 use super::terrain::TerrainType;
+use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// City component representing a settlement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct City {
     pub name: String,
     pub owner: CivId,
@@ -183,7 +185,8 @@ pub struct CapitalEvolutionRequirements {
 }
 
 /// Building in a city
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
 pub struct Building {
     pub building_type: BuildingType,
     pub level: u32,
@@ -196,7 +199,7 @@ impl Component for Building {
 }
 
 /// Types of buildings that can be constructed
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 pub enum BuildingType {
     Granary,
     Barracks,

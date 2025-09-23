@@ -5,6 +5,7 @@ pub mod core_simulation;
 pub mod input_handling;
 pub mod rendering;
 pub mod resources;
+pub mod save_load;
 pub mod ui_integration;
 
 pub use camera::CameraPlugin;
@@ -12,6 +13,7 @@ pub use core_simulation::CoreSimulationPlugin;
 pub use input_handling::InputHandlingPlugin;
 pub use rendering::RenderingPlugin;
 pub use resources::{ResourcesPlugin, ResourcesPluginWithConfig};
+pub use save_load::SaveLoadPlugin;
 pub use ui_integration::UiIntegrationPlugin;
 
 /// Collection of all game plugins for easy registration
@@ -25,6 +27,7 @@ impl bevy::app::PluginGroup for DominionEarthPlugins {
             .add(CameraPlugin)
             .add(RenderingPlugin)
             .add(InputHandlingPlugin)
+            .add(SaveLoadPlugin)
             .add(UiIntegrationPlugin)
     }
 }
@@ -49,6 +52,7 @@ impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
             .add(CameraPlugin)
             .add(RenderingPlugin)
             .add(InputHandlingPlugin)
+            .add(SaveLoadPlugin)
             .add(UiIntegrationPlugin)
     }
 }

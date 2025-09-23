@@ -1,11 +1,13 @@
 use super::civilization::CivId;
 use super::position::Position;
+use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Individual military unit
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct MilitaryUnit {
     pub id: u32,
     pub owner: CivId,
@@ -61,7 +63,7 @@ impl MilitaryUnit {
 }
 
 /// Different types of military units
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 pub enum UnitType {
     Infantry,
     Cavalry,

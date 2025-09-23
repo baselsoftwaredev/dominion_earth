@@ -1,11 +1,13 @@
 use super::position::Position;
+use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Unique identifier for civilizations
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
+#[reflect(Component)]
 pub struct CivId(pub u32);
 
 // Manual Component implementation
@@ -21,7 +23,8 @@ impl From<u32> for CivId {
 }
 
 /// Civilization component representing a playable faction
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Civilization {
     pub id: CivId,
     pub name: String,
@@ -40,7 +43,8 @@ impl Component for Civilization {
 }
 
 /// AI personality traits that drive decision making
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct CivPersonality {
     pub land_hunger: f32,     // 0.0 - 1.0, desire to expand territory
     pub industry_focus: f32,  // 0.0 - 1.0, focus on economic development
@@ -74,8 +78,9 @@ impl Default for CivPersonality {
 }
 
 /// Technology research state
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct Technologies {
+    #[reflect(skip_serializing)]
     pub known: HashMap<String, bool>,
     pub research_points: f32,
     pub current_research: Option<String>,
@@ -92,12 +97,14 @@ impl Default for Technologies {
 }
 
 /// Economic state of a civilization
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Economy {
     pub gold: f32,
     pub income: f32,
     pub expenses: f32,
     pub production: f32,
+    #[reflect(skip_serializing)]
     pub trade_routes: Vec<TradeRoute>,
 }
 
@@ -120,7 +127,8 @@ impl Default for Economy {
 }
 
 /// Trade route between cities/regions
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct TradeRoute {
     pub from: Position,
     pub to: Position,
@@ -135,7 +143,7 @@ impl Component for TradeRoute {
 }
 
 /// Military forces and capabilities
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct Military {
     pub units: Vec<super::military::MilitaryUnit>,
     pub total_strength: f32,
@@ -153,7 +161,8 @@ impl Default for Military {
 }
 
 /// Basic civilization statistics for simple tracking
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct CivStats {
     pub name: String,
     pub population: u32,

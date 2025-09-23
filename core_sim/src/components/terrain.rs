@@ -1,9 +1,11 @@
+use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Terrain types for world map tiles
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
+#[reflect(Component)]
 pub enum TerrainType {
     Plains,
     Hills,
@@ -85,7 +87,10 @@ impl TerrainType {
     pub fn is_water(&self) -> bool {
         matches!(
             self,
-            TerrainType::Ocean | TerrainType::Coast | TerrainType::ShallowCoast | TerrainType::River
+            TerrainType::Ocean
+                | TerrainType::Coast
+                | TerrainType::ShallowCoast
+                | TerrainType::River
         )
     }
 

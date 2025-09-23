@@ -1,9 +1,11 @@
+use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Position component for entities on the world map
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
+#[reflect(Component)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
@@ -79,7 +81,8 @@ impl Position {
 }
 
 /// Cardinal directions for movement and positioning
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
+#[reflect(Component)]
 pub enum Direction {
     North,
     South,

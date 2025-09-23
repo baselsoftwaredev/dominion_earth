@@ -2,15 +2,18 @@ use crate::constants::{
     coordinates, economy, game_flow, map_generation, movement_directions, terrain_stats,
 };
 use crate::{CivId, DiplomaticRelation, Position, TerrainType};
+use bevy::prelude::Reflect;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Global world map resource
-#[derive(Resource, Debug, Clone, Serialize, Deserialize)]
+#[derive(Resource, Debug, Clone, Serialize, Deserialize, Reflect)]
+#[reflect(Resource)]
 pub struct WorldMap {
     pub width: u32,
     pub height: u32,
+    #[reflect(skip_serializing)]
     pub tiles: Vec<Vec<MapTile>>,
 }
 
@@ -74,11 +77,12 @@ impl WorldMap {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct MapTile {
     pub terrain: TerrainType,
     pub owner: Option<CivId>,
     pub city: Option<String>,
+    #[reflect(skip_serializing)]
     pub resource: Option<Resource>,
     pub movement_cost: f32,
     pub defense_bonus: f32,
@@ -97,7 +101,7 @@ impl Default for MapTile {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 pub enum Resource {
     Iron,
     Gold,
@@ -216,7 +220,8 @@ pub enum DiplomaticEventType {
 }
 
 /// Current turn resource
-#[derive(Resource, Debug, Clone, Serialize, Deserialize)]
+#[derive(Resource, Debug, Clone, Serialize, Deserialize, Reflect)]
+#[reflect(Resource)]
 pub struct CurrentTurn(pub u32);
 
 impl Default for CurrentTurn {
@@ -226,14 +231,15 @@ impl Default for CurrentTurn {
 }
 
 /// Active civilization turn tracker
-#[derive(Resource, Debug, Clone, Serialize, Deserialize)]
+#[derive(Resource, Debug, Clone, Serialize, Deserialize, Reflect)]
+#[reflect(Resource)]
 pub struct ActiveCivTurn {
     pub current_civ_index: usize,
     pub civs_per_turn: Vec<CivId>,
     pub turn_phase: TurnPhase,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub enum TurnPhase {
     Planning,  // AI is making decisions
     Execution, // Actions are being executed
