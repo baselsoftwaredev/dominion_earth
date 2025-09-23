@@ -1,5 +1,7 @@
+use crate::constants::{
+    coordinates, economy, game_flow, map_generation, movement_directions, terrain_stats,
+};
 use crate::{CivId, DiplomaticRelation, Position, TerrainType};
-use crate::constants::{coordinates, economy, game_flow, map_generation, movement_directions, terrain_stats};
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -17,7 +19,10 @@ impl Default for WorldMap {
         Self {
             width: map_generation::DEFAULT_MAP_WIDTH,
             height: map_generation::DEFAULT_MAP_HEIGHT,
-            tiles: vec![vec![MapTile::default(); map_generation::DEFAULT_MAP_HEIGHT as usize]; map_generation::DEFAULT_MAP_WIDTH as usize],
+            tiles: vec![
+                vec![MapTile::default(); map_generation::DEFAULT_MAP_HEIGHT as usize];
+                map_generation::DEFAULT_MAP_WIDTH as usize
+            ],
         }
     }
 }
@@ -32,7 +37,11 @@ impl WorldMap {
     }
 
     pub fn get_tile(&self, pos: Position) -> Option<&MapTile> {
-        if pos.x >= coordinates::MIN_COORDINATE && pos.y >= coordinates::MIN_COORDINATE && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
+        if pos.x >= coordinates::MIN_COORDINATE
+            && pos.y >= coordinates::MIN_COORDINATE
+            && (pos.x as u32) < self.width
+            && (pos.y as u32) < self.height
+        {
             Some(&self.tiles[pos.x as usize][pos.y as usize])
         } else {
             None
@@ -40,7 +49,11 @@ impl WorldMap {
     }
 
     pub fn get_tile_mut(&mut self, pos: Position) -> Option<&mut MapTile> {
-        if pos.x >= coordinates::MIN_COORDINATE && pos.y >= coordinates::MIN_COORDINATE && (pos.x as u32) < self.width && (pos.y as u32) < self.height {
+        if pos.x >= coordinates::MIN_COORDINATE
+            && pos.y >= coordinates::MIN_COORDINATE
+            && (pos.x as u32) < self.width
+            && (pos.y as u32) < self.height
+        {
             Some(&mut self.tiles[pos.x as usize][pos.y as usize])
         } else {
             None
@@ -52,7 +65,10 @@ impl WorldMap {
             .iter()
             .map(|(dx, dy)| Position::new(pos.x + dx, pos.y + dy))
             .filter(|p| {
-                p.x >= coordinates::MIN_COORDINATE && p.y >= coordinates::MIN_COORDINATE && (p.x as u32) < self.width && (p.y as u32) < self.height
+                p.x >= coordinates::MIN_COORDINATE
+                    && p.y >= coordinates::MIN_COORDINATE
+                    && (p.x as u32) < self.width
+                    && (p.y as u32) < self.height
             })
             .collect()
     }
@@ -243,6 +259,7 @@ pub struct GameConfig {
     pub world_size: WorldSize,
     pub random_seed: u64,
     pub debug_logging: bool,
+    pub ai_only: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -276,6 +293,7 @@ impl Default for GameConfig {
             world_size: WorldSize::Medium,
             random_seed,
             debug_logging: false,
+            ai_only: false,
         }
     }
 }

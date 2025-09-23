@@ -10,7 +10,7 @@ use crate::{
     },
     constants::civilization_management::{PLAYER_CIVILIZATION_ID, STARTING_UNIT_ID_COUNTER},
     pathfinding::Pathfinder,
-    resources::CurrentTurn,
+    resources::{CurrentTurn, GameConfig},
     CivId, Position, WorldMap,
 };
 use bevy_ecs::prelude::*;
@@ -25,6 +25,7 @@ pub fn handle_turn_advance_requests(
     mut turn_phase: ResMut<TurnPhase>,
     civilizations: Query<(Entity, &Civilization), Without<PlayerControlled>>,
     mut ai_turn_events: EventWriter<ProcessAITurn>,
+    game_config: Res<GameConfig>,
 ) {
     for _request in turn_requests.read() {
         tracing::info!("Player requested turn advancement");
@@ -36,17 +37,72 @@ pub fn handle_turn_advance_requests(
             tracing::info!("No AI civilizations found, advancing turn immediately");
             *turn_phase = TurnPhase::TurnTransition;
         } else {
-            tracing::info!(
-                "Starting AI turn sequence for {} civilizations",
-                ai_civs.len()
-            );
-            if let Some(first_ai) = ai_civs.first() {
-                let remaining_ais = ai_civs.iter().skip(1).cloned().collect();
-                *turn_phase = TurnPhase::AITurn {
-                    current_ai: *first_ai,
-                    remaining_ais,
-                };
-                ai_turn_events.write(ProcessAITurn { civ_id: *first_ai });
+            if game_config.ai_only {
+                // In AI-only mode, check current phase to determine what to do
+                let current_phase = turn_phase.clone();
+                match current_phase {
+                    TurnPhase::PlayerTurn => {
+                        // First press: Queue up AI turns but don't start them yet
+                        tracing::info!(
+                            "AI-only mode: Queuing {} AI civilizations for next turn",
+                            ai_civs.len()
+                        );
+                        *turn_phase = TurnPhase::AITurnPending {
+                            pending_ais: ai_civs,
+                        };
+                    }
+                    TurnPhase::AITurnPending { pending_ais } => {
+                        // Second press: Actually start the AI turns
+                        tracing::info!(
+                            "AI-only mode: Starting AI turn sequence for {} civilizations",
+                            pending_ais.len()
+                        );
+                        if let Some(first_ai) = pending_ais.first() {
+                            let remaining_ais = pending_ais.iter().skip(1).cloned().collect();
+                            *turn_phase = TurnPhase::AITurn {
+                                current_ai: *first_ai,
+                                remaining_ais,
+                            };
+                            ai_turn_events.write(ProcessAITurn { civ_id: *first_ai });
+                        }
+                    }
+                    TurnPhase::AITurnWaiting {
+                        next_ai,
+                        remaining_ais,
+                    } => {
+                        // Continue to next AI in sequence
+                        tracing::info!(
+                            "AI-only mode: Continuing to next AI {} in sequence",
+                            next_ai.0
+                        );
+                        *turn_phase = TurnPhase::AITurn {
+                            current_ai: next_ai,
+                            remaining_ais,
+                        };
+                        ai_turn_events.write(ProcessAITurn { civ_id: next_ai });
+                    }
+                    _ => {
+                        // In other phases, ignore additional requests
+                        tracing::debug!(
+                            "AI-only mode: Ignoring turn advance request during {:?}",
+                            current_phase
+                        );
+                    }
+                }
+            } else {
+                // Normal mode: start AI turns immediately
+                tracing::info!(
+                    "Starting AI turn sequence for {} civilizations",
+                    ai_civs.len()
+                );
+                if let Some(first_ai) = ai_civs.first() {
+                    let remaining_ais = ai_civs.iter().skip(1).cloned().collect();
+                    *turn_phase = TurnPhase::AITurn {
+                        current_ai: *first_ai,
+                        remaining_ais,
+                    };
+                    ai_turn_events.write(ProcessAITurn { civ_id: *first_ai });
+                }
             }
         }
     }
@@ -86,6 +142,7 @@ pub fn handle_ai_turn_completion(
     mut turn_phase: ResMut<TurnPhase>,
     mut next_ai_events: EventWriter<ProcessAITurn>,
     mut all_ai_complete_events: EventWriter<AllAITurnsComplete>,
+    game_config: Res<GameConfig>,
 ) {
     for _ai_event in ai_complete_events.read() {
         // Check if there are more AIs to process
@@ -103,11 +160,25 @@ pub fn handle_ai_turn_completion(
                 // Move to next AI
                 let next_ai = remaining_ais[0];
                 let new_remaining: Vec<CivId> = remaining_ais.iter().skip(1).cloned().collect();
-                *turn_phase = TurnPhase::AITurn {
-                    current_ai: next_ai,
-                    remaining_ais: new_remaining,
-                };
-                next_ai_events.write(ProcessAITurn { civ_id: next_ai });
+
+                if game_config.ai_only {
+                    // In AI-only mode, pause and wait for user input before next AI
+                    tracing::info!(
+                        "AI-only mode: Waiting for next turn input before AI {} takes their turn",
+                        next_ai.0
+                    );
+                    *turn_phase = TurnPhase::AITurnWaiting {
+                        next_ai,
+                        remaining_ais: new_remaining,
+                    };
+                } else {
+                    // Normal mode: immediately continue to next AI
+                    *turn_phase = TurnPhase::AITurn {
+                        current_ai: next_ai,
+                        remaining_ais: new_remaining,
+                    };
+                    next_ai_events.write(ProcessAITurn { civ_id: next_ai });
+                }
             }
         }
     }
@@ -392,16 +463,19 @@ fn is_player_controlled_civilization(owner: &crate::components::CivId) -> bool {
 pub fn auto_advance_turn_system(
     player_civs: Query<Entity, With<PlayerControlled>>,
     mut turn_advance: EventWriter<RequestTurnAdvance>,
+    game_config: Res<GameConfig>,
 ) {
-    if should_auto_advance_turn_for_ai_only_game(&player_civs) {
+    if should_auto_advance_turn_for_ai_only_game(&player_civs, &game_config) {
         turn_advance.write(RequestTurnAdvance);
     }
 }
 
 fn should_auto_advance_turn_for_ai_only_game(
     player_civs: &Query<Entity, With<PlayerControlled>>,
+    game_config: &GameConfig,
 ) -> bool {
-    player_civs.is_empty()
+    // Only auto-advance if there are no player civs AND we're not in manual AI-only mode
+    player_civs.is_empty() && !game_config.ai_only
 }
 
 #[derive(Event)]

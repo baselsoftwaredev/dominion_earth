@@ -24,6 +24,11 @@ struct CliArgs {
     seed: Option<u64>,
     #[arg(long)]
     debug_logging: bool,
+    #[arg(
+        long,
+        help = "Start game with AI-only civilizations - no player controlled civilization"
+    )]
+    ai_only: bool,
 }
 
 fn main() {
@@ -31,7 +36,7 @@ fn main() {
 
     let config = ResourceConfig {
         auto_advance: false,
-        ai_only: false,
+        ai_only: args.ai_only,
         total_civs: 3,
         seed: args.seed,
         debug_logging: args.debug_logging,

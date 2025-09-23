@@ -1,6 +1,7 @@
 use super::constants;
 use super::coordinates::convert_cursor_position_to_tile_coordinates;
 use crate::debug_utils::{DebugLogging, DebugUtils};
+use crate::game::GameState;
 use crate::ui::utilities::{is_cursor_over_ui_panel, UiPanelBounds};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
@@ -18,7 +19,13 @@ pub fn handle_player_unit_interaction(
     player_civs: Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
     world_map: Res<core_sim::resources::WorldMap>,
     debug_logging: Res<DebugLogging>,
+    game_state: Res<GameState>,
 ) {
+    // Don't handle unit interaction in AI-only mode
+    if game_state.ai_only {
+        return;
+    }
+
     if player_civs.is_empty() {
         return;
     }

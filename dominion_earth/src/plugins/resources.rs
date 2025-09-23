@@ -73,6 +73,7 @@ impl Plugin for ResourcesPluginWithConfig {
                     println!("Using custom random seed: {}", seed);
                 }
                 game_config.debug_logging = self.config.debug_logging;
+                game_config.ai_only = self.config.ai_only;
                 game_config
             })
             .insert_resource(game::GameState::new(
