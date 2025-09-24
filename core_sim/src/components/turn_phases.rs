@@ -1,9 +1,10 @@
 use crate::CivId;
+use bevy::prelude::Reflect;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Represents the current phase of a turn
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Reflect)]
 pub enum TurnPhase {
     PlayerTurn,
     AITurn {

@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use bevy::scene::{DynamicScene, DynamicSceneRoot};
 use bevy::tasks::IoTaskPool;
-use core_sim::resources::{ActiveCivTurn, CurrentTurn, MapTile, Resource, TurnPhase, WorldMap};
+use core_sim::components::rendering::SpriteEntityReference;
+use core_sim::components::turn_phases::TurnPhase;
+use core_sim::resources::{ActiveCivTurn, CurrentTurn, GameConfig, MapTile, Resource, WorldMap};
 use core_sim::{
     Building, BuildingType, City, CivId, CivPersonality, CivStats, Civilization, Direction,
     Economy, Military, MilitaryUnit, Position, Technologies, TerrainType, TradeRoute, UnitType,
@@ -120,6 +122,10 @@ fn setup_save_load_registry(world: &mut World) {
         .resource_mut::<AppTypeRegistry>()
         .write()
         .register::<CivStats>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
+        .register::<SpriteEntityReference>();
 
     // Register resources
     world
@@ -141,6 +147,10 @@ fn setup_save_load_registry(world: &mut World) {
     world
         .resource_mut::<AppTypeRegistry>()
         .write()
+        .register::<GameConfig>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
         .register::<Resource>();
     world
         .resource_mut::<AppTypeRegistry>()
@@ -155,6 +165,8 @@ fn handle_save_requests(
     mut save_state: ResMut<SaveLoadState>,
     current_turn: Option<Res<CurrentTurn>>,
     active_civ_turn: Option<Res<ActiveCivTurn>>,
+    turn_phase: Option<Res<TurnPhase>>,
+    game_config: Option<Res<GameConfig>>,
     world_map: Option<Res<WorldMap>>,
     query: Query<(
         Entity,
@@ -186,6 +198,12 @@ fn handle_save_requests(
     }
     if let Some(active_civ_turn) = active_civ_turn {
         save_world.insert_resource(active_civ_turn.clone());
+    }
+    if let Some(turn_phase) = turn_phase {
+        save_world.insert_resource(turn_phase.clone());
+    }
+    if let Some(game_config) = game_config {
+        save_world.insert_resource(game_config.clone());
     }
     if let Some(world_map) = world_map {
         save_world.insert_resource(world_map.clone());

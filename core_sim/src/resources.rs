@@ -257,7 +257,7 @@ impl Default for ActiveCivTurn {
 }
 
 /// Game configuration
-#[derive(Resource, Debug, Clone, Serialize, Deserialize)]
+#[derive(Resource, Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct GameConfig {
     pub max_turns: u32,
     pub turn_time_limit: Option<f32>,
@@ -268,7 +268,7 @@ pub struct GameConfig {
     pub ai_only: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub enum AIDifficulty {
     Easy,
     Normal,
@@ -276,7 +276,7 @@ pub enum AIDifficulty {
     Expert,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub enum WorldSize {
     Small,
     Medium,

@@ -26,25 +26,7 @@ pub fn spawn_unit_sprites(
     };
 
     for (unit_entity, unit, pos) in units.iter() {
-        let sprite_index = match unit.unit_type {
-            core_sim::components::military::UnitType::Infantry => {
-                tile_assets.ancient_infantry_index
-            }
-            core_sim::components::military::UnitType::Archer => tile_assets.ancient_infantry_index, // TODO: Add archer sprite
-            core_sim::components::military::UnitType::Cavalry => tile_assets.ancient_infantry_index, // TODO: Add cavalry sprite
-            _ => tile_assets.ancient_infantry_index, // Default to infantry
-        };
-
-        crate::debug_println!(
-            debug_logging,
-            "DEBUG: Spawning unit sprite for {:?} at ({}, {}) with sprite index {}",
-            unit.unit_type,
-            pos.x,
-            pos.y,
-            sprite_index
-        );
-
-        if let Some(sprite_entity) = spawn_entity_on_tile(
+        spawn_unit_sprite(
             &mut commands,
             &tile_assets,
             tile_storage,
@@ -53,15 +35,125 @@ pub fn spawn_unit_sprites(
             grid_size,
             map_type,
             anchor,
-            *pos,
-            sprite_index,
-            z_layers::UNIT_Z,
+            unit_entity,
+            unit,
+            pos,
             &debug_logging,
-        ) {
-            commands
-                .entity(unit_entity)
-                .insert(core_sim::components::rendering::SpriteEntityReference { sprite_entity });
+        );
+    }
+}
+
+/// Recreate sprites for units that have invalid sprite references (e.g., after loading)
+pub fn recreate_missing_unit_sprites(
+    mut commands: Commands,
+    tile_assets: Res<TileAssets>,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    units: Query<
+        (
+            Entity,
+            &MilitaryUnit,
+            &Position,
+            Option<&core_sim::components::rendering::SpriteEntityReference>,
+        ),
+        With<MilitaryUnit>,
+    >,
+    sprite_entities: Query<&Transform>,
+    debug_logging: Res<DebugLogging>,
+) {
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
+    else {
+        return;
+    };
+
+    for (unit_entity, unit, pos, sprite_ref) in units.iter() {
+        let needs_new_sprite = if let Some(sprite_ref) = sprite_ref {
+            // Check if the referenced sprite entity still exists
+            sprite_entities.get(sprite_ref.sprite_entity).is_err()
+        } else {
+            // No sprite reference at all
+            true
+        };
+
+        if needs_new_sprite {
+            // Remove old invalid sprite reference if it exists
+            if sprite_ref.is_some() {
+                commands
+                    .entity(unit_entity)
+                    .remove::<core_sim::components::rendering::SpriteEntityReference>();
+            }
+
+            spawn_unit_sprite(
+                &mut commands,
+                &tile_assets,
+                tile_storage,
+                map_size,
+                tile_size,
+                grid_size,
+                map_type,
+                anchor,
+                unit_entity,
+                unit,
+                pos,
+                &debug_logging,
+            );
         }
+    }
+}
+
+fn spawn_unit_sprite(
+    commands: &mut Commands,
+    tile_assets: &TileAssets,
+    tile_storage: &TileStorage,
+    map_size: &TilemapSize,
+    tile_size: &TilemapTileSize,
+    grid_size: &TilemapGridSize,
+    map_type: &TilemapType,
+    anchor: &TilemapAnchor,
+    unit_entity: Entity,
+    unit: &MilitaryUnit,
+    pos: &Position,
+    debug_logging: &DebugLogging,
+) {
+    let sprite_index = match unit.unit_type {
+        core_sim::components::military::UnitType::Infantry => tile_assets.ancient_infantry_index,
+        core_sim::components::military::UnitType::Archer => tile_assets.ancient_infantry_index, // TODO: Add archer sprite
+        core_sim::components::military::UnitType::Cavalry => tile_assets.ancient_infantry_index, // TODO: Add cavalry sprite
+        _ => tile_assets.ancient_infantry_index, // Default to infantry
+    };
+
+    crate::debug_println!(
+        debug_logging,
+        "DEBUG: Spawning unit sprite for {:?} at ({}, {}) with sprite index {}",
+        unit.unit_type,
+        pos.x,
+        pos.y,
+        sprite_index
+    );
+
+    if let Some(sprite_entity) = spawn_entity_on_tile(
+        commands,
+        tile_assets,
+        tile_storage,
+        map_size,
+        tile_size,
+        grid_size,
+        map_type,
+        anchor,
+        *pos,
+        sprite_index,
+        z_layers::UNIT_Z,
+        debug_logging,
+    ) {
+        commands
+            .entity(unit_entity)
+            .insert(core_sim::components::rendering::SpriteEntityReference { sprite_entity });
     }
 }
 
