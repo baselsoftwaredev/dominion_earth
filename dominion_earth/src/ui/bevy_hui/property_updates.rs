@@ -7,7 +7,8 @@ use bevy_hui::prelude::*;
 use core_sim::{
     components::{Capital, City, TerrainType},
     resources::CurrentTurn,
-    ActionQueue, Civilization, Position, ProductionQueue,
+    ActionQueue, AllAITurnsComplete, Civilization, PlayerProductionOrder, Position,
+    ProductionQueue, ProductionUpdated, SkipProductionThisTurn, StartPlayerTurn,
 };
 
 use super::constants;
@@ -72,7 +73,6 @@ pub fn update_ui_properties_system(
     capitals: Query<(&Capital, &Position)>,
     cities: Query<(&City, &Position)>,
     production_queues: Query<&ProductionQueue>,
-    changed_production_queues: Query<Entity, Changed<ProductionQueue>>,
     action_queues: Query<&ActionQueue>,
     current_turn: Res<CurrentTurn>,
     terrain_counts: Res<TerrainCounts>,
@@ -80,16 +80,6 @@ pub fn update_ui_properties_system(
     selected_capital: Res<SelectedCapital>,
     debug_logging: Res<DebugLogging>,
 ) {
-    if !should_update_ui_properties(
-        &current_turn,
-        &terrain_counts,
-        &hovered_tile,
-        &selected_capital,
-        &changed_production_queues,
-    ) {
-        return;
-    }
-
     let game_data = collect_game_data_from_queries(&civs, &player_civs, &capitals, &cities);
     log_collected_game_data(&debug_logging, &game_data);
 
@@ -121,18 +111,109 @@ pub fn update_ui_properties_system(
         &hovered_tile_info,
     );
 }
-fn should_update_ui_properties(
-    current_turn: &Res<CurrentTurn>,
-    terrain_counts: &Res<TerrainCounts>,
-    hovered_tile: &Res<HoveredTile>,
-    selected_capital: &Res<SelectedCapital>,
-    changed_production_queues: &Query<Entity, Changed<ProductionQueue>>,
+
+/// Condition function to determine when UI should update
+/// This runs much more efficiently than the full UI update system
+pub fn should_update_ui_this_frame(
+    // Game state change events that affect UI
+    start_player_events: EventReader<StartPlayerTurn>,
+    ai_complete_events: EventReader<AllAITurnsComplete>,
+    production_events: EventReader<ProductionUpdated>,
+
+    // Player action events that affect UI state
+    player_production_events: EventReader<PlayerProductionOrder>,
+    skip_production_events: EventReader<SkipProductionThisTurn>,
+
+    // Resource changes that affect UI
+    current_turn: Res<CurrentTurn>,
+    terrain_counts: Res<TerrainCounts>,
+    hovered_tile: Res<HoveredTile>,
+    selected_capital: Res<SelectedCapital>,
+
+    // Component changes
+    changed_production_queues: Query<Entity, Changed<ProductionQueue>>,
 ) -> bool {
-    current_turn.is_changed()
-        || terrain_counts.is_changed()
-        || hovered_tile.is_changed()
-        || selected_capital.is_changed()
-        || !changed_production_queues.is_empty()
+    let mut reasons = Vec::new();
+
+    // Check for game events that should trigger UI updates
+    let has_start_player_events = !start_player_events.is_empty();
+    let has_ai_complete_events = !ai_complete_events.is_empty();
+    let has_production_events = !production_events.is_empty();
+
+    let has_game_events =
+        has_start_player_events || has_ai_complete_events || has_production_events;
+
+    if has_start_player_events {
+        reasons.push("StartPlayerTurn events".to_string());
+    }
+    if has_ai_complete_events {
+        reasons.push("AllAITurnsComplete events".to_string());
+    }
+    if has_production_events {
+        reasons.push("ProductionUpdated events".to_string());
+    }
+
+    // Check for player action events
+    let has_player_production_events = !player_production_events.is_empty();
+    let has_skip_production_events = !skip_production_events.is_empty();
+
+    let has_player_action_events = has_player_production_events || has_skip_production_events;
+
+    if has_player_production_events {
+        reasons.push("PlayerProductionOrder events".to_string());
+    }
+    if has_skip_production_events {
+        reasons.push("SkipProductionThisTurn events".to_string());
+    }
+
+    // Check for resource changes (excluding HoveredTile which changes too frequently)
+    let current_turn_changed = current_turn.is_changed();
+    let terrain_counts_changed = terrain_counts.is_changed();
+    let selected_capital_changed = selected_capital.is_changed();
+
+    let has_resource_changes =
+        current_turn_changed || terrain_counts_changed || selected_capital_changed;
+
+    if current_turn_changed {
+        reasons.push("CurrentTurn changed".to_string());
+    }
+    if terrain_counts_changed {
+        reasons.push("TerrainCounts changed".to_string());
+    }
+    if selected_capital_changed {
+        reasons.push("SelectedCapital changed".to_string());
+    }
+
+    // Handle HoveredTile changes separately with throttling
+    let hovered_tile_changed = hovered_tile.is_changed();
+    if hovered_tile_changed {
+        // Only log this for debugging, don't trigger full UI update
+        // The hovered tile info will be updated when other conditions trigger updates
+        reasons.push("HoveredTile changed (throttled)".to_string());
+    }
+
+    // Check for production queue changes
+    let production_queue_count = changed_production_queues.iter().count();
+    let has_production_changes = production_queue_count > 0;
+
+    if has_production_changes {
+        reasons.push(format!(
+            "{} ProductionQueue components changed",
+            production_queue_count
+        ));
+    }
+
+    let should_update = has_game_events
+        || has_player_action_events
+        || has_resource_changes
+        || has_production_changes;
+
+    // Log when UI updates and why
+    if should_update {
+        println!("🔄 UI UPDATE TRIGGERED: {}", reasons.join(", "));
+    }
+
+    should_update
 }
 
 fn collect_game_data_from_queries<'a>(
