@@ -29,6 +29,11 @@ struct CliArgs {
         help = "Start game with AI-only civilizations - no player controlled civilization"
     )]
     ai_only: bool,
+    #[arg(
+        long,
+        help = "Directory to save game files (defaults to current directory)"
+    )]
+    save_dir: Option<String>,
 }
 
 fn main() {
@@ -65,6 +70,12 @@ fn main() {
         app.add_plugins(BrpExtrasPlugin::default());
     }
 
-    app.add_plugins(DominionEarthPlugins::with_config(config))
-        .run();
+    let mut plugins = DominionEarthPlugins::with_config(config);
+
+    // Configure save directory if provided
+    if let Some(save_dir) = args.save_dir {
+        plugins = plugins.with_save_directory(save_dir);
+    }
+
+    app.add_plugins(plugins).run();
 }

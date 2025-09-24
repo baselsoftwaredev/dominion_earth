@@ -12,12 +12,67 @@ use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
+/// Helper function to find save file path in the configured directory
+fn find_save_file_path(filename: &str, save_dir: &str) -> Option<String> {
+    let path = format!("{}/saves/{}", save_dir, filename);
+
+    if Path::new(&path).exists() {
+        info!("Found save file at: {}", path);
+        Some(path)
+    } else {
+        warn!("Save file not found: {}", path);
+        None
+    }
+}
+/// Get the save directory from state or use default
+fn get_save_directory(save_state: &SaveLoadState) -> String {
+    if save_state.save_directory.is_empty() {
+        // Default to project root
+        std::env::current_dir()
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or_else(|_| ".".to_string())
+    } else {
+        save_state.save_directory.clone()
+    }
+}
+
 /// Plugin for handling game state saving and loading
-pub struct SaveLoadPlugin;
+pub struct SaveLoadPlugin {
+    save_directory: Option<String>,
+}
+
+impl SaveLoadPlugin {
+    pub fn new() -> Self {
+        Self {
+            save_directory: None,
+        }
+    }
+
+    pub fn with_save_directory(save_dir: String) -> Self {
+        Self {
+            save_directory: Some(save_dir),
+        }
+    }
+}
+
+impl Default for SaveLoadPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Plugin for SaveLoadPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<SaveLoadState>()
+        // Use configured save directory or default to project root
+        let save_directory = if let Some(dir) = &self.save_directory {
+            dir.clone()
+        } else {
+            std::env::current_dir()
+                .map(|path| path.to_string_lossy().to_string())
+                .unwrap_or_else(|_| ".".to_string())
+        };
+
+        app.insert_resource(SaveLoadState::with_save_directory(save_directory))
             .add_systems(Startup, setup_save_load_registry)
             .add_systems(
                 Update,
@@ -37,6 +92,16 @@ pub struct SaveLoadState {
     pub load_requested: bool,
     pub save_path: String,
     pub load_path: String,
+    pub save_directory: String,
+}
+
+impl SaveLoadState {
+    pub fn with_save_directory(save_dir: String) -> Self {
+        Self {
+            save_directory: save_dir,
+            ..Default::default()
+        }
+    }
 }
 
 /// Event to request a save operation
@@ -194,19 +259,28 @@ fn handle_save_requests(
 
     // Copy saveable resources
     if let Some(current_turn) = current_turn {
-        save_world.insert_resource(current_turn.clone());
+        save_world.insert_resource((*current_turn).clone());
+        info!("Saved CurrentTurn: {:?}", *current_turn);
     }
     if let Some(active_civ_turn) = active_civ_turn {
-        save_world.insert_resource(active_civ_turn.clone());
+        save_world.insert_resource((*active_civ_turn).clone());
+        info!("Saved ActiveCivTurn: {:?}", *active_civ_turn);
     }
     if let Some(turn_phase) = turn_phase {
-        save_world.insert_resource(turn_phase.clone());
+        save_world.insert_resource((*turn_phase).clone());
+        info!("Saved TurnPhase: {:?}", *turn_phase);
+    } else {
+        warn!("TurnPhase resource not found during save!");
     }
     if let Some(game_config) = game_config {
-        save_world.insert_resource(game_config.clone());
+        save_world.insert_resource((*game_config).clone());
+        info!("Saved GameConfig: {:?}", *game_config);
+    } else {
+        warn!("GameConfig resource not found during save!");
     }
     if let Some(world_map) = world_map {
-        save_world.insert_resource(world_map.clone());
+        save_world.insert_resource((*world_map).clone());
+        info!("Saved WorldMap: {}x{}", world_map.width, world_map.height);
     }
 
     // Copy entities with their components
@@ -245,9 +319,10 @@ fn handle_save_requests(
 
     // Save to file asynchronously
     let save_path = save_state.save_path.clone();
+    let save_directory = get_save_directory(&save_state);
     IoTaskPool::get()
         .spawn(async move {
-            let path = format!("assets/saves/{}", save_path);
+            let path = format!("{}/saves/{}", save_directory, save_path);
             if let Some(parent) = Path::new(&path).parent() {
                 std::fs::create_dir_all(parent).expect("Failed to create save directory");
             }
@@ -279,11 +354,28 @@ fn handle_load_requests(
         commands.entity(entity).despawn();
     }
 
-    // Load the scene
-    let load_path = format!("saves/{}", save_state.load_path);
-    commands.spawn(DynamicSceneRoot(asset_server.load(load_path)));
+    // Try to find the save file in the configured directory
+    let primary_save_dir = get_save_directory(&save_state);
+    if let Some(file_path) = find_save_file_path(&save_state.load_path, &primary_save_dir) {
+        // Copy save file to assets directory for asset server to load
+        let temp_path = format!("dominion_earth/assets/saves/{}", save_state.load_path);
+        if let Some(parent) = Path::new(&temp_path).parent() {
+            std::fs::create_dir_all(parent).ok();
+        }
 
-    info!("Loading game from: assets/saves/{}", save_state.load_path);
+        if std::fs::copy(&file_path, &temp_path).is_ok() {
+            let load_path = format!("saves/{}", save_state.load_path);
+            commands.spawn(DynamicSceneRoot(asset_server.load(load_path)));
+            info!(
+                "Loading game from: {} (copied to assets for loading)",
+                file_path
+            );
+        } else {
+            error!("Failed to copy save file for loading: {}", file_path);
+        }
+    } else {
+        error!("Failed to find save file: {}", save_state.load_path);
+    }
 }
 
 /// Track loaded scenes and log when they're ready

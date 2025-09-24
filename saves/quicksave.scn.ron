@@ -121,7 +121,7 @@
             current_research: None,
           ),
           economy: (
-            gold: 55.0,
+            gold: 100.0,
             income: 10.0,
             expenses: 5.0,
             production: 8.0,
@@ -180,26 +180,6 @@
     ),
     4294967301: (
       components: {
-        "core_sim::components::military::MilitaryUnit": (
-          id: 0,
-          owner: (0),
-          unit_type: Infantry,
-          position: (
-            x: 21,
-            y: 5,
-          ),
-          strength: 10.0,
-          movement_remaining: 1,
-          experience: 0.0,
-        ),
-        "core_sim::components::position::Position": (
-          x: 20,
-          y: 5,
-        ),
-      },
-    ),
-    4294967302: (
-      components: {
         "core_sim::components::city::City": (
           name: "Athens",
           owner: (1),
@@ -219,7 +199,7 @@
         ),
       },
     ),
-    4294967303: (
+    4294967302: (
       components: {
         "core_sim::components::city::City": (
           name: "Rome",
@@ -240,7 +220,7 @@
         ),
       },
     ),
-    4294967304: (
+    4294967303: (
       components: {
         "core_sim::components::city::City": (
           name: "Persepolis",
@@ -257,6 +237,26 @@
         ),
         "core_sim::components::position::Position": (
           x: 21,
+          y: 5,
+        ),
+      },
+    ),
+    4294967304: (
+      components: {
+        "core_sim::components::military::MilitaryUnit": (
+          id: 0,
+          owner: (0),
+          unit_type: Infantry,
+          position: (
+            x: 21,
+            y: 5,
+          ),
+          strength: 10.0,
+          movement_remaining: 0,
+          experience: 0.0,
+        ),
+        "core_sim::components::position::Position": (
+          x: 19,
           y: 5,
         ),
       },
