@@ -6,7 +6,8 @@ use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{ActiveCivTurn, CurrentTurn, GameConfig, MapTile, Resource, WorldMap};
 use core_sim::{
     Building, BuildingType, City, CivId, CivPersonality, CivStats, Civilization, Direction,
-    Economy, Military, MilitaryUnit, Position, Technologies, TerrainType, TradeRoute, UnitType,
+    Economy, Military, MilitaryUnit, PlayerControlled, PlayerMovementOrder, Position, Technologies,
+    TerrainType, TradeRoute, UnitSelected, UnitType,
 };
 use std::fs::File;
 use std::io::Write;
@@ -80,6 +81,7 @@ impl Plugin for SaveLoadPlugin {
                     handle_save_requests,
                     handle_load_requests,
                     track_loaded_scenes,
+                    restore_player_control_after_load,
                 ),
             );
     }
@@ -191,6 +193,18 @@ fn setup_save_load_registry(world: &mut World) {
         .resource_mut::<AppTypeRegistry>()
         .write()
         .register::<SpriteEntityReference>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
+        .register::<PlayerControlled>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
+        .register::<UnitSelected>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
+        .register::<PlayerMovementOrder>();
 
     // Register resources
     world
@@ -241,6 +255,9 @@ fn handle_save_requests(
         Option<&MilitaryUnit>,
         Option<&TerrainType>,
         Option<&CivId>,
+        Option<&PlayerControlled>,
+        Option<&UnitSelected>,
+        Option<&PlayerMovementOrder>,
     )>,
     type_registry: Res<AppTypeRegistry>,
 ) {
@@ -284,7 +301,19 @@ fn handle_save_requests(
     }
 
     // Copy entities with their components
-    for (entity, position, civilization, city, military_unit, terrain, civ_id) in query.iter() {
+    for (
+        entity,
+        position,
+        civilization,
+        city,
+        military_unit,
+        terrain,
+        civ_id,
+        player_controlled,
+        unit_selected,
+        player_movement_order,
+    ) in query.iter()
+    {
         let mut entity_commands = save_world.spawn((*position,));
 
         if let Some(civilization) = civilization {
@@ -305,6 +334,18 @@ fn handle_save_requests(
 
         if let Some(civ_id) = civ_id {
             entity_commands.insert(*civ_id);
+        }
+
+        if let Some(player_controlled) = player_controlled {
+            entity_commands.insert(player_controlled.clone());
+        }
+
+        if let Some(unit_selected) = unit_selected {
+            entity_commands.insert(unit_selected.clone());
+        }
+
+        if let Some(player_movement_order) = player_movement_order {
+            entity_commands.insert(player_movement_order.clone());
         }
     }
 
@@ -407,4 +448,46 @@ pub fn load_game(save_state: &mut ResMut<SaveLoadState>, save_name: &str) {
     save_state.load_requested = true;
     save_state.load_path = format!("{}.scn.ron", save_name);
     info!("Load requested: {}", save_name);
+}
+
+/// Restore player control for old saves that don't have PlayerControlled components
+/// This system runs after loading and ensures at least one civilization is player-controlled
+fn restore_player_control_after_load(
+    mut commands: Commands,
+    civilizations_query: Query<(Entity, &Civilization), Without<PlayerControlled>>,
+    player_civilizations_query: Query<&PlayerControlled>,
+    cities_query: Query<(Entity, &City), Without<PlayerControlled>>,
+    units_query: Query<(Entity, &MilitaryUnit), Without<PlayerControlled>>,
+) {
+    // Only run this system if no civilizations have PlayerControlled components
+    if player_civilizations_query.is_empty() && !civilizations_query.is_empty() {
+        // Find the first civilization (by CivId(0) if possible, otherwise the first one)
+        let mut civilizations: Vec<_> = civilizations_query.iter().collect();
+        civilizations.sort_by_key(|(_, civ)| civ.id.0);
+
+        if let Some((first_civ_entity, first_civ)) = civilizations.first() {
+            // Mark the first civilization as player-controlled
+            commands.entity(*first_civ_entity).insert(PlayerControlled);
+
+            let player_civ_id = first_civ.id;
+            info!(
+                "Restored player control to civilization: {} (CivId: {:?})",
+                first_civ.name, player_civ_id
+            );
+
+            // Mark all cities belonging to this civilization as player-controlled
+            for (city_entity, city) in cities_query.iter() {
+                if city.owner == player_civ_id {
+                    commands.entity(city_entity).insert(PlayerControlled);
+                }
+            }
+
+            // Mark all units belonging to this civilization as player-controlled
+            for (unit_entity, unit) in units_query.iter() {
+                if unit.owner == player_civ_id {
+                    commands.entity(unit_entity).insert(PlayerControlled);
+                }
+            }
+        }
+    }
 }

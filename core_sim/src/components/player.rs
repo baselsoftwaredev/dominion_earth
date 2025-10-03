@@ -1,9 +1,10 @@
+use super::civilization::CivId;
+use bevy::reflect::Reflect;
 use bevy_ecs::component::{Component, Mutable};
 use bevy_ecs::prelude::Resource;
-use super::civilization::CivId;
 
 /// Marker component for player-controlled civilizations
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct PlayerControlled;
 
 impl Component for PlayerControlled {
@@ -20,7 +21,7 @@ pub struct SelectedUnit {
 }
 
 /// Component to mark a unit as selected for player interaction
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct UnitSelected;
 
 impl Component for UnitSelected {
@@ -29,7 +30,7 @@ impl Component for UnitSelected {
 }
 
 /// Component for pending player movement order
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct PlayerMovementOrder {
     pub target_position: super::position::Position,
 }
