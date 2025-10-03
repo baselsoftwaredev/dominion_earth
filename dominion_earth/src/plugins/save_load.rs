@@ -122,6 +122,10 @@ pub struct LoadGameEvent {
 #[derive(Component)]
 pub struct Saveable;
 
+/// Component to mark that we've already logged the load completion for a DynamicSceneRoot
+#[derive(Component)]
+struct LoadLoggedMarker;
+
 /// Setup the type registry for reflection-based serialization
 fn setup_save_load_registry(world: &mut World) {
     // Register all our custom types for reflection
@@ -420,15 +424,24 @@ fn handle_load_requests(
 }
 
 /// Track loaded scenes and log when they're ready
-fn track_loaded_scenes(query: Query<&DynamicSceneRoot>, asset_server: Res<AssetServer>) {
-    for scene_root in query.iter() {
+fn track_loaded_scenes(
+    mut commands: Commands,
+    query: Query<(Entity, &DynamicSceneRoot), Without<LoadLoggedMarker>>,
+    asset_server: Res<AssetServer>,
+) {
+    for (entity, scene_root) in query.iter() {
         if let Some(load_state) = asset_server.get_load_state(&scene_root.0) {
             match load_state {
                 bevy::asset::LoadState::Loaded => {
                     info!("Save game loaded successfully");
+                    // Mark this entity so we don't log again, but keep the DynamicSceneRoot
+                    // alive so the scene entities can be instantiated
+                    commands.entity(entity).insert(LoadLoggedMarker);
                 }
                 bevy::asset::LoadState::Failed(err) => {
                     error!("Failed to load save game: {}", err);
+                    // Mark as logged to prevent repeated error messages
+                    commands.entity(entity).insert(LoadLoggedMarker);
                 }
                 _ => {}
             }
