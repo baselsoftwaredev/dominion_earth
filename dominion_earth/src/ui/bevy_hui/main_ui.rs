@@ -82,9 +82,17 @@ fn register_turn_advancement_function(html_functions: &mut HtmlFunctions) {
     html_functions.register(
         "advance_turn",
         |In(_entity): In<Entity>,
+         mut commands: Commands,
+         asset_server: Res<AssetServer>,
          mut turn_advance_events: EventWriter<core_sim::RequestTurnAdvance>| {
             turn_advance_events.write(core_sim::RequestTurnAdvance);
             info!("Player requested turn advancement");
+
+            // Play click sound
+            commands.spawn((
+                AudioPlayer::new(asset_server.load("sounds/click.ogg")),
+                PlaybackSettings::DESPAWN,
+            ));
         },
     );
 }
