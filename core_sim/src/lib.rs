@@ -28,6 +28,8 @@ pub use components::{
     },
     // Diplomacy components
     diplomacy::{DiplomaticAction, DiplomaticRelation, Treaty},
+    // Fog of war components
+    fog_of_war::{FogOfWarMaps, ProvidesVision, VisibilityMap, VisibilityState},
     // Military components
     military::{MilitaryUnit, UnitType},
     // Orders components
@@ -62,6 +64,11 @@ pub use systems::{
     ai_decision::*,
     combat_resolution::*,
     economic_update::*,
+    fog_of_war::{
+        filter_visible_cities, filter_visible_units, get_explored_positions, get_visible_positions,
+        initialize_fog_of_war_for_civ, is_position_explored, is_position_visible,
+        update_fog_of_war,
+    },
     movement::{
         clear_completed_movement_orders, execute_ai_movement_orders, execute_movement_orders,
     },

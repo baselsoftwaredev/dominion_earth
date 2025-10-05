@@ -19,6 +19,8 @@ impl Plugin for RenderingPlugin {
                         .after(core_sim::tile::tile_assets::setup_tile_assets)
                         .after(crate::game::setup_game),
                     rendering::tilemap::spawn_world_tiles.after(rendering::tilemap::setup_tilemap),
+                    rendering::tilemap::attach_tile_sprite_components
+                        .after(rendering::tilemap::setup_tilemap),
                 ),
             )
             // Sprite Spawning Systems
@@ -40,6 +42,9 @@ impl Plugin for RenderingPlugin {
                     rendering::capitals::update_capital_sprites,
                     rendering::capitals::update_animated_capital_sprites,
                     rendering::borders::render_civilization_borders,
+                    // Fog of War rendering
+                    rendering::fog_of_war::apply_fog_of_war_to_tiles,
+                    rendering::fog_of_war::hide_entities_in_fog,
                 ),
             );
     }

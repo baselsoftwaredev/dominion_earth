@@ -3,15 +3,14 @@
 //! This module handles the initialization of civilizations, cities, and units
 //! at the start of the game.
 
+use crate::debug_utils::{DebugLogging, DebugUtils};
 use bevy::prelude::*;
 use core_sim::{
-    CivId, Civilization, CivPersonality, City, Building, BuildingType,
-    Capital, CapitalAge, MilitaryUnit, UnitType, ProductionQueue, PlayerControlled, Position,
-    ActiveThisTurn, Economy, Military, Technologies,
-    resources::{WorldMap, GameRng},
-    CivilizationDataLoader, CivilizationDefinition,
+    resources::{GameRng, WorldMap},
+    ActiveThisTurn, Building, BuildingType, Capital, CapitalAge, City, CivId, CivPersonality,
+    Civilization, CivilizationDataLoader, CivilizationDefinition, Economy, Military, MilitaryUnit,
+    PlayerControlled, Position, ProductionQueue, Technologies, UnitType,
 };
-use crate::debug_utils::{DebugLogging, DebugUtils};
 
 /// Spawn initial civilizations on the world map
 pub fn spawn_initial_civilizations(
@@ -29,17 +28,10 @@ pub fn spawn_initial_civilizations(
         return;
     }
 
-    let selected_civs = select_random_civilizations(
-        civilization_data.unwrap(),
-        total_civilizations,
-        rng
-    );
+    let selected_civs =
+        select_random_civilizations(civilization_data.unwrap(), total_civilizations, rng);
 
-    let random_positions = generate_starting_positions(
-        &selected_civs,
-        world_map,
-        rng
-    );
+    let random_positions = generate_starting_positions(&selected_civs, world_map, rng);
 
     let mut spawned_count = 0;
     for (civ_index, civ_def) in selected_civs.into_iter().enumerate() {
@@ -61,7 +53,7 @@ pub fn spawn_initial_civilizations(
 
 /// Load civilization data from RON file
 fn load_civilization_data(
-    debug_logging: &DebugLogging
+    debug_logging: &DebugLogging,
 ) -> Option<core_sim::CivilizationDataCollection> {
     match CivilizationDataLoader::load_from_ron("dominion_earth/assets/data/civilizations.ron") {
         Ok(data) => {
@@ -89,7 +81,7 @@ fn select_random_civilizations(
     rng: &mut rand_pcg::Pcg64,
 ) -> Vec<CivilizationDefinition> {
     use rand::seq::SliceRandom;
-    
+
     let mut available_civs = civilization_data.civilizations.clone();
     available_civs.shuffle(rng);
     available_civs
@@ -105,7 +97,7 @@ fn generate_starting_positions(
     rng: &mut rand_pcg::Pcg64,
 ) -> std::collections::HashMap<String, Position> {
     const MIN_DISTANCE_BETWEEN_CIVS: u32 = 5;
-    
+
     CivilizationDataLoader::generate_random_starting_positions(
         selected_civs,
         world_map,
@@ -133,19 +125,21 @@ fn spawn_civilization(
     };
 
     if !is_buildable_position(world_map, position) {
-        DebugUtils::log_capital_spawn_skip(
-            debug_logging,
-            &civ_def.name,
-            position.x,
-            position.y,
-        );
+        DebugUtils::log_capital_spawn_skip(debug_logging, &civ_def.name, position.x, position.y);
         return false;
     }
 
     let civ_id = CivId(civ_index as u32);
     let is_player = !ai_only && civ_index == 0;
 
-    spawn_civilization_entity(commands, civ_def, civ_id, position, is_player, debug_logging);
+    spawn_civilization_entity(
+        commands,
+        civ_def,
+        civ_id,
+        position,
+        is_player,
+        debug_logging,
+    );
     spawn_capital_city(commands, civ_def, civ_id, position, is_player);
     spawn_starting_unit(commands, civ_id, position, civ_index, is_player);
     claim_starting_territory(world_map, civ_id, position, &civ_def.capital_name);
@@ -233,8 +227,14 @@ fn spawn_capital_city(
         established_turn: 0,
     };
 
-    let mut capital_commands = commands.spawn((city, capital, position));
+    let mut capital_commands = commands.spawn((city, capital, position, civ_id));
     capital_commands.insert(ProductionQueue::new(civ_id));
+    capital_commands.insert(core_sim::ProvidesVision::city_vision());
+
+    println!(
+        "FOG_OF_WAR: Spawned capital for civ {:?} at ({}, {}) with vision range 3",
+        civ_id, position.x, position.y
+    );
 
     if is_player {
         capital_commands.insert(PlayerControlled);
@@ -259,7 +259,13 @@ fn spawn_starting_unit(
         experience: 0.0,
     };
 
-    let mut unit_commands = commands.spawn((initial_unit, position));
+    let mut unit_commands = commands.spawn((initial_unit, position, civ_id));
+    unit_commands.insert(core_sim::ProvidesVision::unit_vision());
+
+    println!(
+        "FOG_OF_WAR: Spawned unit for civ {:?} at ({}, {}) with vision range 2",
+        civ_id, position.x, position.y
+    );
 
     if is_player {
         unit_commands.insert(PlayerControlled);

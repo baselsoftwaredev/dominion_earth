@@ -12,7 +12,14 @@ impl Plugin for CoreSimulationPlugin {
             .add_event::<core_sim::AllAITurnsComplete>()
             .add_event::<core_sim::StartPlayerTurn>()
             .init_resource::<core_sim::TurnPhase>()
-            .add_systems(Startup, game::setup_game)
+            .init_resource::<core_sim::FogOfWarMaps>()
+            .add_systems(
+                Startup,
+                (
+                    game::setup_game,
+                    game::initialize_fog_of_war.after(game::setup_game),
+                ),
+            )
             .add_systems(
                 Update,
                 (
@@ -34,6 +41,8 @@ impl Plugin for CoreSimulationPlugin {
                     handle_production_updated_events,
                 )
                     .chain(),
-            );
+            )
+            // Fog of war updates independently every frame (not chained)
+            .add_systems(Update, core_sim::update_fog_of_war);
     }
 }

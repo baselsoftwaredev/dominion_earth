@@ -1,10 +1,11 @@
+use super::common::TilemapIdResource;
+use super::fog_of_war::TileSprite;
+use crate::constants::rendering::tile_size;
+use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::tile::tile_assets::TileAssets;
 use core_sim::WorldMap;
-use crate::constants::rendering::tile_size;
-use crate::debug_utils::DebugLogging;
-use super::common::TilemapIdResource;
 
 pub fn setup_tilemap(
     mut commands: Commands,
@@ -48,10 +49,20 @@ pub fn setup_tilemap(
     });
 }
 
-pub fn spawn_world_tiles(
-    _commands: Commands,
-    _tilemap_id_resource: Res<TilemapIdResource>,
+/// System to attach TileSprite components to all tiles
+/// This runs after tiles are spawned and links each tile entity to its position
+pub fn attach_tile_sprite_components(
+    mut commands: Commands,
+    tile_query: Query<(Entity, &core_sim::tile::tile_components::WorldTile), Without<TileSprite>>,
 ) {
+    for (entity, world_tile) in tile_query.iter() {
+        commands.entity(entity).insert(TileSprite {
+            position: world_tile.grid_pos,
+        });
+    }
+}
+
+pub fn spawn_world_tiles(_commands: Commands, _tilemap_id_resource: Res<TilemapIdResource>) {
     // This function was originally load_world_tiles, but it doesn't exist in core_sim
     // For now, just leave it empty as tiles are already loaded in setup_tilemap
 }
@@ -80,16 +91,18 @@ pub fn spawn_entity_on_tile(
             tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
         let world_pos = tile_center.extend(z_offset);
 
-        let sprite_entity = commands.spawn((
-            Sprite::from_atlas_image(
-                tile_assets.sprite_sheet.clone(),
-                TextureAtlas {
-                    layout: tile_assets.texture_atlas_layout.clone(),
-                    index: sprite_index,
-                },
-            ),
-            Transform::from_translation(world_pos),
-        )).id();
+        let sprite_entity = commands
+            .spawn((
+                Sprite::from_atlas_image(
+                    tile_assets.sprite_sheet.clone(),
+                    TextureAtlas {
+                        layout: tile_assets.texture_atlas_layout.clone(),
+                        index: sprite_index,
+                    },
+                ),
+                Transform::from_translation(world_pos),
+            ))
+            .id();
 
         crate::debug_println!(debug_logging,
             "DEBUG: Spawned entity at position ({}, {}) with sprite index {} at world pos ({}, {}, {})",
@@ -98,7 +111,11 @@ pub fn spawn_entity_on_tile(
 
         Some(sprite_entity)
     } else {
-        crate::debug_println!(debug_logging, "Warning: Could not find tile at position {:?}", position);
+        crate::debug_println!(
+            debug_logging,
+            "Warning: Could not find tile at position {:?}",
+            position
+        );
         None
     }
 }

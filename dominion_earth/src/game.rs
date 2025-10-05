@@ -107,6 +107,25 @@ pub fn setup_game(
     DebugUtils::log_world_initialization(&debug_logging, world_map.width, world_map.height);
 }
 
+/// Initialize fog of war for all civilizations after they're spawned
+pub fn initialize_fog_of_war(
+    mut fog_of_war: ResMut<core_sim::FogOfWarMaps>,
+    world_map: Res<WorldMap>,
+    civilizations: Query<&core_sim::Civilization>,
+) {
+    println!(
+        "FOG_OF_WAR: Initializing fog of war for {} civilizations",
+        civilizations.iter().count()
+    );
+    for civ in civilizations.iter() {
+        core_sim::initialize_fog_of_war_for_civ(civ.id, &mut fog_of_war, &world_map);
+        println!(
+            "FOG_OF_WAR: Initialized for civ {:?} ({})",
+            civ.id, civ.name
+        );
+    }
+}
+
 /// Main game update system - optimized to only update when necessary
 pub fn game_update_system(
     mut game_state: ResMut<GameState>,
