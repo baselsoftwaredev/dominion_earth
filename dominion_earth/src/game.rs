@@ -20,7 +20,6 @@ pub struct GameState {
     pub auto_advance: bool,
     pub ai_only: bool,
     pub total_civilizations: u32,
-    pub simulation_speed: f32,
     pub turn_timer: Timer,
     pub next_turn_requested: bool,
 }
@@ -33,7 +32,6 @@ impl GameState {
             auto_advance: auto,
             ai_only: false,
             total_civilizations: 2,
-            simulation_speed: timing::DEFAULT_SIMULATION_SPEED,
             turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
             next_turn_requested: false,
         }
@@ -46,7 +44,6 @@ impl GameState {
             auto_advance: auto,
             ai_only,
             total_civilizations: 2,
-            simulation_speed: timing::DEFAULT_SIMULATION_SPEED,
             turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
             next_turn_requested: false,
         }
@@ -59,7 +56,6 @@ impl GameState {
             auto_advance,
             ai_only,
             total_civilizations,
-            simulation_speed: timing::DEFAULT_SIMULATION_SPEED,
             turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
             next_turn_requested: false,
         }

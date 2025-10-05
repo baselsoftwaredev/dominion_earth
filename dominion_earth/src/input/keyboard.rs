@@ -1,4 +1,4 @@
-use crate::constants::input::{camera, simulation};
+use crate::constants::input::camera;
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::game::GameState;
 use crate::plugins::save_load::{load_game, save_game, SaveLoadState};
@@ -31,49 +31,7 @@ pub fn handle_input(
         load_game(&mut save_load_state, "quicksave");
     }
 
-    handle_simulation_speed_increase(&keyboard_input, &mut game_state, &debug_logging);
-    handle_simulation_speed_decrease(&keyboard_input, &mut game_state, &debug_logging);
     handle_camera_controls(&keyboard_input, &mut camera_query, &time);
-}
-
-fn handle_simulation_speed_increase(
-    keyboard_input: &Res<ButtonInput<KeyCode>>,
-    game_state: &mut ResMut<GameState>,
-    debug_logging: &Res<DebugLogging>,
-) {
-    if keyboard_input.just_pressed(KeyCode::Equal)
-        || keyboard_input.just_pressed(KeyCode::NumpadAdd)
-    {
-        game_state.simulation_speed =
-            (game_state.simulation_speed * simulation::SPEED_MULTIPLIER).min(simulation::MAX_SPEED);
-        let speed = game_state.simulation_speed;
-        game_state
-            .turn_timer
-            .set_duration(std::time::Duration::from_secs_f32(
-                simulation::BASE_TURN_DURATION / speed,
-            ));
-        DebugUtils::log_simulation_speed(debug_logging, speed);
-    }
-}
-
-fn handle_simulation_speed_decrease(
-    keyboard_input: &Res<ButtonInput<KeyCode>>,
-    game_state: &mut ResMut<GameState>,
-    debug_logging: &Res<DebugLogging>,
-) {
-    if keyboard_input.just_pressed(KeyCode::Minus)
-        || keyboard_input.just_pressed(KeyCode::NumpadSubtract)
-    {
-        game_state.simulation_speed =
-            (game_state.simulation_speed / simulation::SPEED_MULTIPLIER).max(simulation::MIN_SPEED);
-        let speed = game_state.simulation_speed;
-        game_state
-            .turn_timer
-            .set_duration(std::time::Duration::from_secs_f32(
-                simulation::BASE_TURN_DURATION / speed,
-            ));
-        DebugUtils::log_simulation_speed(debug_logging, speed);
-    }
 }
 
 fn handle_camera_controls(
