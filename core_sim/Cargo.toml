@@ -19,3 +19,13 @@ tracing = "0.1"
 [lints.rust]
 unused = "allow"
 unsafe_code = "forbid"
+# Mark `bevy_lint` as a valid `cfg`, as it is set when the Bevy linter runs.
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(bevy_lint)"] }
+
+[lints.clippy]
+# Bevy ECS systems use dependency injection, allowing many arguments.
+too_many_arguments = "allow"
+# ECS queries and components can have complex types.
+type_complexity = "allow"
+# Make sure macros use their standard braces.
+nonstandard_macro_braces = "warn"
