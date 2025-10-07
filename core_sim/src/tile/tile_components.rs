@@ -77,8 +77,13 @@ impl TileCapabilities {
 pub fn update_tile_asset_on_terrain_change(
     mut events: EventReader<TileTerrainChanged>,
     mut query: Query<(&mut TileTextureIndex, &mut WorldTile)>,
-    tile_assets: Res<TileAssets>,
+    tile_assets: Option<Res<TileAssets>>,
 ) {
+    // Wait for TileAssets to be loaded
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
     for event in events.read() {
         if let Ok((mut texture_index, mut world_tile)) = query.get_mut(event.entity) {
             let new_index = tile_assets.get_index_for_terrain(&event.new_terrain);

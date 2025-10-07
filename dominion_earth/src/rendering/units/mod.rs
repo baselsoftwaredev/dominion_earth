@@ -8,7 +8,7 @@ use core_sim::tile::tile_assets::TileAssets;
 
 pub fn spawn_unit_sprites(
     mut commands: Commands,
-    tile_assets: Res<TileAssets>,
+    tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
         &TilemapSize,
@@ -17,9 +17,21 @@ pub fn spawn_unit_sprites(
         &TilemapType,
         &TilemapAnchor,
     )>,
-    units: Query<(Entity, &MilitaryUnit, &Position), Added<MilitaryUnit>>,
+    // Also check for units without sprite references (e.g., loaded from save or spawned before tilemap was ready)
+    units: Query<
+        (Entity, &MilitaryUnit, &Position),
+        Or<(
+            Added<MilitaryUnit>,
+            Without<core_sim::components::rendering::SpriteEntityReference>,
+        )>,
+    >,
     debug_logging: Res<DebugLogging>,
 ) {
+    // Wait for TileAssets to be loaded
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         return;
@@ -46,7 +58,7 @@ pub fn spawn_unit_sprites(
 /// Recreate sprites for units that have invalid sprite references (e.g., after loading)
 pub fn recreate_missing_unit_sprites(
     mut commands: Commands,
-    tile_assets: Res<TileAssets>,
+    tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
         &TilemapSize,
@@ -67,6 +79,11 @@ pub fn recreate_missing_unit_sprites(
     sprite_entities: Query<&Transform>,
     debug_logging: Res<DebugLogging>,
 ) {
+    // Wait for TileAssets to be loaded
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         return;

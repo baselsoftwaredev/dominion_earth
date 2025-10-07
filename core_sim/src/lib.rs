@@ -6,6 +6,7 @@ pub mod data_loader;
 pub mod debug_utils;
 pub mod influence_map;
 pub mod pathfinding;
+pub mod resource_loading;
 pub mod resources;
 pub mod systems;
 pub mod world_gen;

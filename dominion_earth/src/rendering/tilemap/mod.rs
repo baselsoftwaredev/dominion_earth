@@ -9,9 +9,22 @@ use core_sim::WorldMap;
 
 pub fn setup_tilemap(
     mut commands: Commands,
-    tile_assets: Res<TileAssets>,
+    tile_assets: Option<Res<TileAssets>>,
     mut world_map: ResMut<WorldMap>,
+    tilemap_id_resource: Option<Res<TilemapIdResource>>,
 ) {
+    // Only run once - if tilemap already exists, skip
+    if tilemap_id_resource.is_some() {
+        return;
+    }
+
+    // Wait for TileAssets to be loaded
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
+    println!("Setting up tilemap with loaded TileAssets!");
+
     let tilemap_entity = commands.spawn_empty().id();
     let tilemap_id = TilemapId(tilemap_entity);
 
@@ -62,7 +75,11 @@ pub fn attach_tile_sprite_components(
     }
 }
 
-pub fn spawn_world_tiles(_commands: Commands, _tilemap_id_resource: Res<TilemapIdResource>) {
+pub fn spawn_world_tiles(_commands: Commands, tilemap_id_resource: Option<Res<TilemapIdResource>>) {
+    // Wait for tilemap to be set up
+    if tilemap_id_resource.is_none() {
+        return;
+    }
     // This function was originally load_world_tiles, but it doesn't exist in core_sim
     // For now, just leave it empty as tiles are already loaded in setup_tilemap
 }

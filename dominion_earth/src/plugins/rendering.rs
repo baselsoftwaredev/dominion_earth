@@ -10,23 +10,17 @@ impl Plugin for RenderingPlugin {
         app
             // External rendering plugin
             .add_plugins(TilemapPlugin)
-            // Tilemap and Asset Setup Systems
+            // Load tile assets - runs repeatedly in Update until assets are loaded and resource is inserted
+            .add_systems(Update, core_sim::tile::tile_assets::load_tile_assets)
+            // Tilemap and Asset Setup Systems - run when TileAssets becomes available
             .add_systems(
-                Startup,
+                Update,
                 (
-                    core_sim::tile::tile_assets::setup_tile_assets,
-                    rendering::tilemap::setup_tilemap
-                        .after(core_sim::tile::tile_assets::setup_tile_assets)
-                        .after(crate::game::setup_game),
+                    rendering::tilemap::setup_tilemap.after(crate::game::setup_game),
                     rendering::tilemap::spawn_world_tiles.after(rendering::tilemap::setup_tilemap),
                     rendering::tilemap::attach_tile_sprite_components
                         .after(rendering::tilemap::setup_tilemap),
-                ),
-            )
-            // Sprite Spawning Systems
-            .add_systems(
-                Startup,
-                (
+                    // Sprite Spawning Systems - must be in Update to run after tilemap setup
                     rendering::units::spawn_unit_sprites
                         .after(rendering::tilemap::spawn_world_tiles),
                     rendering::capitals::spawn_animated_capital_tiles

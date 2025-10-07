@@ -14,7 +14,6 @@ use crate::constants::{network, window};
 use crate::plugins::{resources::ResourceConfig, DominionEarthPlugins};
 use bevy::prelude::*;
 use bevy::window::MonitorSelection;
-use bevy_brp_extras::BrpExtrasPlugin;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -64,11 +63,6 @@ fn main() {
         }),
         ..default()
     }));
-
-    // Only add BRP plugin in debug mode
-    if args.debug_logging {
-        app.add_plugins(BrpExtrasPlugin::default());
-    }
 
     let mut plugins = DominionEarthPlugins::with_config(config);
 

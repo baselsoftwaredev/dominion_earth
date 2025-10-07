@@ -104,7 +104,7 @@ pub fn spawn_animated_capital_sprite(
 
 pub fn spawn_animated_capital_tiles(
     mut commands: Commands,
-    tile_assets: Res<TileAssets>,
+    tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
         &TilemapSize,
@@ -113,9 +113,21 @@ pub fn spawn_animated_capital_tiles(
         &TilemapType,
         &TilemapAnchor,
     )>,
-    capitals: Query<(Entity, &Capital, &Position), Added<Capital>>,
+    // Also check for capitals without sprite references (e.g., loaded from save or spawned before tilemap was ready)
+    capitals: Query<
+        (Entity, &Capital, &Position),
+        Or<(
+            Added<Capital>,
+            Without<core_sim::components::rendering::SpriteEntityReference>,
+        )>,
+    >,
     debug_logging: Res<DebugLogging>,
 ) {
+    // Wait for TileAssets to be loaded
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         return;
@@ -153,7 +165,7 @@ pub fn spawn_animated_capital_tiles(
 
 pub fn spawn_capital_sprites(
     mut commands: Commands,
-    tile_assets: Res<TileAssets>,
+    tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
         &TilemapSize,
@@ -166,6 +178,11 @@ pub fn spawn_capital_sprites(
     capitals: Query<(Entity, &Capital, &Position), Added<Capital>>,
     debug_logging: Res<DebugLogging>,
 ) {
+    // Wait for TileAssets to be loaded
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         return;
@@ -216,7 +233,7 @@ pub fn spawn_capital_sprites(
 
 pub fn update_capital_sprites(
     mut commands: Commands,
-    tile_assets: Res<TileAssets>,
+    tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
         &TilemapSize,
@@ -228,6 +245,11 @@ pub fn update_capital_sprites(
     capitals: Query<(&Capital, &Position), bevy::ecs::query::Changed<Capital>>,
     debug_logging: Res<DebugLogging>,
 ) {
+    // Wait for TileAssets to be loaded
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         return;
