@@ -1,4 +1,5 @@
 mod ai_decision_systems;
+mod audio;
 mod civilization_spawning;
 mod constants;
 mod debug_utils;

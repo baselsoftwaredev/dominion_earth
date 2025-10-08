@@ -88,11 +88,8 @@ fn register_turn_advancement_function(html_functions: &mut HtmlFunctions) {
             turn_advance_events.write(core_sim::RequestTurnAdvance);
             info!("Player requested turn advancement");
 
-            // Play click sound
-            commands.spawn((
-                AudioPlayer::new(asset_server.load("sounds/click.ogg")),
-                PlaybackSettings::DESPAWN,
-            ));
+            // Play click sound using audio helper
+            crate::audio::play_sound_effect(&mut commands, &asset_server, "sounds/click.ogg");
         },
     );
 }

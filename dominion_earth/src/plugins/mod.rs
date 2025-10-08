@@ -1,5 +1,6 @@
 // Plugin system for organizing Dominion Earth systems
 
+pub mod audio;
 pub mod camera;
 pub mod core_simulation;
 pub mod input_handling;
@@ -8,6 +9,7 @@ pub mod resources;
 pub mod save_load;
 pub mod ui_integration;
 
+pub use audio::AudioPlugin;
 pub use camera::CameraPlugin;
 pub use core_simulation::CoreSimulationPlugin;
 pub use input_handling::InputHandlingPlugin;
@@ -27,6 +29,7 @@ impl bevy::app::PluginGroup for DominionEarthPlugins {
             .add(CameraPlugin)
             .add(RenderingPlugin)
             .add(InputHandlingPlugin)
+            .add(AudioPlugin)
             .add(SaveLoadPlugin::default())
             .add(UiIntegrationPlugin)
     }
@@ -69,6 +72,7 @@ impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
             .add(CameraPlugin)
             .add(RenderingPlugin)
             .add(InputHandlingPlugin)
+            .add(AudioPlugin)
             .add(save_load_plugin)
             .add(UiIntegrationPlugin)
     }
