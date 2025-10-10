@@ -5,10 +5,10 @@
 pub mod rendering {
     /// Tile and grid size constants
     pub mod tile_size {
-        pub const TILE_WIDTH: f32 = 64.0;
-        pub const TILE_HEIGHT: f32 = 64.0;
-        pub const GRID_WIDTH: f32 = 64.0;
-        pub const GRID_HEIGHT: f32 = 64.0;
+        pub const TILE_WIDTH: f32 = 128.0;
+        pub const TILE_HEIGHT: f32 = 128.0;
+        pub const GRID_WIDTH: f32 = 128.0;
+        pub const GRID_HEIGHT: f32 = 128.0;
     }
 
     /// Z-layer offsets for different entity types
@@ -61,7 +61,7 @@ pub mod input {
 
     /// Tile coordinate conversion
     pub mod coordinates {
-        pub const TILE_SIZE_FOR_INPUT: f32 = 64.0;
+        pub const TILE_SIZE_FOR_INPUT: f32 = 128.0;
     }
 }
 

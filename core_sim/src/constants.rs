@@ -14,7 +14,7 @@ pub mod texture_atlas {
     pub const SPRITE_SHEET_PATH: &str = "tiles/sprite-sheet.png";
 
     /// Size of each individual tile sprite in pixels
-    pub const TILE_SIZE_PIXELS: u32 = 64;
+    pub const TILE_SIZE_PIXELS: u32 = 128;
 
     /// Number of columns in the texture atlas
     pub const ATLAS_COLUMNS: u32 = 8;
