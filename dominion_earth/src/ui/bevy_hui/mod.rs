@@ -34,6 +34,7 @@ impl BevyHuiSystem {
     pub fn setup_plugins_for_screen<S: States>(app: &mut App, screen: S) {
         app.add_plugins((HuiPlugin, HuiAutoLoadPlugin::new(&["ui"])))
             .add_systems(OnEnter(screen.clone()), setup_main_ui)
+            .add_systems(OnExit(screen.clone()), cleanup_ui)
             .add_systems(
                 Update,
                 (
@@ -43,6 +44,13 @@ impl BevyHuiSystem {
                 )
                     .run_if(in_state(screen)),
             );
+    }
+}
+
+/// Clean up all UI panels when leaving the gameplay screen
+fn cleanup_ui(mut commands: Commands, ui_panels: Query<Entity, With<HtmlNode>>) {
+    for entity in &ui_panels {
+        commands.entity(entity).despawn_recursive();
     }
 }
 

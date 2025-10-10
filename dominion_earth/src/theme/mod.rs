@@ -13,7 +13,15 @@ use bevy::prelude::*;
 
 pub fn plugin(app: &mut App) {
     app.add_plugins(interaction::plugin);
-    app.add_systems(Update, handle_button_interactions);
+    // Only handle button interactions in the appropriate screens
+    app.add_systems(
+        Update,
+        handle_button_interactions.run_if(
+            in_state(Screen::Splash)
+                .or(in_state(Screen::MainMenu))
+                .or(in_state(Screen::Gameplay)),
+        ),
+    );
     app.add_systems(Update, spawn_button_text);
 }
 
@@ -53,8 +61,19 @@ fn handle_button_interactions(
 
     for (interaction, action) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
+            println!(
+                "🎮 Button pressed: {:?} (current screen: {:?})",
+                action,
+                screen.get()
+            );
             match action {
                 widget::ButtonAction::EnterGameplay => {
+                    // Only allow entering gameplay from MainMenu
+                    if **screen != Screen::MainMenu {
+                        println!("⚠️  Ignoring EnterGameplay button - not in MainMenu!");
+                        continue;
+                    }
+                    println!("🎮 Transitioning to Gameplay screen");
                     next_screen.set(Screen::Gameplay);
                 }
                 widget::ButtonAction::OpenSettings => {

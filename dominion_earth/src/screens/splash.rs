@@ -31,6 +31,7 @@ fn spawn_splash_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..default()
             },
             BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+            GlobalZIndex(100),
         ))
         .with_child((
             Name::new("Splash Text"),

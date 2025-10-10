@@ -16,7 +16,7 @@ fn spawn_credits_menu(mut commands: Commands) {
     commands
         .spawn((
             widget::ui_root("Credits Menu"),
-            GlobalZIndex(2),
+            GlobalZIndex(100),
             StateScoped(Menu::Credits),
         ))
         .with_children(|parent| {

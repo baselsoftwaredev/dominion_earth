@@ -11,11 +11,20 @@ pub fn plugin(app: &mut App) {
     app.init_state::<Menu>();
 
     app.add_plugins((
-        credits::plugin,
         main::plugin,
-        settings::plugin,
         pause::plugin,
+        settings::plugin,
+        credits::plugin,
     ));
+
+    // Debug menu state changes
+    app.add_systems(Update, log_menu_transitions);
+}
+
+fn log_menu_transitions(menu: Res<State<Menu>>) {
+    if menu.is_changed() {
+        println!("📜 Menu state changed to: {:?}", menu.get());
+    }
 }
 
 #[derive(States, Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]

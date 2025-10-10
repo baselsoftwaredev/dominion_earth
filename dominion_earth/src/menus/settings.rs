@@ -22,7 +22,7 @@ fn spawn_settings_menu(mut commands: Commands) {
     commands
         .spawn((
             widget::ui_root("Settings Menu"),
-            GlobalZIndex(2),
+            GlobalZIndex(100),
             StateScoped(Menu::Settings),
         ))
         .with_children(|parent| {

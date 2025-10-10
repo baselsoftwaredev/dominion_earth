@@ -16,7 +16,7 @@ fn spawn_pause_menu(mut commands: Commands) {
     commands
         .spawn((
             widget::ui_root("Pause Menu"),
-            GlobalZIndex(2),
+            GlobalZIndex(100),
             StateScoped(Menu::Pause),
         ))
         .with_children(|parent| {

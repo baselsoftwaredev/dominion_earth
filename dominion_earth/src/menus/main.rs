@@ -12,7 +12,7 @@ fn spawn_main_menu(mut commands: Commands) {
     commands
         .spawn((
             widget::ui_root("Main Menu"),
-            GlobalZIndex(2),
+            GlobalZIndex(100),
             StateScoped(Menu::Main),
         ))
         .with_children(|parent| {
