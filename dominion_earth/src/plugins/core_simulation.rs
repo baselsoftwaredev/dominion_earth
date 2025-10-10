@@ -1,4 +1,5 @@
 use crate::game;
+use crate::screens::Screen;
 use crate::ui::bevy_hui::production_orders::handle_production_updated_events;
 use bevy::prelude::*;
 
@@ -14,7 +15,7 @@ impl Plugin for CoreSimulationPlugin {
             .init_resource::<core_sim::TurnPhase>()
             .init_resource::<core_sim::FogOfWarMaps>()
             .add_systems(
-                Startup,
+                OnEnter(Screen::Gameplay),
                 (
                     game::setup_game,
                     game::initialize_fog_of_war.after(game::setup_game),
@@ -40,9 +41,13 @@ impl Plugin for CoreSimulationPlugin {
                     core_sim::auto_advance_turn_system,
                     handle_production_updated_events,
                 )
-                    .chain(),
+                    .chain()
+                    .run_if(in_state(Screen::Gameplay)),
             )
             // Fog of war updates independently every frame (not chained)
-            .add_systems(Update, core_sim::update_fog_of_war);
+            .add_systems(
+                Update,
+                core_sim::update_fog_of_war.run_if(in_state(Screen::Gameplay)),
+            );
     }
 }

@@ -4,6 +4,7 @@ pub mod audio;
 pub mod camera;
 pub mod core_simulation;
 pub mod input_handling;
+pub mod menu;
 pub mod rendering;
 pub mod resources;
 pub mod save_load;
@@ -13,6 +14,7 @@ pub use audio::AudioPlugin;
 pub use camera::CameraPlugin;
 pub use core_simulation::CoreSimulationPlugin;
 pub use input_handling::InputHandlingPlugin;
+pub use menu::MenuPlugin;
 pub use rendering::RenderingPlugin;
 pub use resources::{ResourcesPlugin, ResourcesPluginWithConfig};
 pub use save_load::SaveLoadPlugin;
@@ -25,6 +27,7 @@ impl bevy::app::PluginGroup for DominionEarthPlugins {
     fn build(self) -> bevy::app::PluginGroupBuilder {
         bevy::app::PluginGroupBuilder::start::<Self>()
             .add(ResourcesPlugin)
+            .add(MenuPlugin)
             .add(CoreSimulationPlugin)
             .add(CameraPlugin)
             .add(RenderingPlugin)
@@ -68,6 +71,7 @@ impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
 
         bevy::app::PluginGroupBuilder::start::<Self>()
             .add(ResourcesPlugin::with_config(self.config))
+            .add(MenuPlugin)
             .add(CoreSimulationPlugin)
             .add(CameraPlugin)
             .add(RenderingPlugin)

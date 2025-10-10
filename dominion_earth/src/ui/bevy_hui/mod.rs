@@ -30,6 +30,20 @@ impl BevyHuiSystem {
                 ),
             );
     }
+
+    pub fn setup_plugins_for_screen<S: States>(app: &mut App, screen: S) {
+        app.add_plugins((HuiPlugin, HuiAutoLoadPlugin::new(&["ui"])))
+            .add_systems(OnEnter(screen.clone()), setup_main_ui)
+            .add_systems(
+                Update,
+                (
+                    update_ui_properties_system.run_if(should_update_ui_this_frame),
+                    spawn_capital_labels,
+                    update_capital_labels,
+                )
+                    .run_if(in_state(screen)),
+            );
+    }
 }
 
 impl UiSystem for BevyHuiSystem {

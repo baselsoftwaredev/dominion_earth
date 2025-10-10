@@ -1,22 +1,20 @@
+use crate::constants::rendering::camera as camera_constants;
+use crate::screens::Screen;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use crate::constants::rendering::camera as camera_constants;
-use core_sim::{
-    components::{city::Capital, position::Position},
-};
+use core_sim::components::{city::Capital, position::Position};
 
 /// Plugin for camera setup and control
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_camera)
-            .add_systems(
-                Startup,
-                center_camera_on_player_capital
-                    .after(crate::game::setup_game)
-                    .after(crate::rendering::capitals::spawn_animated_capital_tiles),
-            );
+        app.add_systems(Startup, setup_camera).add_systems(
+            OnEnter(Screen::Gameplay),
+            center_camera_on_player_capital
+                .after(crate::game::setup_game)
+                .after(crate::rendering::capitals::spawn_animated_capital_tiles),
+        );
     }
 }
 

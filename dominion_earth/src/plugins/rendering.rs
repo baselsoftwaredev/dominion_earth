@@ -1,4 +1,5 @@
 use crate::rendering;
+use crate::screens::Screen;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::TilemapPlugin;
 
@@ -25,7 +26,8 @@ impl Plugin for RenderingPlugin {
                         .after(rendering::tilemap::spawn_world_tiles),
                     rendering::capitals::spawn_animated_capital_tiles
                         .after(rendering::tilemap::spawn_world_tiles),
-                ),
+                )
+                    .run_if(in_state(Screen::Gameplay)),
             )
             // Runtime Rendering Update Systems
             .add_systems(
@@ -39,7 +41,8 @@ impl Plugin for RenderingPlugin {
                     // Fog of War rendering
                     rendering::fog_of_war::apply_fog_of_war_to_tiles,
                     rendering::fog_of_war::hide_entities_in_fog,
-                ),
+                )
+                    .run_if(in_state(Screen::Gameplay)),
             );
     }
 }
