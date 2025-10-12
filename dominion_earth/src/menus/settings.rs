@@ -3,17 +3,32 @@
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
 
-use crate::{menus::Menu, screens::Screen, theme::prelude::*};
+use crate::{
+    debug_utils::DebugLogging,
+    menus::{ui_visibility, Menu},
+    screens::Screen,
+    theme::prelude::*,
+};
 
 #[derive(Component)]
 struct SettingsMenuRoot;
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(OnEnter(Menu::Settings), spawn_settings_menu);
-    app.add_systems(OnExit(Menu::Settings), cleanup_settings_menu);
+    app.add_systems(
+        OnEnter(Menu::Settings),
+        (spawn_settings_menu, ui_visibility::hide_gameplay_ui_panels),
+    );
+    app.add_systems(
+        OnExit(Menu::Settings),
+        (
+            cleanup_settings_menu_entities,
+            ui_visibility::show_gameplay_ui_panels,
+        ),
+    );
     app.add_systems(
         Update,
-        go_back.run_if(in_state(Menu::Settings).and(input_just_pressed(KeyCode::Escape))),
+        close_settings_menu_on_escape
+            .run_if(in_state(Menu::Settings).and(input_just_pressed(KeyCode::Escape))),
     );
 
     app.add_systems(
@@ -22,14 +37,15 @@ pub fn plugin(app: &mut App) {
     );
 }
 
-fn spawn_settings_menu(mut commands: Commands) {
-    println!("📋 Spawning settings menu");
+fn spawn_settings_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
+    crate::debug_println!(debug_logging, "📋 Spawning settings menu");
+
     commands
         .spawn((
             widget::ui_root("Settings Menu"),
-            GlobalZIndex(100),
+            GlobalZIndex(constants::z_index::MENU_OVERLAY_Z_INDEX),
             StateScoped(Menu::Settings),
-            SettingsMenuRoot, // Marker component
+            SettingsMenuRoot,
         ))
         .with_children(|parent| {
             parent.spawn(widget::header("Settings"));
@@ -52,7 +68,7 @@ fn spawn_settings_menu(mut commands: Commands) {
                         Name::new("Volume Label"),
                         Text::new("100%"),
                         TextFont {
-                            font_size: 32.0,
+                            font_size: constants::font_sizes::LABEL_TEXT_SIZE,
                             ..default()
                         },
                         TextColor(ui_palette::TEXT_PRIMARY),
@@ -79,27 +95,39 @@ fn update_global_volume_label(
     }
 }
 
-fn go_back(screen: Res<State<Screen>>, mut next_menu: ResMut<NextState<Menu>>) {
-    next_menu.set(if **screen == Screen::MainMenu {
+fn close_settings_menu_on_escape(
+    current_screen: Res<State<Screen>>,
+    mut next_menu: ResMut<NextState<Menu>>,
+) {
+    let target_menu = determine_target_menu_from_screen(**current_screen);
+    next_menu.set(target_menu);
+}
+
+fn determine_target_menu_from_screen(screen: Screen) -> Menu {
+    if screen == Screen::MainMenu {
         Menu::Main
     } else {
         Menu::Pause
-    });
+    }
 }
 
 fn input_just_pressed(key: KeyCode) -> impl Condition<()> {
     IntoSystem::into_system(move |input: Res<ButtonInput<KeyCode>>| input.just_pressed(key))
 }
 
-fn cleanup_settings_menu(
+fn cleanup_settings_menu_entities(
     mut commands: Commands,
-    menu_query: Query<Entity, With<SettingsMenuRoot>>,
+    settings_menu_entities: Query<Entity, With<SettingsMenuRoot>>,
+    debug_logging: Res<DebugLogging>,
 ) {
-    println!(
+    let entity_count = settings_menu_entities.iter().count();
+    crate::debug_println!(
+        debug_logging,
         "🧹 Cleaning up settings menu - found {} entities",
-        menu_query.iter().count()
+        entity_count
     );
-    for entity in &menu_query {
-        commands.entity(entity).despawn();
+
+    for menu_entity in &settings_menu_entities {
+        commands.entity(menu_entity).despawn();
     }
 }

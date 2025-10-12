@@ -50,7 +50,7 @@ impl BevyHuiSystem {
 /// Clean up all UI panels when leaving the gameplay screen
 fn cleanup_ui(mut commands: Commands, ui_panels: Query<Entity, With<HtmlNode>>) {
     for entity in &ui_panels {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 

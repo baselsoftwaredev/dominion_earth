@@ -1,11 +1,12 @@
 //! Reusable UI widgets & theming.
 
+pub mod constants;
 pub mod interaction;
 pub mod palette;
 pub mod widget;
 
 pub mod prelude {
-    pub use super::{interaction::InteractionPalette, palette as ui_palette, widget};
+    pub use super::{constants, interaction::InteractionPalette, palette as ui_palette, widget};
 }
 
 use crate::{menus::Menu, screens::Screen};
@@ -36,7 +37,7 @@ fn spawn_button_text(
                 Name::new("Button Text"),
                 Text::new(button_text.0.clone()),
                 TextFont {
-                    font_size: 40.0,
+                    font_size: constants::font_sizes::BUTTON_TEXT_SIZE,
                     ..default()
                 },
                 TextColor(palette::BUTTON_TEXT),

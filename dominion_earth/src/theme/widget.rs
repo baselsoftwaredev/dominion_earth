@@ -1,6 +1,6 @@
 //! Helper functions for creating common widgets.
 
-use crate::theme::{interaction::InteractionPalette, palette::*};
+use crate::theme::{constants, interaction::InteractionPalette, palette::*};
 use bevy::prelude::*;
 
 /// A root UI node that fills the window and centers its content.
@@ -8,12 +8,12 @@ pub fn ui_root(name: impl Into<String>) -> impl Bundle {
     (
         Name::new(name.into()),
         Node {
-            width: percent(100.0),
-            height: percent(100.0),
+            width: percent(constants::layout::FULL_SCREEN_PERCENTAGE),
+            height: percent(constants::layout::FULL_SCREEN_PERCENTAGE),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             flex_direction: FlexDirection::Column,
-            row_gap: px(20.0),
+            row_gap: px(constants::layout::UI_ROOT_ROW_GAP),
             ..default()
         },
     )
@@ -25,7 +25,7 @@ pub fn header(text: impl Into<String>) -> impl Bundle {
         Name::new("Header"),
         Text::new(text.into()),
         TextFont {
-            font_size: 60.0,
+            font_size: constants::font_sizes::HEADER_TEXT_SIZE,
             ..default()
         },
         TextColor(TEXT_HEADER),
@@ -38,7 +38,7 @@ pub fn label(text: impl Into<String>) -> impl Bundle {
         Name::new("Label"),
         Text::new(text.into()),
         TextFont {
-            font_size: 32.0,
+            font_size: constants::font_sizes::LABEL_TEXT_SIZE,
             ..default()
         },
         TextColor(TEXT_PRIMARY),
@@ -51,9 +51,11 @@ pub fn button(text: impl Into<String>, action: ButtonAction) -> impl Bundle {
     (
         Button,
         Node {
-            width: px(250.0),
-            height: px(65.0),
-            border: UiRect::all(Val::Px(3.0)),
+            width: px(constants::button_dimensions::STANDARD_BUTTON_WIDTH),
+            height: px(constants::button_dimensions::STANDARD_BUTTON_HEIGHT),
+            border: UiRect::all(Val::Px(
+                constants::button_dimensions::STANDARD_BUTTON_BORDER_WIDTH,
+            )),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()
@@ -77,8 +79,8 @@ pub fn button_small(text: impl Into<String>, action: ButtonAction) -> impl Bundl
     (
         Button,
         Node {
-            width: px(30.0),
-            height: px(30.0),
+            width: px(constants::button_dimensions::SMALL_BUTTON_SIZE),
+            height: px(constants::button_dimensions::SMALL_BUTTON_SIZE),
             align_items: AlignItems::Center,
             justify_content: JustifyContent::Center,
             ..default()
