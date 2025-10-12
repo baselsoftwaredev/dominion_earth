@@ -5,7 +5,7 @@
       civs_per_turn: [],
       turn_phase: Planning,
     ),
-    "core_sim::resources::CurrentTurn": (11),
+    "core_sim::resources::CurrentTurn": (1),
     "core_sim::resources::WorldMap": (
       width: 50,
       height: 25,
@@ -140,6 +140,7 @@
     ),
     4294967299: (
       components: {
+        "core_sim::components::civilization::CivId": (1),
         "core_sim::components::military::MilitaryUnit": (
           id: 1,
           owner: (1),
@@ -154,12 +155,13 @@
         ),
         "core_sim::components::position::Position": (
           x: 19,
-          y: 24,
+          y: 20,
         ),
       },
     ),
     4294967300: (
       components: {
+        "core_sim::components::civilization::CivId": (2),
         "core_sim::components::military::MilitaryUnit": (
           id: 2,
           owner: (2),
@@ -174,31 +176,11 @@
         ),
         "core_sim::components::position::Position": (
           x: 39,
-          y: 12,
+          y: 10,
         ),
       },
     ),
     4294967301: (
-      components: {
-        "core_sim::components::military::MilitaryUnit": (
-          id: 0,
-          owner: (0),
-          unit_type: Infantry,
-          position: (
-            x: 21,
-            y: 5,
-          ),
-          strength: 10.0,
-          movement_remaining: 0,
-          experience: 0.0,
-        ),
-        "core_sim::components::position::Position": (
-          x: 17,
-          y: 5,
-        ),
-      },
-    ),
-    4294967302: (
       components: {
         "core_sim::components::city::City": (
           name: "Athens",
@@ -213,13 +195,14 @@
             ),
           ],
         ),
+        "core_sim::components::civilization::CivId": (1),
         "core_sim::components::position::Position": (
           x: 19,
           y: 20,
         ),
       },
     ),
-    4294967303: (
+    4294967302: (
       components: {
         "core_sim::components::city::City": (
           name: "Rome",
@@ -234,13 +217,14 @@
             ),
           ],
         ),
+        "core_sim::components::civilization::CivId": (2),
         "core_sim::components::position::Position": (
           x: 39,
           y: 10,
         ),
       },
     ),
-    4294967304: (
+    4294967303: (
       components: {
         "core_sim::components::city::City": (
           name: "Persepolis",
@@ -255,9 +239,31 @@
             ),
           ],
         ),
+        "core_sim::components::civilization::CivId": (0),
         "core_sim::components::position::Position": (
           x: 21,
           y: 5,
+        ),
+      },
+    ),
+    4294967304: (
+      components: {
+        "core_sim::components::civilization::CivId": (0),
+        "core_sim::components::military::MilitaryUnit": (
+          id: 0,
+          owner: (0),
+          unit_type: Infantry,
+          position: (
+            x: 21,
+            y: 5,
+          ),
+          strength: 10.0,
+          movement_remaining: 0,
+          experience: 0.0,
+        ),
+        "core_sim::components::position::Position": (
+          x: 21,
+          y: 7,
         ),
       },
     ),
