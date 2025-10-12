@@ -8,20 +8,32 @@ use crate::{
 };
 
 /// System to update fog of war for all civilizations at the start of each turn
-/// This runs during turn transition and recalculates what each civilization can see
+/// This runs every frame to detect position changes but only updates when necessary
 pub fn update_fog_of_war(
     mut fog_of_war: ResMut<FogOfWarMaps>,
     world_map: Res<WorldMap>,
     civilizations: Query<&Civilization>,
+    // Use change detection to only update when units/cities move or are added
     units: Query<(&Position, &CivId, &ProvidesVision), With<MilitaryUnit>>,
     cities: Query<(&Position, &CivId, &ProvidesVision), With<City>>,
+    // Check for position changes
+    changed_positions: Query<&Position, Or<(Changed<Position>, Added<MilitaryUnit>, Added<City>)>>,
 ) {
     // Initialize fog of war maps for any new civilizations
+    let mut new_civ_initialized = false;
     for civ in civilizations.iter() {
         if !fog_of_war.maps.contains_key(&civ.id) {
             fog_of_war.init_for_civ(civ.id, world_map.width, world_map.height);
             println!("FOG_OF_WAR: Initialized map for civ {:?}", civ.id);
+            new_civ_initialized = true;
         }
+    }
+
+    // Only update if something changed: new civ, position changed, or entity added
+    let should_update = new_civ_initialized || !changed_positions.is_empty();
+
+    if !should_update {
+        return; // Skip update if nothing changed
     }
 
     // For each civilization, reset visible tiles to explored, then recalculate
@@ -49,12 +61,12 @@ pub fn update_fog_of_war(
                 }
             }
 
-            if unit_count > 0 || city_count > 0 {
-                println!(
-                    "FOG_OF_WAR: Updated civ {:?} - {} units, {} cities providing vision",
-                    civ.id, unit_count, city_count
-                );
-            }
+            // Only log on first initialization or when explicitly debugging
+            // Remove verbose per-frame logging
+            // println!(
+            //     "FOG_OF_WAR: Updated civ {:?} - {} units, {} cities providing vision",
+            //     civ.id, unit_count, city_count
+            // );
         }
     }
 }
