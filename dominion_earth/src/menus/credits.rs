@@ -4,8 +4,12 @@ use bevy::prelude::*;
 
 use crate::{menus::Menu, theme::prelude::*};
 
+#[derive(Component)]
+struct CreditsMenuRoot;
+
 pub fn plugin(app: &mut App) {
     app.add_systems(OnEnter(Menu::Credits), spawn_credits_menu);
+    app.add_systems(OnExit(Menu::Credits), cleanup_credits_menu);
     app.add_systems(
         Update,
         go_back.run_if(in_state(Menu::Credits).and(input_just_pressed(KeyCode::Escape))),
@@ -13,11 +17,13 @@ pub fn plugin(app: &mut App) {
 }
 
 fn spawn_credits_menu(mut commands: Commands) {
+    println!("📋 Spawning credits menu");
     commands
         .spawn((
             widget::ui_root("Credits Menu"),
             GlobalZIndex(100),
             StateScoped(Menu::Credits),
+            CreditsMenuRoot, // Marker component
         ))
         .with_children(|parent| {
             parent.spawn(widget::header("Credits"));
@@ -48,4 +54,14 @@ fn go_back(mut next_menu: ResMut<NextState<Menu>>) {
 
 fn input_just_pressed(key: KeyCode) -> impl Condition<()> {
     IntoSystem::into_system(move |input: Res<ButtonInput<KeyCode>>| input.just_pressed(key))
+}
+
+fn cleanup_credits_menu(mut commands: Commands, menu_query: Query<Entity, With<CreditsMenuRoot>>) {
+    println!(
+        "🧹 Cleaning up credits menu - found {} entities",
+        menu_query.iter().count()
+    );
+    for entity in &menu_query {
+        commands.entity(entity).despawn();
+    }
 }
