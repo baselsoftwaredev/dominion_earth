@@ -22,7 +22,7 @@ pub fn update_fog_of_war(
     // Initialize fog of war maps for any new civilizations
     let mut new_civ_initialized = false;
     for civ in civilizations.iter() {
-        if !fog_of_war.maps.contains_key(&civ.id) {
+        if fog_of_war.get(civ.id).is_none() {
             fog_of_war.init_for_civ(civ.id, world_map.width, world_map.height);
             println!("FOG_OF_WAR: Initialized map for civ {:?}", civ.id);
             new_civ_initialized = true;

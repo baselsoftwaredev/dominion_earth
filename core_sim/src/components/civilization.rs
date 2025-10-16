@@ -6,8 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Unique identifier for civilizations
+/// Note: Hash trait is required for use as HashMap key in FogOfWarMaps
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
-#[reflect(Component)]
+#[reflect(Component, Hash, PartialEq)]
 pub struct CivId(pub u32);
 
 // Manual Component implementation

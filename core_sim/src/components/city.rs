@@ -81,7 +81,8 @@ impl City {
 }
 
 /// Capital component for tracking civilization capitals through different ages
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Capital {
     pub owner: CivId,
     pub age: CapitalAge,
@@ -96,7 +97,7 @@ impl Component for Capital {
 }
 
 /// Ages that a capital can evolve through
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 pub enum CapitalAge {
     Neolithic,
     Bronze,

@@ -2,7 +2,6 @@ use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use crate::{CivId, Position};
 
@@ -129,32 +128,40 @@ impl VisibilityMap {
 }
 
 /// Resource that stores visibility maps for all civilizations
+/// Uses Vec instead of HashMap to support reflection-based serialization
 #[derive(Debug, Clone, Resource, Serialize, Deserialize, Reflect)]
 #[reflect(Resource)]
 pub struct FogOfWarMaps {
-    pub maps: HashMap<CivId, VisibilityMap>,
+    pub maps: Vec<(CivId, VisibilityMap)>,
 }
 
 impl FogOfWarMaps {
     pub fn new() -> Self {
-        Self {
-            maps: HashMap::new(),
-        }
+        Self { maps: Vec::new() }
     }
 
     /// Initialize visibility map for a civilization
     pub fn init_for_civ(&mut self, civ_id: CivId, width: u32, height: u32) {
-        self.maps.insert(civ_id, VisibilityMap::new(width, height));
+        // Remove existing entry if present
+        self.maps.retain(|(id, _)| *id != civ_id);
+        // Add new entry
+        self.maps.push((civ_id, VisibilityMap::new(width, height)));
     }
 
     /// Get visibility map for a civilization
     pub fn get(&self, civ_id: CivId) -> Option<&VisibilityMap> {
-        self.maps.get(&civ_id)
+        self.maps
+            .iter()
+            .find(|(id, _)| *id == civ_id)
+            .map(|(_, map)| map)
     }
 
     /// Get mutable visibility map for a civilization
     pub fn get_mut(&mut self, civ_id: CivId) -> Option<&mut VisibilityMap> {
-        self.maps.get_mut(&civ_id)
+        self.maps
+            .iter_mut()
+            .find(|(id, _)| *id == civ_id)
+            .map(|(_, map)| map)
     }
 
     /// Check if a position is visible to a civilization

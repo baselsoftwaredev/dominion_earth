@@ -5,9 +5,10 @@ use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{ActiveCivTurn, CurrentTurn, GameConfig, MapTile, Resource, WorldMap};
 use core_sim::{
-    Building, BuildingType, City, CivId, CivPersonality, CivStats, Civilization, Direction,
-    Economy, Military, MilitaryUnit, PlayerControlled, PlayerMovementOrder, Position, Technologies,
-    TerrainType, TradeRoute, UnitSelected, UnitType,
+    Building, BuildingType, Capital, CapitalAge, City, CivId, CivPersonality, CivStats,
+    Civilization, Direction, Economy, FogOfWarMaps, Military, MilitaryUnit, PlayerControlled,
+    PlayerMovementOrder, Position, Technologies, TerrainType, TradeRoute, UnitSelected, UnitType,
+    VisibilityMap, VisibilityState,
 };
 use std::fs::File;
 use std::io::Write;
@@ -82,6 +83,7 @@ impl Plugin for SaveLoadPlugin {
                     handle_load_requests,
                     track_loaded_scenes,
                     restore_player_control_after_load,
+                    refresh_fog_of_war_after_load,
                 ),
             );
     }
@@ -95,12 +97,16 @@ pub struct SaveLoadState {
     pub save_path: String,
     pub load_path: String,
     pub save_directory: String,
+    pub needs_player_restore: bool,
+    pub fog_of_war_needs_refresh: bool,
 }
 
 impl SaveLoadState {
     pub fn with_save_directory(save_dir: String) -> Self {
         Self {
             save_directory: save_dir,
+            needs_player_restore: false,
+            fog_of_war_needs_refresh: false,
             ..Default::default()
         }
     }
@@ -184,6 +190,14 @@ fn setup_save_load_registry(world: &mut World) {
     world
         .resource_mut::<AppTypeRegistry>()
         .write()
+        .register::<Capital>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
+        .register::<CapitalAge>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
         .register::<Building>();
     world
         .resource_mut::<AppTypeRegistry>()
@@ -239,6 +253,18 @@ fn setup_save_load_registry(world: &mut World) {
         .resource_mut::<AppTypeRegistry>()
         .write()
         .register::<MapTile>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
+        .register::<FogOfWarMaps>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
+        .register::<VisibilityMap>();
+    world
+        .resource_mut::<AppTypeRegistry>()
+        .write()
+        .register::<VisibilityState>();
 
     info!("Save/Load type registry initialized");
 }
@@ -251,11 +277,13 @@ fn handle_save_requests(
     turn_phase: Option<Res<TurnPhase>>,
     game_config: Option<Res<GameConfig>>,
     world_map: Option<Res<WorldMap>>,
+    fog_of_war: Option<Res<FogOfWarMaps>>,
     query: Query<(
         Entity,
         &Position,
         Option<&Civilization>,
         Option<&City>,
+        Option<&Capital>,
         Option<&MilitaryUnit>,
         Option<&TerrainType>,
         Option<&CivId>,
@@ -303,6 +331,15 @@ fn handle_save_requests(
         save_world.insert_resource((*world_map).clone());
         info!("Saved WorldMap: {}x{}", world_map.width, world_map.height);
     }
+    if let Some(fog_of_war) = fog_of_war {
+        save_world.insert_resource((*fog_of_war).clone());
+        info!(
+            "Saved FogOfWarMaps with {} civilization maps",
+            fog_of_war.maps.len()
+        );
+    } else {
+        warn!("FogOfWarMaps resource not found during save!");
+    }
 
     // Copy entities with their components
     for (
@@ -310,6 +347,7 @@ fn handle_save_requests(
         position,
         civilization,
         city,
+        capital,
         military_unit,
         terrain,
         civ_id,
@@ -326,6 +364,10 @@ fn handle_save_requests(
 
         if let Some(city) = city {
             entity_commands.insert(city.clone());
+        }
+
+        if let Some(capital) = capital {
+            entity_commands.insert(capital.clone());
         }
 
         if let Some(military_unit) = military_unit {
@@ -386,7 +428,20 @@ fn handle_load_requests(
     mut commands: Commands,
     mut save_state: ResMut<SaveLoadState>,
     asset_server: Res<AssetServer>,
-    query: Query<Entity, (With<Position>, Without<Camera>)>,
+    // Query for any game entity - units, cities, civilizations, etc.
+    game_entities: Query<
+        Entity,
+        Or<(
+            With<Position>,
+            With<Civilization>,
+            With<City>,
+            With<Capital>,
+            With<MilitaryUnit>,
+        )>,
+    >,
+    // Query for entities with sprite references to despawn their sprites too
+    sprite_ref_entities: Query<&SpriteEntityReference>,
+    cameras: Query<Entity, With<Camera>>,
 ) {
     if !save_state.load_requested {
         return;
@@ -394,10 +449,46 @@ fn handle_load_requests(
 
     save_state.load_requested = false;
 
-    // Clear existing game entities (but not cameras or UI)
-    for entity in query.iter() {
+    // Mark that we need to restore player control after this load
+    save_state.needs_player_restore = true;
+    // Mark that fog of war needs to be refreshed after load
+    save_state.fog_of_war_needs_refresh = true;
+
+    info!("Starting game load - clearing all existing game state");
+
+    // First, despawn all referenced sprite entities
+    let mut sprite_entities_to_despawn: std::collections::HashSet<Entity> =
+        std::collections::HashSet::new();
+    for sprite_ref in sprite_ref_entities.iter() {
+        sprite_entities_to_despawn.insert(sprite_ref.sprite_entity);
+    }
+
+    info!(
+        "Despawning {} referenced sprite entities before load",
+        sprite_entities_to_despawn.len()
+    );
+    for entity in sprite_entities_to_despawn.iter() {
+        commands.entity(*entity).despawn();
+    }
+
+    // Collect all game entities, excluding cameras
+    let camera_entities: std::collections::HashSet<Entity> = cameras.iter().collect();
+    let entities_to_despawn: Vec<Entity> = game_entities
+        .iter()
+        .filter(|e| !camera_entities.contains(e))
+        .collect();
+
+    info!(
+        "Despawning {} game entities before load",
+        entities_to_despawn.len()
+    );
+    for entity in entities_to_despawn {
         commands.entity(entity).despawn();
     }
+
+    // Note: Resources will be overwritten by the loaded scene
+    // The DynamicScene will insert the saved resources (WorldMap, FogOfWarMaps, CurrentTurn, etc.)
+    // This ensures a clean slate matching the save file
 
     // Try to find the save file in the configured directory
     let primary_save_dir = get_save_directory(&save_state);
@@ -465,42 +556,96 @@ pub fn load_game(save_state: &mut ResMut<SaveLoadState>, save_name: &str) {
 
 /// Restore player control for old saves that don't have PlayerControlled components
 /// This system runs after loading and ensures at least one civilization is player-controlled
+/// Only runs when triggered by a load request
 fn restore_player_control_after_load(
     mut commands: Commands,
+    mut save_state: ResMut<SaveLoadState>,
     civilizations_query: Query<(Entity, &Civilization), Without<PlayerControlled>>,
-    player_civilizations_query: Query<&PlayerControlled>,
+    player_civilizations_query: Query<&Civilization, With<PlayerControlled>>,
     cities_query: Query<(Entity, &City), Without<PlayerControlled>>,
     units_query: Query<(Entity, &MilitaryUnit), Without<PlayerControlled>>,
 ) {
-    // Only run this system if no civilizations have PlayerControlled components
-    if player_civilizations_query.is_empty() && !civilizations_query.is_empty() {
-        // Find the first civilization (by CivId(0) if possible, otherwise the first one)
-        let mut civilizations: Vec<_> = civilizations_query.iter().collect();
-        civilizations.sort_by_key(|(_, civ)| civ.id.0);
+    // Only run when we need to restore and have no player civilizations yet
+    if !save_state.needs_player_restore
+        || !player_civilizations_query.is_empty()
+        || civilizations_query.is_empty()
+    {
+        return;
+    }
 
-        if let Some((first_civ_entity, first_civ)) = civilizations.first() {
-            // Mark the first civilization as player-controlled
-            commands.entity(*first_civ_entity).insert(PlayerControlled);
+    // Find the first civilization (by CivId(0) if possible, otherwise the first one)
+    let mut civilizations: Vec<_> = civilizations_query.iter().collect();
+    civilizations.sort_by_key(|(_, civ)| civ.id.0);
 
-            let player_civ_id = first_civ.id;
-            info!(
-                "Restored player control to civilization: {} (CivId: {:?})",
-                first_civ.name, player_civ_id
-            );
+    if let Some((first_civ_entity, first_civ)) = civilizations.first() {
+        // Mark the first civilization as player-controlled
+        commands.entity(*first_civ_entity).insert(PlayerControlled);
 
-            // Mark all cities belonging to this civilization as player-controlled
-            for (city_entity, city) in cities_query.iter() {
-                if city.owner == player_civ_id {
-                    commands.entity(city_entity).insert(PlayerControlled);
-                }
-            }
+        let player_civ_id = first_civ.id;
+        info!(
+            "Restored player control to civilization: {} (CivId: {:?})",
+            first_civ.name, player_civ_id
+        );
 
-            // Mark all units belonging to this civilization as player-controlled
-            for (unit_entity, unit) in units_query.iter() {
-                if unit.owner == player_civ_id {
-                    commands.entity(unit_entity).insert(PlayerControlled);
-                }
+        // Mark all cities belonging to this civilization as player-controlled
+        for (city_entity, city) in cities_query.iter() {
+            if city.owner == player_civ_id {
+                commands.entity(city_entity).insert(PlayerControlled);
             }
         }
+
+        // Mark all units belonging to this civilization as player-controlled
+        for (unit_entity, unit) in units_query.iter() {
+            if unit.owner == player_civ_id {
+                commands.entity(unit_entity).insert(PlayerControlled);
+            }
+        }
+
+        // Mark that we've completed the restoration
+        save_state.needs_player_restore = false;
+        // Mark that fog of war needs to be refreshed
+        save_state.fog_of_war_needs_refresh = true;
+        info!("Player control restoration complete");
+    }
+}
+
+/// Force a refresh of fog of war tile visuals after loading
+/// This ensures tiles properly reflect the loaded fog of war state
+fn refresh_fog_of_war_after_load(
+    mut save_state: ResMut<SaveLoadState>,
+    fog_of_war: Option<Res<FogOfWarMaps>>,
+    player_query: Query<&Civilization, With<PlayerControlled>>,
+    mut tile_query: Query<&mut bevy_ecs_tilemap::tiles::TileColor>,
+) {
+    use bevy_ecs_tilemap::tiles::TileColor;
+
+    if !save_state.fog_of_war_needs_refresh {
+        return;
+    }
+
+    // Only proceed if we have the necessary resources
+    let Some(fog_of_war) = fog_of_war else {
+        return;
+    };
+
+    let Ok(player_civ) = player_query.single() else {
+        return;
+    };
+
+    let Some(visibility_map) = fog_of_war.get(player_civ.id) else {
+        return;
+    };
+
+    // Force all tiles to update their color based on current visibility
+    let mut updated_count = 0;
+    for mut tile_color in tile_query.iter_mut() {
+        // Set to a different color first to force detection of change
+        tile_color.0 = Color::WHITE;
+        updated_count += 1;
+    }
+
+    if updated_count > 0 {
+        info!("Forced refresh of {} tile colors after load", updated_count);
+        save_state.fog_of_war_needs_refresh = false;
     }
 }
