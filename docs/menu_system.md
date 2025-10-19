@@ -4,6 +4,46 @@
 
 This document describes the menu system added to Dominion Earth, based on the bevy_new_2d template structure. The menu system provides a professional game flow with multiple screens and menus.
 
+## Known Issues & Fixes
+
+### Visibility Issue (RESOLVED)
+
+**Problem**: The splash screen text and menus were not visible, or wouldn't disappear when clicking "Play".
+
+**Root Cause**:
+
+1. Game UI panels (top, left, right panels) were spawned without `StateScoped(Screen::Gameplay)` component
+2. This meant they persisted across all screen states, covering the splash and menus
+3. Menu z-index was too low (2) compared to potential game elements
+
+**Solutions Applied**:
+
+1. **Added StateScoped to UI Panels** - Modified `dominion_earth/src/ui/bevy_hui/main_ui.rs`:
+
+   - Added `StateScoped(crate::screens::Screen::Gameplay)` to `spawn_top_panel()`
+   - Added `StateScoped(crate::screens::Screen::Gameplay)` to `spawn_right_side_panel()`
+   - Added `StateScoped(crate::screens::Screen::Gameplay)` to `spawn_left_side_panel()`
+
+   This ensures UI panels only exist during gameplay and are automatically cleaned up when leaving the Gameplay screen.
+
+2. **Increased Menu Z-Index** - Changed GlobalZIndex from 2 to 100 for all menus:
+
+   - Main menu (`menus/main.rs`)
+   - Pause menu (`menus/pause.rs`)
+   - Settings menu (`menus/settings.rs`)
+   - Credits menu (`menus/credits.rs`)
+   - Splash screen (`screens/splash.rs`)
+
+   This ensures menus always render on top of game elements.
+
+**Expected Behavior**:
+
+1. Splash screen appears with "Dominion Earth" text visible for 2 seconds
+2. Transitions to main menu with visible buttons
+3. Clicking "Play" enters gameplay and spawns UI panels
+4. Pressing Escape opens pause menu (visible on top of game)
+5. Returning to main menu cleans up all game UI panels
+
 ## Architecture
 
 ### Screen States (`screens/mod.rs`)
@@ -133,7 +173,7 @@ pub fn plugin(app: &mut App) {
 fn spawn_my_menu(mut commands: Commands) {
     commands.spawn((
         widget::ui_root("My Menu"),
-        GlobalZIndex(2),
+        GlobalZIndex(100),  // Use z-index 100 to ensure visibility
         StateScoped(Menu::MyMenu),
     ))
     .with_children(|parent| {
@@ -142,6 +182,8 @@ fn spawn_my_menu(mut commands: Commands) {
     });
 }
 ```
+
+**Important**: Always use `GlobalZIndex(100)` for menus to ensure they render on top of game elements.
 
 ### Adding New Button Actions
 
@@ -167,6 +209,7 @@ fn spawn_my_menu(mut commands: Commands) {
 - `dominion_earth/src/plugins/camera.rs`: Camera centering on Gameplay enter
 - `dominion_earth/src/plugins/ui_integration.rs`: UI scoped to Gameplay screen
 - `dominion_earth/src/ui/bevy_hui/mod.rs`: Added screen-scoped setup method
+- `dominion_earth/src/ui/bevy_hui/main_ui.rs`: Added StateScoped to UI panels (visibility fix)
 
 ## Features
 
