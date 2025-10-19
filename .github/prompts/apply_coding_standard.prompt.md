@@ -89,6 +89,7 @@ Debug logging rules:
 - Keep functions under 20 lines when possible
 - Each function does one thing well
 - Extract complex logic into well-named functions
+- Files should not exceed 500 lines; split into modules if necessary
 
 ### DRY Principle (Don't Repeat Yourself)
 
