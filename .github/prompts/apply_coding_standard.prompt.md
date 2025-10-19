@@ -4,6 +4,12 @@ mode: agent
 
 # Apply Coding Standard
 
+## Workflow
+
+1. **First, run `git status` to identify changed files**
+2. **Apply the coding standards below to all modified Rust files**
+3. **Focus on files with `.rs` extension that have been modified or added**
+
 Apply the below coding standards to the provided Rust code. Ensure all code adheres to these standards.
 
 ## Coding Standards

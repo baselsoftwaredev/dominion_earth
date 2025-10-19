@@ -26,6 +26,7 @@ dev_native = [
 bevy = { workspace = true, features = ["default", "bevy_remote", "png"] }
 # bevy_egui = { workspace = true }  # Commented out, replaced with bevy_hui
 bevy_hui = "0.4"
+bevy_save = { workspace = true }
 core_sim = { path = "../core_sim" }
 ai_planner = { path = "../ai_planner" }
 serde = { workspace = true }
