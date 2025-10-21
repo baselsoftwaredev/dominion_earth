@@ -49,7 +49,7 @@ fn spawn_pause_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
                 widget::ButtonAction::OpenSettings,
             ));
             parent.spawn(widget::button(
-                "Quit to Menu",
+                "Main Menu",
                 widget::ButtonAction::QuitToMenu,
             ));
         });
