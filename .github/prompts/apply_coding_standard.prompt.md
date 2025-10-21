@@ -91,6 +91,63 @@ Debug logging rules:
 - Extract complex logic into well-named functions
 - Files should not exceed 500 lines; split into modules if necessary
 
+### Code Reusability
+
+**Design code to be reusable across multiple contexts:**
+
+```rust
+// BAD: Hardcoded, single-use function
+fn spawn_warrior_at_capital() {
+    let position = Vec2::new(10.0, 10.0);
+    spawn_unit(position, UnitType::Warrior);
+}
+
+// GOOD: Parameterized, reusable function
+fn spawn_unit_at_position(position: Vec2, unit_type: UnitType) {
+    spawn_unit(position, unit_type);
+}
+
+// BETTER: Generic, composable function
+fn spawn_entity_at_position<T: Bundle>(position: Vec2, entity_bundle: T, commands: &mut Commands) {
+    commands.spawn((entity_bundle, Position(position)));
+}
+```
+
+**Reusability principles:**
+
+- Design functions to accept parameters rather than hardcoding values
+- Create utility modules for common operations (e.g., `math_utils`, `spawn_utils`)
+- Use traits to enable polymorphic behavior across different types
+- Build composable functions that can be combined in different ways
+- Extract business logic from Bevy systems so it can be tested and reused independently
+- Prefer returning values over mutating global state when possible
+- Design APIs that work in multiple contexts, not just the immediate use case
+
+**Example of reusable utility:**
+
+```rust
+// In utilities module
+pub mod position_utils {
+    pub fn calculate_distance_between_entities(pos_a: Vec2, pos_b: Vec2) -> f32 {
+        pos_a.distance(pos_b)
+    }
+
+    pub fn is_entity_within_range(entity_pos: Vec2, target_pos: Vec2, range: f32) -> bool {
+        calculate_distance_between_entities(entity_pos, target_pos) <= range
+    }
+
+    pub fn find_nearest_position(origin: Vec2, candidates: &[Vec2]) -> Option<Vec2> {
+        candidates.iter()
+            .min_by(|a, b| {
+                calculate_distance_between_entities(origin, **a)
+                    .partial_cmp(&calculate_distance_between_entities(origin, **b))
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .copied()
+    }
+}
+```
+
 ### DRY Principle (Don't Repeat Yourself)
 
 **Extract repeated code into functions:**
