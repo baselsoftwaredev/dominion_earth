@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_hui::prelude::{HtmlComponents, HtmlFunctions};
 use bevy_save::prelude::*;
 use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
@@ -116,6 +117,7 @@ impl Plugin for SaveLoadPlugin {
                     handle_load_requests,
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
+                    respawn_ui_after_load,
                 ),
             );
 
@@ -129,6 +131,7 @@ pub struct SaveLoadState {
     pub load_requested: Option<String>,
     pub needs_player_restore: bool,
     pub fog_of_war_needs_refresh: bool,
+    pub ui_needs_respawn: bool,
 }
 
 fn handle_save_requests(world: &mut World) {
@@ -158,11 +161,13 @@ fn handle_load_requests(world: &mut World) {
         info!("Loading game: {}", load_name);
 
         despawn_referenced_sprites(world);
+        despawn_ui_panels(world);
 
         {
             let mut save_state = world.resource_mut::<SaveLoadState>();
             save_state.needs_player_restore = true;
             save_state.fog_of_war_needs_refresh = true;
+            save_state.ui_needs_respawn = true;
         }
 
         let pipeline = DominionEarthPipeline::new(load_name.clone());
@@ -191,6 +196,31 @@ fn despawn_referenced_sprites(world: &mut World) {
 
     if despawn_count > 0 {
         info!("Despawned {} sprite entities before loading", despawn_count);
+    }
+}
+
+fn despawn_ui_panels(world: &mut World) {
+    use bevy_hui::prelude::HtmlNode;
+
+    let mut ui_entities_to_despawn = Vec::new();
+
+    let mut query = world.query_filtered::<Entity, With<HtmlNode>>();
+    for entity in query.iter(world) {
+        ui_entities_to_despawn.push(entity);
+    }
+
+    let despawn_count = ui_entities_to_despawn.len();
+    for entity in ui_entities_to_despawn {
+        if let Ok(entity_mut) = world.get_entity_mut(entity) {
+            entity_mut.despawn();
+        }
+    }
+
+    if despawn_count > 0 {
+        info!(
+            "Despawned {} UI panel entities before loading",
+            despawn_count
+        );
     }
 }
 
@@ -306,4 +336,24 @@ fn refresh_fog_of_war_after_load(
 
     info!("Fog of war refresh complete after load");
     save_state.fog_of_war_needs_refresh = false;
+}
+
+fn respawn_ui_after_load(
+    mut commands: Commands,
+    mut save_state: ResMut<SaveLoadState>,
+    asset_server: Res<AssetServer>,
+    mut html_components: HtmlComponents,
+    mut html_functions: HtmlFunctions,
+) {
+    if !save_state.ui_needs_respawn {
+        return;
+    }
+
+    info!("Respawning UI panels after load");
+
+    // Call the setup_main_ui function to recreate all UI panels
+    crate::ui::bevy_hui::setup_main_ui(commands, asset_server, html_components, html_functions);
+
+    save_state.ui_needs_respawn = false;
+    info!("UI respawn complete after load");
 }

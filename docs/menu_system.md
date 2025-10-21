@@ -44,6 +44,40 @@ This document describes the menu system added to Dominion Earth, based on the be
 4. Pressing Escape opens pause menu (visible on top of game)
 5. Returning to main menu cleans up all game UI panels
 
+### Save/Load UI Duplication Issue (RESOLVED)
+
+**Problem**: When loading a game save (F9), old UI labels were not being removed, causing duplicate labels to stack on top of each other.
+
+**Root Cause**:
+
+1. When loading a game via F9 hotkey, the game stays in the Gameplay screen state
+2. The bevy_save system would despawn game entities (units, cities, etc.) but not UI panels
+3. After loading, the old UI panels with stale data would persist alongside the loaded game state
+4. This caused confusing overlapping labels showing incorrect information
+
+**Solution Applied**:
+
+Modified `dominion_earth/src/plugins/save_load.rs`:
+
+1. **Added `despawn_ui_panels()` function** - Despawns all HtmlNode entities (UI panels) before loading game state
+2. **Added `ui_needs_respawn` flag** to `SaveLoadState` resource to track when UI needs to be recreated
+3. **Added `respawn_ui_after_load()` system** - Calls `setup_main_ui()` after game load to recreate fresh UI panels with correct data
+
+The fix ensures the following sequence:
+
+1. User presses F9 to load game
+2. System despawns all existing UI panels
+3. System loads game state from save file
+4. System recreates UI panels with fresh data from loaded state
+
+**Expected Behavior**:
+
+1. Press F5 to save current game state
+2. Make changes to the game (move units, advance turns, etc.)
+3. Press F9 to load the previous save
+4. UI panels are cleanly removed and recreated with the loaded game state
+5. No duplicate or stale labels appear
+
 ## Architecture
 
 ### Screen States (`screens/mod.rs`)
