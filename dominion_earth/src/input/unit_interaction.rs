@@ -211,9 +211,10 @@ fn handle_unit_selection(
 
     match convert_cursor_position_to_tile_coordinates(cursor_pos, camera, camera_transform) {
         Ok(click_position) => {
+            // Check if there's a capital at this position to show production menu
             let player_civilization_entities: Vec<Entity> =
                 player_civilizations_query.iter().collect();
-            let capital_at_position = capitals_query.iter().any(|(_, capital, capital_pos)| {
+            let capital_at_position = capitals_query.iter().find(|(_, capital, capital_pos)| {
                 capital_pos.x == click_position.x
                     && capital_pos.y == click_position.y
                     && player_civilization_entities
@@ -222,14 +223,22 @@ fn handle_unit_selection(
                         .any(|(idx, _)| capital.owner.0 == 0)
             });
 
-            if capital_at_position {
-                DebugUtils::log_info(
-                    debug_logging,
-                    "Unit interaction: Capital at position, skipping unit selection",
-                );
-                return;
+            // If there's a capital at this position, keep production menu visible
+            // but still allow unit selection (both panels can be shown)
+            if let Some((capital_entity, capital, _)) = capital_at_position {
+                if let Some(&civ_entity) = player_civilization_entities.first() {
+                    selected_capital.capital_entity = Some(capital_entity);
+                    selected_capital.civ_entity = Some(civ_entity);
+                    selected_capital.show_production_menu = true;
+
+                    DebugUtils::log_info(
+                        debug_logging,
+                        "Unit interaction: Capital at position, keeping production menu visible",
+                    );
+                }
             }
 
+            // Now check for units - allow selection even if capital is present
             let mut found_unit = false;
             for (entity, unit, position) in units_query.iter() {
                 if *position == click_position && unit.owner == player_civ_id {
@@ -245,9 +254,13 @@ fn handle_unit_selection(
                     commands.entity(entity).insert(core_sim::UnitSelected);
                     found_unit = true;
 
-                    selected_capital.show_production_menu = false;
-                    selected_capital.capital_entity = None;
-                    selected_capital.civ_entity = None;
+                    // Only keep production menu visible if unit is on a capital
+                    // Otherwise, clear it to show only the unit panel
+                    if capital_at_position.is_none() {
+                        selected_capital.show_production_menu = false;
+                        selected_capital.capital_entity = None;
+                        selected_capital.civ_entity = None;
+                    }
 
                     DebugUtils::log_info(
                         debug_logging,
@@ -270,9 +283,12 @@ fn handle_unit_selection(
                 selected_unit.unit_id = None;
                 selected_unit.owner = None;
 
-                selected_capital.show_production_menu = false;
-                selected_capital.capital_entity = None;
-                selected_capital.civ_entity = None;
+                // Only clear production menu if no capital at this position
+                if capital_at_position.is_none() {
+                    selected_capital.show_production_menu = false;
+                    selected_capital.capital_entity = None;
+                    selected_capital.civ_entity = None;
+                }
             }
         }
         Err(error_msg) => {

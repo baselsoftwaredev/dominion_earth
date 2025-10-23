@@ -94,6 +94,7 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
     selected_unit: &mut core_sim::SelectedUnit,
     commands: &mut Commands,
     debug_logging: &DebugLogging,
+    units_query: &Query<(Entity, &core_sim::MilitaryUnit, &core_sim::Position)>,
 ) -> bool {
     let player_civilization_entities: Vec<Entity> = player_civilizations_query.iter().collect();
 
@@ -126,14 +127,21 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
                 selected_capital.civ_entity = Some(matching_player_civilization_entity);
                 selected_capital.show_production_menu = true;
 
-                if let Some(prev_unit_entity) = selected_unit.unit_entity {
-                    commands
-                        .entity(prev_unit_entity)
-                        .remove::<core_sim::UnitSelected>();
+                // Only clear unit selection if there's no unit at this position
+                let unit_at_position = units_query
+                    .iter()
+                    .any(|(_, _, pos)| pos.x == clicked_position.x && pos.y == clicked_position.y);
+
+                if !unit_at_position {
+                    if let Some(prev_unit_entity) = selected_unit.unit_entity {
+                        commands
+                            .entity(prev_unit_entity)
+                            .remove::<core_sim::UnitSelected>();
+                    }
+                    selected_unit.unit_entity = None;
+                    selected_unit.unit_id = None;
+                    selected_unit.owner = None;
                 }
-                selected_unit.unit_entity = None;
-                selected_unit.unit_id = None;
-                selected_unit.owner = None;
 
                 return true;
             }
@@ -186,6 +194,7 @@ fn process_tile_selection_and_update_ui_state(
                 selected_unit,
                 commands,
                 debug_logging,
+                units_query,
             );
 
         let unit_at_position = units_query

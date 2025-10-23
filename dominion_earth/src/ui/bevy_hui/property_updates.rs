@@ -569,26 +569,8 @@ fn build_unit_info_data(
     units_query: &Query<&core_sim::MilitaryUnit>,
     selected_capital: &SelectedCapital,
 ) -> UnitInformation {
-    if selected_capital.show_production_menu {
-        return UnitInformation {
-            is_visible: "none".to_string(),
-            unit_name: "None".to_string(),
-            unit_type: "None".to_string(),
-            attack: "0".to_string(),
-            defense: "0".to_string(),
-            health: "0".to_string(),
-            max_health: "0".to_string(),
-            movement_remaining: "0".to_string(),
-            movement_range: "0".to_string(),
-            range: "0".to_string(),
-            experience: "0".to_string(),
-            fatigue: "0".to_string(),
-            supply: "0".to_string(),
-            decay: "0".to_string(),
-            effective_attack: "0".to_string(),
-            effective_defense: "0".to_string(),
-        };
-    }
+    // Allow both unit panel and production menu to be visible simultaneously
+    // This is important for units positioned on capital tiles
 
     if let Some(unit_entity) = selected_unit.unit_entity {
         if let Ok(unit) = units_query.get(unit_entity) {
