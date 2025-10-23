@@ -7,6 +7,9 @@ use std::collections::HashMap;
 
 /// Unique identifier for civilizations
 /// Note: Hash trait is required for use as HashMap key in FogOfWarMaps
+///
+/// This is a "Model" component - core game state that should be saved.
+/// Note: Add the `Save` component manually when spawning civilizations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 #[reflect(Component, Hash, PartialEq)]
 pub struct CivId(pub u32);
@@ -24,6 +27,9 @@ impl From<u32> for CivId {
 }
 
 /// Civilization component representing a playable faction
+///
+/// This is a "Model" component - core game state.
+/// Note: Add the `Save` component manually when spawning civilizations.
 #[derive(Debug, Clone, Reflect)]
 #[reflect(Component)]
 pub struct Civilization {

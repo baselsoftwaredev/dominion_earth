@@ -6,6 +6,10 @@ use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
+/// Military unit component - represents a game unit
+///
+/// This is a "Model" component containing game state that should be saved.
+/// Note: Add the `Save` component manually when spawning units.
 #[derive(Debug, Clone, Reflect)]
 #[reflect(Component)]
 pub struct MilitaryUnit {

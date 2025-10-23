@@ -6,6 +6,10 @@ use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// City component representing a settlement
+///
+/// This is a "Model" component in MVC architecture - it contains the logical
+/// state of cities and should be saved/loaded.
+/// Note: Add the `Save` component manually when spawning cities.
 #[derive(Debug, Clone, Reflect)]
 #[reflect(Component)]
 pub struct City {
@@ -81,6 +85,9 @@ impl City {
 }
 
 /// Capital component for tracking civilization capitals through different ages
+///
+/// This is a "Model" component - saved state.
+/// Note: Add the `Save` component manually when spawning capitals.
 #[derive(Debug, Clone, Reflect)]
 #[reflect(Component)]
 pub struct Capital {

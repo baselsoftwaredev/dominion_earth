@@ -1,12 +1,23 @@
+use crate::{CivilizationData, GameState, SimResult};
+use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
-use crate::{GameState, SimResult, CivilizationData};
 use std::path::Path;
 
 /// Serialization utilities for saving/loading game state
+///
+/// This module follows the MVC (Model-View-Controller) philosophy from moonshine-save:
+/// - Model: Game state components (logical data) - City, Civilization, MilitaryUnit, Position
+/// - View: Rendering/visual components (aesthetic data) - SpriteEntityReference, UI elements
+/// - Controller: Systems that handle save/load events
+///
+/// The separation ensures that only essential game state is serialized,
+/// while visual elements are spawned separately during load.
 pub struct GameSerializer;
 
 impl GameSerializer {
     /// Save game state to RON format
+    ///
+    /// This is a legacy wrapper for traditional save/load.
     pub fn save_to_ron<P: AsRef<Path>>(game_state: &GameState, path: P) -> SimResult<()> {
         let ron_string = ron::ser::to_string_pretty(game_state, ron::ser::PrettyConfig::default())?;
         std::fs::write(path, ron_string)?;
@@ -14,10 +25,32 @@ impl GameSerializer {
     }
 
     /// Load game state from RON format
+    ///
+    /// This is a legacy wrapper for traditional save/load.
     pub fn load_from_ron<P: AsRef<Path>>(path: P) -> SimResult<GameState> {
         let content = std::fs::read_to_string(path)?;
         let game_state: GameState = ron::from_str(&content)?;
-        Ok(game_state)
+        Ok(())
+    }
+
+    /// Save ECS world using MVC principles
+    ///
+    /// Following moonshine-save philosophy:
+    /// - Entities with game state (Model) should be saved
+    /// - Entities with visual data (View) should not be saved
+    pub fn save_world_to_file<P: AsRef<Path>>(_world: &mut World, _path: P) {
+        // Placeholder - use bevy_save's DominionEarthPipeline for now
+        info!("MVC save - use DominionEarthPipeline");
+    }
+
+    /// Load ECS world using MVC principles
+    ///
+    /// Following moonshine-save philosophy:
+    /// - View entities should be despawned before loading
+    /// - Model entities will be loaded from the save file
+    pub fn load_world_from_file<P: AsRef<Path>>(_world: &mut World, _path: P) {
+        // Placeholder - use bevy_save's DominionEarthPipeline for now
+        info!("MVC load - use DominionEarthPipeline");
     }
 
     /// Save game state to JSON format
@@ -47,11 +80,11 @@ impl GameSerializer {
     fn calculate_world_checksum(world_map: &crate::WorldMap) -> u64 {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
-        
+
         let mut hasher = DefaultHasher::new();
         world_map.width.hash(&mut hasher);
         world_map.height.hash(&mut hasher);
-        
+
         // Sample a few tiles for checksum
         for x in (0..world_map.width).step_by(10) {
             for y in (0..world_map.height).step_by(10) {
@@ -61,40 +94,44 @@ impl GameSerializer {
                 }
             }
         }
-        
+
         hasher.finish()
     }
 
     fn extract_major_events(game_state: &GameState) -> Vec<String> {
         let mut events = Vec::new();
-        
+
         // Extract diplomatic events
         for event in &game_state.diplomatic_state.diplomatic_events {
-            events.push(format!("Turn {}: {:?} involving {:?}", 
-                event.turn, event.event_type, event.involved_civs));
+            events.push(format!(
+                "Turn {}: {:?} involving {:?}",
+                event.turn, event.event_type, event.involved_civs
+            ));
         }
-        
+
         // Extract economic events
         for event in &game_state.global_economy.economic_events {
             if event.duration > 0 {
-                events.push(format!("Economic event: {:?} affecting {:?}", 
-                    event.event_type, event.affected_resource));
+                events.push(format!(
+                    "Economic event: {:?} affecting {:?}",
+                    event.event_type, event.affected_resource
+                ));
             }
         }
-        
+
         events
     }
 
     /// Validate game state integrity
     pub fn validate_game_state(game_state: &GameState) -> Vec<ValidationError> {
         let mut errors = Vec::new();
-        
+
         // Check civilization data consistency
         for (civ_id, civ_data) in &game_state.civilizations {
             if civ_data.civilization.id != *civ_id {
                 errors.push(ValidationError::CivIdMismatch(*civ_id));
             }
-            
+
             // Check if capital exists on the map
             if let Some(capital_pos) = civ_data.civilization.capital {
                 if let Some(tile) = game_state.world_map.get_tile(capital_pos) {
@@ -106,7 +143,7 @@ impl GameSerializer {
                 }
             }
         }
-        
+
         // Check for orphaned territories
         for x in 0..game_state.world_map.width {
             for y in 0..game_state.world_map.height {
@@ -120,7 +157,7 @@ impl GameSerializer {
                 }
             }
         }
-        
+
         errors
     }
 }
@@ -150,65 +187,68 @@ impl EcsSerializer {
     /// Extract game state from ECS world
     pub fn extract_from_world(world: &bevy_ecs::world::World) -> GameState {
         let mut game_state = GameState::default();
-        
+
         // Extract current turn
         if let Some(current_turn) = world.get_resource::<crate::resources::CurrentTurn>() {
             game_state.turn = current_turn.0;
         }
-        
+
         // Extract world map
         if let Some(world_map) = world.get_resource::<crate::WorldMap>() {
             game_state.world_map = world_map.clone();
         }
-        
+
         // Extract global economy
         if let Some(global_economy) = world.get_resource::<crate::GlobalEconomy>() {
             game_state.global_economy = global_economy.clone();
         }
-        
+
         // Extract diplomatic state
         if let Some(diplomatic_state) = world.get_resource::<crate::DiplomaticState>() {
             game_state.diplomatic_state = diplomatic_state.clone();
         }
-        
+
         // Extract civilizations and related data
         let mut civs_query = world.query::<(&crate::Civilization, &crate::Position)>();
         let mut cities_query = world.query::<(&crate::City, &crate::Position)>();
         let mut territories_query = world.query::<(&crate::Territory, &crate::Position)>();
         let mut diplomatic_relations_query = world.query::<&crate::DiplomaticRelation>();
-        
+
         // Group data by civilization
         for (civilization, _position) in civs_query.iter(world) {
             let civ_id = civilization.id;
-            
+
             // Collect cities for this civ
-            let cities: Vec<crate::City> = cities_query.iter(world)
+            let cities: Vec<crate::City> = cities_query
+                .iter(world)
                 .filter(|(city, _)| city.owner == civ_id)
                 .map(|(city, _)| city.clone())
                 .collect();
-            
+
             // Collect territories for this civ
-            let territories: Vec<(crate::Position, crate::Territory)> = territories_query.iter(world)
+            let territories: Vec<(crate::Position, crate::Territory)> = territories_query
+                .iter(world)
                 .filter(|(territory, _)| territory.owner == civ_id)
                 .map(|(territory, position)| (*position, territory.clone()))
                 .collect();
-            
+
             // Collect diplomatic relations involving this civ
-            let diplomatic_relations: Vec<crate::DiplomaticRelation> = diplomatic_relations_query.iter(world)
+            let diplomatic_relations: Vec<crate::DiplomaticRelation> = diplomatic_relations_query
+                .iter(world)
                 .filter(|relation| relation.civ_a == civ_id || relation.civ_b == civ_id)
                 .cloned()
                 .collect();
-            
+
             let civ_data = CivilizationData {
                 civilization: civilization.clone(),
                 cities,
                 territories,
                 diplomatic_relations,
             };
-            
+
             game_state.civilizations.insert(civ_id, civ_data);
         }
-        
+
         game_state
     }
 
@@ -216,33 +256,34 @@ impl EcsSerializer {
     pub fn apply_to_world(game_state: &GameState, world: &mut bevy_ecs::world::World) {
         // Clear existing entities
         world.clear_entities();
-        
+
         // Insert resources
         world.insert_resource(crate::resources::CurrentTurn(game_state.turn));
         world.insert_resource(game_state.world_map.clone());
         world.insert_resource(game_state.global_economy.clone());
         world.insert_resource(game_state.diplomatic_state.clone());
-        
+
         // Spawn civilizations and related entities
         for (civ_id, civ_data) in &game_state.civilizations {
             // Spawn civilization
             if let Some(capital) = civ_data.civilization.capital {
                 world.spawn((civ_data.civilization.clone(), capital));
             }
-            
+
             // Spawn cities
             for city in &civ_data.cities {
                 // Find city position from world map
-                if let Some(position) = Self::find_city_position(&game_state.world_map, &city.name) {
+                if let Some(position) = Self::find_city_position(&game_state.world_map, &city.name)
+                {
                     world.spawn((city.clone(), position));
                 }
             }
-            
+
             // Spawn territories
             for (position, territory) in &civ_data.territories {
                 world.spawn((territory.clone(), *position));
             }
-            
+
             // Spawn diplomatic relations
             for relation in &civ_data.diplomatic_relations {
                 world.spawn(relation.clone());

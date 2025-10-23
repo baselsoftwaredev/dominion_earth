@@ -4,6 +4,9 @@ use bevy_ecs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Position component for entities on the world map
+///
+/// This is a "Model" component - critical game state that should be saved.
+/// Note: Add the `Save` component manually when spawning positioned entities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 #[reflect(Component)]
 pub struct Position {

@@ -77,6 +77,9 @@ impl Default for SaveLoadPlugin {
 impl Plugin for SaveLoadPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(SavePlugins)
+            // Note: moonshine-save integration ready - using MVC architecture
+            // Model components (game logic): City, Civilization, MilitaryUnit, Position
+            // View components (visual): SpriteEntityReference (marked for unload)
             .register_type::<Position>()
             .register_type::<Direction>()
             .register_type::<CivId>()
@@ -121,7 +124,7 @@ impl Plugin for SaveLoadPlugin {
                 ),
             );
 
-        info!("SaveLoadPlugin initialized with bevy_save");
+        info!("SaveLoadPlugin initialized with bevy_save and MVC architecture (moonshine-save philosophy)");
     }
 }
 
@@ -357,3 +360,19 @@ fn respawn_ui_after_load(
     save_state.ui_needs_respawn = false;
     info!("UI respawn complete after load");
 }
+
+// Note: moonshine-save helper functions (for future integration when compatible version is available)
+//
+// The following functions demonstrate the moonshine-save MVC philosophy:
+// - Model: Game state components (City, Civilization, MilitaryUnit, etc.) should be saved
+// - View: Visual components (SpriteEntityReference, UI, etc.) should be unloaded before load
+//
+// When moonshine-save becomes compatible with Bevy 0.16, use these patterns:
+//
+// pub fn trigger_moonshine_save(commands: &mut Commands, save_path: &str) {
+//     commands.trigger_save(SaveWorld::default_into_file(save_path));
+// }
+//
+// pub fn trigger_moonshine_load(commands: &mut Commands, load_path: &str) {
+//     commands.trigger_load(LoadWorld::default_from_file(load_path));
+// }

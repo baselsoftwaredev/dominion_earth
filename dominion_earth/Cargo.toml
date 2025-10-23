@@ -35,6 +35,7 @@ rand = { workspace = true }
 rand_pcg = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 bevy_ecs_tilemap = "0.16"
+moonshine-save = "=0.5.2"
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
