@@ -19,7 +19,7 @@ fn register_infantry_production_function(html_functions: &mut HtmlFunctions) {
     html_functions.register(
         "queue_infantry",
         |In(entity): In<Entity>,
-         mut production_orders: EventWriter<PlayerProductionOrder>,
+         mut production_orders: MessageWriter<PlayerProductionOrder>,
          selected_capital: Res<SelectedCapital>,
          mut civilizations_query: Query<&mut Civilization>,
          debug_logging: Res<DebugLogging>,
@@ -49,7 +49,7 @@ fn register_archer_production_function(html_functions: &mut HtmlFunctions) {
     html_functions.register(
         "queue_archer",
         |In(entity): In<Entity>,
-         mut production_orders: EventWriter<PlayerProductionOrder>,
+         mut production_orders: MessageWriter<PlayerProductionOrder>,
          selected_capital: Res<SelectedCapital>,
          mut civilizations_query: Query<&mut Civilization>,
          debug_logging: Res<DebugLogging>,
@@ -79,7 +79,7 @@ fn register_cavalry_production_function(html_functions: &mut HtmlFunctions) {
     html_functions.register(
         "queue_cavalry",
         |In(entity): In<Entity>,
-         mut production_orders: EventWriter<PlayerProductionOrder>,
+         mut production_orders: MessageWriter<PlayerProductionOrder>,
          selected_capital: Res<SelectedCapital>,
          mut civilizations_query: Query<&mut Civilization>,
          debug_logging: Res<DebugLogging>,
@@ -107,7 +107,7 @@ fn register_cavalry_production_function(html_functions: &mut HtmlFunctions) {
 /// Process unit production order with unified logic for all unit types
 fn process_unit_production_order(
     unit_type: core_sim::UnitType,
-    production_orders: &mut EventWriter<PlayerProductionOrder>,
+    production_orders: &mut MessageWriter<PlayerProductionOrder>,
     selected_capital: &SelectedCapital,
     civilizations_query: &mut Query<&mut Civilization>,
     debug_logging: &DebugLogging,
@@ -242,7 +242,7 @@ fn extract_selected_capital_entities(
 
 /// Send production order to event writer
 fn send_production_order(
-    production_orders: &mut EventWriter<PlayerProductionOrder>,
+    production_orders: &mut MessageWriter<PlayerProductionOrder>,
     capital_entity: Entity,
     civilization_entity: Entity,
     production_item: core_sim::ProductionItem,
@@ -388,7 +388,7 @@ fn update_panel_current_production_properties_by_name(
 }
 
 pub fn handle_production_updated_events(
-    mut production_events: EventReader<core_sim::ProductionUpdated>,
+    mut production_events: MessageReader<core_sim::ProductionUpdated>,
     mut commands: Commands,
     mut template_properties: Query<&mut TemplateProperties>,
     ui_entities: Query<Entity, (With<TemplateProperties>, With<Name>)>,

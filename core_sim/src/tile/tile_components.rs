@@ -75,7 +75,7 @@ impl TileCapabilities {
 }
 /// System to update tile asset index when terrain changes
 pub fn update_tile_asset_on_terrain_change(
-    mut events: EventReader<TileTerrainChanged>,
+    mut events: MessageReader<TileTerrainChanged>,
     mut query: Query<(&mut TileTextureIndex, &mut WorldTile)>,
     tile_assets: Option<Res<TileAssets>>,
 ) {
@@ -95,7 +95,7 @@ pub fn update_tile_asset_on_terrain_change(
 use bevy::prelude::*;
 
 /// Event emitted when a tile's terrain type changes
-#[derive(Debug, Clone, Event)]
+#[derive(Debug, Clone, Message)]
 pub struct TileTerrainChanged {
     pub entity: Entity,
     pub new_terrain: TerrainType,

@@ -5,8 +5,7 @@ use crate::tile::tile_components::{
     TileAssetProvider, TileCapabilities, TileContents, TileNeighbors, WorldTile,
 };
 use crate::{Position, TerrainType};
-use bevy::prelude::{Commands, Entity, Transform};
-use bevy::render::view::{InheritedVisibility, ViewVisibility, Visibility};
+use bevy::prelude::{Commands, Entity, InheritedVisibility, Transform, ViewVisibility, Visibility};
 use bevy_ecs_tilemap::prelude::*;
 use bevy_ecs_tilemap::tiles::TileFlip;
 

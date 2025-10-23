@@ -15,16 +15,16 @@ use crate::{
 };
 use bevy_ecs::prelude::*;
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct ProductionUpdated {
     pub capital_entity: Entity,
 }
 
 pub fn handle_turn_advance_requests(
-    mut turn_requests: EventReader<RequestTurnAdvance>,
+    mut turn_requests: MessageReader<RequestTurnAdvance>,
     mut turn_phase: ResMut<TurnPhase>,
     civilizations: Query<(Entity, &Civilization), Without<PlayerControlled>>,
-    mut ai_turn_events: EventWriter<ProcessAITurn>,
+    mut ai_turn_events: MessageWriter<ProcessAITurn>,
     game_config: Res<GameConfig>,
 ) {
     for _request in turn_requests.read() {
@@ -108,10 +108,10 @@ pub fn handle_turn_advance_requests(
     }
 }
 
-/// System to process AI turns in sequence
+/// Handles AI turn processing
 pub fn handle_ai_turn_processing(
-    mut ai_turn_events: EventReader<ProcessAITurn>,
-    mut ai_complete_events: EventWriter<AITurnComplete>,
+    mut ai_turn_events: MessageReader<ProcessAITurn>,
+    mut ai_complete_events: MessageWriter<AITurnComplete>,
     civilizations: Query<&Civilization>,
     mut commands: Commands,
     mut units_query: Query<(Entity, &mut MilitaryUnit, &mut Position), Without<PlayerControlled>>,
@@ -138,10 +138,10 @@ pub fn handle_ai_turn_processing(
 
 /// System to handle AI turn completion and advance to next AI or complete all turns
 pub fn handle_ai_turn_completion(
-    mut ai_complete_events: EventReader<AITurnComplete>,
+    mut ai_complete_events: MessageReader<AITurnComplete>,
     mut turn_phase: ResMut<TurnPhase>,
-    mut next_ai_events: EventWriter<ProcessAITurn>,
-    mut all_ai_complete_events: EventWriter<AllAITurnsComplete>,
+    mut next_ai_events: MessageWriter<ProcessAITurn>,
+    mut all_ai_complete_events: MessageWriter<AllAITurnsComplete>,
     game_config: Res<GameConfig>,
 ) {
     for _ai_event in ai_complete_events.read() {
@@ -300,7 +300,7 @@ fn is_valid_move_target(from: Position, to: Position, world_map: &WorldMap) -> b
 
 /// System to handle completion of all AI turns and advance to next player turn
 pub fn handle_all_ai_turns_complete(
-    mut ai_complete_events: EventReader<AllAITurnsComplete>,
+    mut ai_complete_events: MessageReader<AllAITurnsComplete>,
     mut turn_phase: ResMut<TurnPhase>,
     mut current_turn: ResMut<CurrentTurn>,
     mut player_actions: ResMut<PlayerActionsComplete>,
@@ -309,8 +309,8 @@ pub fn handle_all_ai_turns_complete(
     mut commands: Commands,
     mut unit_id_counter: Local<u32>,
     world_map: Res<WorldMap>,
-    mut production_events: EventWriter<ProductionUpdated>,
-    mut start_player_events: EventWriter<StartPlayerTurn>,
+    mut production_events: MessageWriter<ProductionUpdated>,
+    mut start_player_events: MessageWriter<StartPlayerTurn>,
 ) {
     for _event in ai_complete_events.read() {
         tracing::info!("All AI turns complete, advancing to next turn");
@@ -362,7 +362,7 @@ fn process_all_city_production_for_turn(
     unit_id_counter: &mut Local<u32>,
     world_map: &WorldMap,
     turn_number: u32,
-    production_events: &mut EventWriter<ProductionUpdated>,
+    production_events: &mut MessageWriter<ProductionUpdated>,
 ) {
     for (entity, mut production_queue, mut city, capital, position) in production_query.iter_mut() {
         let had_production_before =
@@ -462,7 +462,7 @@ fn is_player_controlled_civilization(owner: &crate::components::CivId) -> bool {
 
 pub fn auto_advance_turn_system(
     player_civs: Query<Entity, With<PlayerControlled>>,
-    mut turn_advance: EventWriter<RequestTurnAdvance>,
+    mut turn_advance: MessageWriter<RequestTurnAdvance>,
     game_config: Res<GameConfig>,
 ) {
     if should_auto_advance_turn_for_ai_only_game(&player_civs, &game_config) {
@@ -478,5 +478,5 @@ fn should_auto_advance_turn_for_ai_only_game(
     player_civs.is_empty() && !game_config.ai_only
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct RequestTurnAdvance;

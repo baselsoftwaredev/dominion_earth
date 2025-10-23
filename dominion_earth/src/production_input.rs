@@ -17,8 +17,8 @@ pub struct SelectedCapital {
 pub fn handle_production_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut selected_capital: ResMut<SelectedCapital>,
-    mut production_orders: EventWriter<PlayerProductionOrder>,
-    mut skip_events: EventWriter<SkipProductionThisTurn>,
+    mut production_orders: MessageWriter<PlayerProductionOrder>,
+    mut skip_events: MessageWriter<SkipProductionThisTurn>,
     capitals_query: Query<(Entity, &Capital, &ProductionQueue)>,
     player_civs: Query<Entity, With<PlayerControlled>>,
     civs_query: Query<&Civilization>,
@@ -92,8 +92,8 @@ pub fn handle_production_input(
 pub fn handle_end_turn_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut selected_capital: ResMut<SelectedCapital>,
-    mut turn_advance_events: EventWriter<RequestTurnAdvance>,
-    mut skip_events: EventWriter<SkipProductionThisTurn>,
+    mut turn_advance_events: MessageWriter<RequestTurnAdvance>,
+    mut skip_events: MessageWriter<SkipProductionThisTurn>,
     mut player_actions_complete: ResMut<PlayerActionsComplete>,
     player_civs: Query<Entity, With<PlayerControlled>>,
     game_state: Res<GameState>,

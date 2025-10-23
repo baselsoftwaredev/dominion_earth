@@ -118,7 +118,7 @@ pub fn initialize_production_queues(
 
 /// System to handle player production orders
 pub fn handle_player_production_orders(
-    mut production_orders: EventReader<PlayerProductionOrder>,
+    mut production_orders: MessageReader<PlayerProductionOrder>,
     mut player_actions: ResMut<PlayerActionsComplete>,
 ) {
     for _order in production_orders.read() {
@@ -131,7 +131,7 @@ pub fn handle_player_production_orders(
 
 /// System to handle player skipping production this turn
 pub fn handle_skip_production(
-    mut skip_events: EventReader<SkipProductionThisTurn>,
+    mut skip_events: MessageReader<SkipProductionThisTurn>,
     mut player_actions: ResMut<PlayerActionsComplete>,
 ) {
     for _skip in skip_events.read() {
@@ -140,7 +140,7 @@ pub fn handle_skip_production(
 }
 
 /// Event for player production orders
-#[derive(Event)]
+#[derive(Message)]
 pub struct PlayerProductionOrder {
     pub civ_entity: Entity,
     pub capital_entity: Entity,
@@ -148,7 +148,7 @@ pub struct PlayerProductionOrder {
 }
 
 /// Event to indicate player is skipping production this turn
-#[derive(Event)]
+#[derive(Message)]
 pub struct SkipProductionThisTurn;
 
 /// System to reset unit movement at start of turn

@@ -7,15 +7,15 @@ use core_sim::tile::tile_components::WorldTile;
 use core_sim::{Position, TerrainType};
 
 pub fn handle_mouse_input(
-    mut mouse_wheel: EventReader<bevy::input::mouse::MouseWheel>,
-    mouse_button: Res<ButtonInput<MouseButton>>,
-    mut cursor_moved: EventReader<CursorMoved>,
+    mut mouse_wheel: MessageReader<bevy::input::mouse::MouseWheel>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
+    mut cursor_moved: MessageReader<CursorMoved>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
     mut last_cursor_pos: Local<Option<Vec2>>,
 ) {
     handle_camera_zoom_controls(&mut mouse_wheel, &mut camera_query);
     handle_camera_panning_controls(
-        &mouse_button,
+        &mouse_button_input,
         &mut cursor_moved,
         &mut last_cursor_pos,
         &mut camera_query,
@@ -23,7 +23,7 @@ pub fn handle_mouse_input(
 }
 
 fn handle_camera_zoom_controls(
-    mouse_wheel: &mut EventReader<MouseWheel>,
+    mouse_wheel: &mut MessageReader<MouseWheel>,
     camera_query: &mut Query<&mut Transform, With<Camera>>,
 ) {
     // Process all mouse wheel events for camera zoom
@@ -48,7 +48,7 @@ fn apply_camera_zoom_from_wheel_event(wheel_event: &MouseWheel, camera_transform
 
 fn handle_camera_panning_controls(
     mouse_button: &Res<ButtonInput<MouseButton>>,
-    cursor_moved: &mut EventReader<CursorMoved>,
+    cursor_moved: &mut MessageReader<CursorMoved>,
     last_cursor_position: &mut Local<Option<Vec2>>,
     camera_query: &mut Query<&mut Transform, With<Camera>>,
 ) {

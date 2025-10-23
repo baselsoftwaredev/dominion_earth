@@ -147,13 +147,13 @@ pub fn update_ui_properties_system(
 /// This runs much more efficiently than the full UI update system
 pub fn should_update_ui_this_frame(
     // Game state change events that affect UI
-    start_player_events: EventReader<StartPlayerTurn>,
-    ai_complete_events: EventReader<AllAITurnsComplete>,
-    production_events: EventReader<ProductionUpdated>,
+    start_player_events: MessageReader<StartPlayerTurn>,
+    ai_complete_events: MessageReader<AllAITurnsComplete>,
+    production_events: MessageReader<ProductionUpdated>,
 
     // Player action events that affect UI state
-    player_production_events: EventReader<PlayerProductionOrder>,
-    skip_production_events: EventReader<SkipProductionThisTurn>,
+    player_production_events: MessageReader<PlayerProductionOrder>,
+    skip_production_events: MessageReader<SkipProductionThisTurn>,
 
     // Resource changes that affect UI
     current_turn: Res<CurrentTurn>,

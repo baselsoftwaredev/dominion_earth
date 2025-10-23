@@ -84,7 +84,7 @@ fn register_turn_advancement_function(html_functions: &mut HtmlFunctions) {
         |In(_entity): In<Entity>,
          mut commands: Commands,
          asset_server: Res<AssetServer>,
-         mut turn_advance_events: EventWriter<core_sim::RequestTurnAdvance>| {
+         mut turn_advance_events: MessageWriter<core_sim::RequestTurnAdvance>| {
             turn_advance_events.write(core_sim::RequestTurnAdvance);
             info!("Player requested turn advancement");
 

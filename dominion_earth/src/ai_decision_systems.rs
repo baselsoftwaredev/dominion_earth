@@ -13,7 +13,7 @@ use core_sim::{
 
 /// System to generate AI decisions only when it's an AI turn
 pub fn generate_ai_decisions_on_ai_turn(
-    mut ai_turn_events: EventReader<ProcessAITurn>,
+    mut ai_turn_events: MessageReader<ProcessAITurn>,
     mut game_state: ResMut<GameState>,
     mut action_queues: Query<(&mut ActionQueue, &CivId)>,
     civs: Query<&Civilization, Without<PlayerControlled>>,

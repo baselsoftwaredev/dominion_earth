@@ -31,21 +31,21 @@ impl Default for TurnPhase {
 impl bevy_ecs::resource::Resource for TurnPhase {}
 
 /// Event to signal that AI should take their turn
-#[derive(Event)]
+#[derive(Message)]
 pub struct ProcessAITurn {
     pub civ_id: CivId,
 }
 
 /// Event to signal that an AI has completed their turn
-#[derive(Event)]
+#[derive(Message)]
 pub struct AITurnComplete {
     pub civ_id: CivId,
 }
 
 /// Event to signal that all AI turns are complete
-#[derive(Event)]
+#[derive(Message)]
 pub struct AllAITurnsComplete;
 
 /// Event to signal start of player turn
-#[derive(Event)]
+#[derive(Message)]
 pub struct StartPlayerTurn;

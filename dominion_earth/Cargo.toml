@@ -24,7 +24,7 @@ dev_native = [
 
 [dependencies]
 bevy = { workspace = true, features = ["default", "bevy_remote", "png"] }
-bevy_hui = "0.4"
+bevy_hui = "0.5"
 bevy_save = { workspace = true }
 core_sim = { path = "../core_sim" }
 ai_planner = { path = "../ai_planner" }
@@ -34,8 +34,8 @@ anyhow = { workspace = true }
 rand = { workspace = true }
 rand_pcg = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
-bevy_ecs_tilemap = "0.16"
-moonshine-save = "=0.5.2"
+bevy_ecs_tilemap = "0.17"
+moonshine-save = "0.6"
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.3", features = ["wasm_js"] }
