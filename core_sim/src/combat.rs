@@ -1,8 +1,8 @@
-use crate::{CivId, Position, MilitaryUnit, UnitType};
-use std::collections::HashMap;
+use crate::constants::combat;
+use crate::{CivId, MilitaryUnit, Position, UnitType};
 use rand::Rng;
+use std::collections::HashMap;
 
-/// Combat resolution system
 pub struct CombatSystem;
 
 impl CombatSystem {
@@ -13,44 +13,70 @@ impl CombatSystem {
         terrain_defense_bonus: f32,
         rng: &mut impl Rng,
     ) -> CombatResult {
-        let initial_attacker_strength = attacking_units.iter().map(|u| u.strength).sum::<f32>();
-        let initial_defender_strength = defending_units.iter().map(|u| u.strength).sum::<f32>();
+        // Use effective attack and defense stats
+        let initial_attacker_strength: f32 =
+            attacking_units.iter().map(|u| u.effective_attack()).sum();
+        let initial_defender_strength: f32 =
+            defending_units.iter().map(|u| u.effective_defense()).sum();
 
         let mut attacker_strength = initial_attacker_strength;
         let mut defender_strength = initial_defender_strength * (1.0 + terrain_defense_bonus);
 
         let mut rounds = 0;
-        let max_rounds = 10;
+        let max_rounds = combat::MAX_COMBAT_ROUNDS;
         let mut casualties = CombatCasualties::default();
 
         while attacker_strength > 0.0 && defender_strength > 0.0 && rounds < max_rounds {
             rounds += 1;
 
-            // Calculate damage dealt by each side
             let attacker_damage = Self::calculate_damage(attacker_strength, rng);
             let defender_damage = Self::calculate_damage(defender_strength, rng);
 
-            // Apply damage
             defender_strength = (defender_strength - attacker_damage).max(0.0);
             attacker_strength = (attacker_strength - defender_damage).max(0.0);
         }
 
-        // Determine winner and apply casualties
-        let (winner, attacker_survival_rate, defender_survival_rate) = if attacker_strength > defender_strength {
-            (CombatWinner::Attacker, attacker_strength / initial_attacker_strength, 0.0)
-        } else if defender_strength > attacker_strength {
-            (CombatWinner::Defender, 0.0, defender_strength / (initial_defender_strength * (1.0 + terrain_defense_bonus)))
-        } else {
-            (CombatWinner::Draw, 0.1, 0.1) // Both sides heavily damaged
-        };
+        let (winner, attacker_survival_rate, defender_survival_rate) =
+            if attacker_strength > defender_strength {
+                (
+                    CombatWinner::Attacker,
+                    attacker_strength / initial_attacker_strength,
+                    0.0,
+                )
+            } else if defender_strength > attacker_strength {
+                (
+                    CombatWinner::Defender,
+                    0.0,
+                    defender_survival_rate
+                        / (initial_defender_strength * (1.0 + terrain_defense_bonus)),
+                )
+            } else {
+                (
+                    CombatWinner::Draw,
+                    combat::LOSER_EXPERIENCE_GAIN,
+                    combat::LOSER_EXPERIENCE_GAIN,
+                )
+            };
 
-        // Apply casualties to units
-        Self::apply_casualties(attacking_units, 1.0 - attacker_survival_rate, &mut casualties.attacker_losses);
-        Self::apply_casualties(defending_units, 1.0 - defender_survival_rate, &mut casualties.defender_losses);
+        Self::apply_casualties(
+            attacking_units,
+            1.0 - attacker_survival_rate,
+            &mut casualties.attacker_losses,
+        );
+        Self::apply_casualties(
+            defending_units,
+            1.0 - defender_survival_rate,
+            &mut casualties.defender_losses,
+        );
 
-        // Grant experience to survivors
-        Self::grant_combat_experience(attacking_units);
-        Self::grant_combat_experience(defending_units);
+        Self::grant_combat_experience_and_effects(
+            attacking_units,
+            winner == CombatWinner::Attacker,
+        );
+        Self::grant_combat_experience_and_effects(
+            defending_units,
+            winner == CombatWinner::Defender,
+        );
 
         CombatResult {
             winner,
@@ -62,22 +88,33 @@ impl CombatSystem {
     }
 
     fn calculate_damage(strength: f32, rng: &mut impl Rng) -> f32 {
-        let base_damage = strength * 0.3; // 30% of strength as base damage
-        let random_factor = rng.gen_range(0.7..1.3); // ±30% random variation
+        let base_damage = strength * combat::BASE_DAMAGE_MULTIPLIER;
+        let random_factor =
+            rng.gen_range(combat::RANDOM_DAMAGE_VARIANCE_MIN..combat::RANDOM_DAMAGE_VARIANCE_MAX);
         base_damage * random_factor
     }
 
-    fn apply_casualties(units: &mut Vec<MilitaryUnit>, casualty_rate: f32, losses: &mut HashMap<UnitType, u32>) {
+    fn apply_casualties(
+        units: &mut Vec<MilitaryUnit>,
+        casualty_rate: f32,
+        losses: &mut HashMap<UnitType, u32>,
+    ) {
         units.retain_mut(|unit| {
-            if casualty_rate >= 1.0 {
-                // Unit destroyed
+            if casualty_rate >= combat::COMPLETE_CASUALTY_THRESHOLD {
                 *losses.entry(unit.unit_type.clone()).or_insert(0) += 1;
                 false
             } else {
-                // Unit damaged
-                unit.strength *= 1.0 - casualty_rate;
-                if unit.strength <= 0.1 {
-                    // Unit effectively destroyed if strength too low
+                let damage = unit.health * casualty_rate;
+                unit.health = (unit.health - damage).max(0.0);
+
+                unit.add_fatigue(casualty_rate * combat::COMBAT_FATIGUE_FROM_CASUALTIES);
+                unit.add_decay(casualty_rate * combat::COMBAT_DECAY_INCREASE);
+
+                if casualty_rate > combat::HEAVY_CASUALTY_THRESHOLD {
+                    unit.reduce_morale(casualty_rate * combat::HEAVY_CASUALTY_MORALE_PENALTY);
+                }
+
+                if unit.health <= combat::MINIMUM_UNIT_HEALTH_THRESHOLD {
                     *losses.entry(unit.unit_type.clone()).or_insert(0) += 1;
                     false
                 } else {
@@ -87,67 +124,65 @@ impl CombatSystem {
         });
     }
 
-    fn grant_combat_experience(units: &mut [MilitaryUnit]) {
+    fn grant_combat_experience_and_effects(units: &mut [MilitaryUnit], won_combat: bool) {
         for unit in units {
-            unit.experience += 0.1; // Gain experience from combat
-            if unit.experience >= 1.0 {
-                // Promote unit
-                unit.strength *= 1.2;
-                unit.experience = 0.0;
+            let exp_gain = if won_combat {
+                combat::WINNER_EXPERIENCE_GAIN
+            } else {
+                combat::LOSER_EXPERIENCE_GAIN
+            };
+            unit.gain_experience(exp_gain);
+
+            unit.add_fatigue(combat::COMBAT_FATIGUE_INCREASE);
+
+            if won_combat {
+                unit.morale =
+                    (unit.morale + combat::VICTOR_MORALE_INCREASE).min(combat::MAXIMUM_MORALE);
+            } else {
+                unit.reduce_morale(combat::DEFEATED_MORALE_DECREASE);
             }
         }
     }
 
-    /// Calculate combat strength for a group of units
+    /// Calculate combat strength for a group of units (using effective stats)
     pub fn calculate_total_strength(units: &[MilitaryUnit]) -> f32 {
-        units.iter().map(|unit| {
-            let base_strength = unit.strength;
-            let experience_bonus = 1.0 + unit.experience * 0.5; // Up to 50% bonus from experience
-            base_strength * experience_bonus
-        }).sum()
+        units
+            .iter()
+            .map(|unit| {
+                let base_attack = unit.effective_attack();
+                let base_defense = unit.effective_defense();
+                (base_attack + base_defense) / 2.0
+            })
+            .sum()
     }
 
-    /// Calculate defensive bonuses from terrain and fortifications
     pub fn calculate_defense_bonus(terrain_bonus: f32, fortification_level: u32) -> f32 {
-        terrain_bonus + (fortification_level as f32 * 0.1)
+        terrain_bonus + (fortification_level as f32 * combat::FORTIFICATION_DEFENSE_BONUS)
     }
 
-    /// Determine if a unit can attack another unit
     pub fn can_attack(attacker: &MilitaryUnit, defender_pos: Position, max_range: u32) -> bool {
         let distance = attacker.position.distance_to(&defender_pos) as u32;
-        
-        match attacker.unit_type {
-            UnitType::Archer => distance <= max_range.max(2),
-            UnitType::Siege => distance <= max_range.max(1),
-            _ => distance <= max_range.max(1),
-        }
+        let effective_range = max_range.max(attacker.range);
+        distance <= effective_range
     }
 
-    /// Calculate unit effectiveness against different unit types
     pub fn calculate_effectiveness(attacker_type: &UnitType, defender_type: &UnitType) -> f32 {
         match (attacker_type, defender_type) {
-            // Cavalry strong against archers and siege
-            (UnitType::Cavalry, UnitType::Archer) => 1.5,
-            (UnitType::Cavalry, UnitType::Siege) => 1.3,
-            
-            // Infantry strong against cavalry
-            (UnitType::Infantry, UnitType::Cavalry) => 1.3,
-            
-            // Archers strong against infantry
-            (UnitType::Archer, UnitType::Infantry) => 1.2,
-            
-            // Siege strong against fortified positions
-            (UnitType::Siege, _) => 1.4, // Bonus against all when attacking cities
-            
-            // Naval units
-            (UnitType::Naval, UnitType::Naval) => 1.0,
-            
-            // Default effectiveness
-            _ => 1.0,
+            (UnitType::Cavalry, UnitType::Archer) => combat::CAVALRY_VS_ARCHER_BONUS,
+            (UnitType::Cavalry, UnitType::Siege) => combat::CAVALRY_VS_SIEGE_BONUS,
+
+            (UnitType::Infantry, UnitType::Cavalry) => combat::INFANTRY_VS_CAVALRY_BONUS,
+
+            (UnitType::Archer, UnitType::Infantry) => combat::ARCHER_VS_INFANTRY_BONUS,
+
+            (UnitType::Siege, _) => combat::SIEGE_VS_ALL_BONUS,
+
+            (UnitType::Naval, UnitType::Naval) => combat::NAVAL_VS_NAVAL_MULTIPLIER,
+
+            _ => combat::DEFAULT_TYPE_EFFECTIVENESS,
         }
     }
 
-    /// Simulate siege warfare
     pub fn resolve_siege(
         attacking_units: &[MilitaryUnit],
         city_defense: f32,
@@ -156,31 +191,40 @@ impl CombatSystem {
         rng: &mut impl Rng,
     ) -> SiegeResult {
         let attacker_strength = Self::calculate_total_strength(attacking_units);
-        let siege_units = attacking_units.iter().filter(|u| matches!(u.unit_type, UnitType::Siege)).count();
-        
-        let siege_bonus = siege_units as f32 * 0.5; // Siege units are effective against cities
+        let siege_units = attacking_units
+            .iter()
+            .filter(|u| matches!(u.unit_type, UnitType::Siege))
+            .count();
+
+        let siege_bonus = siege_units as f32 * combat::SIEGE_UNIT_BONUS;
         let effective_attack = attacker_strength + siege_bonus;
-        
-        let fortification_bonus = fortification_level as f32 * 0.3;
-        let starvation_penalty = if turns_besieged > 10 { (turns_besieged - 10) as f32 * 0.1 } else { 0.0 };
-        let effective_defense = (city_defense + fortification_bonus - starvation_penalty).max(1.0);
-        
+
+        let fortification_bonus = fortification_level as f32 * combat::FORTIFICATION_DEFENSE_BONUS;
+        let starvation_penalty = if turns_besieged > combat::STARVATION_PENALTY_TURNS_THRESHOLD {
+            (turns_besieged - combat::STARVATION_PENALTY_TURNS_THRESHOLD) as f32
+                * combat::STARVATION_PENALTY_PER_TURN
+        } else {
+            0.0
+        };
+        let effective_defense = (city_defense + fortification_bonus - starvation_penalty)
+            .max(combat::MINIMUM_CITY_DEFENSE);
+
         let attack_success_chance = effective_attack / (effective_attack + effective_defense);
         let random_factor = rng.gen::<f32>();
-        
+
         if random_factor < attack_success_chance {
             SiegeResult::Captured {
                 turns_to_capture: 1,
-                attacker_casualties: 0.2, // 20% casualties for successful assault
+                attacker_casualties: combat::SIEGE_SUCCESSFUL_ASSAULT_CASUALTIES,
             }
-        } else if turns_besieged > 20 && random_factor < 0.3 {
-            SiegeResult::Surrendered {
-                turns_besieged,
-            }
+        } else if turns_besieged > combat::PROLONGED_SIEGE_TURNS_THRESHOLD
+            && random_factor < combat::PROLONGED_SIEGE_SURRENDER_CHANCE
+        {
+            SiegeResult::Surrendered { turns_besieged }
         } else {
             SiegeResult::Ongoing {
-                attacker_casualties: 0.1, // 10% casualties per failed assault
-                defender_casualties: 0.05, // 5% casualties from bombardment
+                attacker_casualties: combat::SIEGE_FAILED_ASSAULT_ATTACKER_CASUALTIES,
+                defender_casualties: combat::SIEGE_BOMBARDMENT_DEFENDER_CASUALTIES,
             }
         }
     }

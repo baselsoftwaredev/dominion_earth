@@ -3,96 +3,128 @@
     unit_types: [
         (
             name: "Infantry",
-            movement: 2,
-            attack_strength: 3.0,
-            defense_strength: 2.0,
-            health: 10.0,
+            // Core stats
+            attack: 8.0,
+            defense: 10.0,
+            health: 100.0,
+            movement_range: 2,
+            range: 1,  // Melee
+            // Costs
             gold_cost: 30.0,
             production_cost: 20.0,
+            // Requirements
             required_technologies: ["Bronze Working"],
             unit_class: "Melee",
             special_abilities: [],
         ),
         (
             name: "Archer",
-            movement: 2,
-            attack_strength: 4.0,
-            defense_strength: 1.0,
-            health: 8.0,
+            // Core stats
+            attack: 6.0,
+            defense: 5.0,
+            health: 70.0,
+            movement_range: 2,
+            range: 2,  // Ranged
+            // Costs
             gold_cost: 35.0,
             production_cost: 25.0,
+            // Requirements
             required_technologies: ["Archery"],
             unit_class: "Ranged",
             special_abilities: ["RangedAttack"],
         ),
         (
             name: "Cavalry",
-            movement: 4,
-            attack_strength: 5.0,
-            defense_strength: 2.0,
-            health: 12.0,
+            // Core stats
+            attack: 12.0,
+            defense: 6.0,
+            health: 80.0,
+            movement_range: 4,
+            range: 1,  // Melee
+            // Costs
             gold_cost: 60.0,
             production_cost: 40.0,
+            // Requirements
             required_technologies: ["Horse Riding"],
             unit_class: "Mounted",
             special_abilities: ["FastMovement", "ChargeBonus"],
         ),
         (
             name: "Spearman",
-            movement: 2,
-            attack_strength: 2.0,
-            defense_strength: 4.0,
-            health: 12.0,
+            // Core stats
+            attack: 6.0,
+            defense: 12.0,
+            health: 110.0,
+            movement_range: 2,
+            range: 1,  // Melee
+            // Costs
             gold_cost: 25.0,
             production_cost: 18.0,
+            // Requirements
             required_technologies: ["Bronze Working"],
             unit_class: "Melee",
             special_abilities: ["AntiCavalry"],
         ),
         (
             name: "Scout",
-            movement: 3,
-            attack_strength: 1.0,
-            defense_strength: 1.0,
-            health: 6.0,
+            // Core stats
+            attack: 3.0,
+            defense: 4.0,
+            health: 60.0,
+            movement_range: 3,
+            range: 1,  // Melee
+            // Costs
             gold_cost: 20.0,
             production_cost: 15.0,
+            // Requirements
             required_technologies: [],
             unit_class: "Scout",
             special_abilities: ["ExtraVision", "MoveThroughEnemyTerritory"],
         ),
         (
             name: "Catapult",
-            movement: 1,
-            attack_strength: 8.0,
-            defense_strength: 1.0,
-            health: 6.0,
+            // Core stats
+            attack: 15.0,
+            defense: 3.0,
+            health: 60.0,
+            movement_range: 1,
+            range: 3,  // Siege range
+            // Costs
             gold_cost: 80.0,
             production_cost: 60.0,
+            // Requirements
             required_technologies: ["Engineering"],
             unit_class: "Siege",
             special_abilities: ["SiegeAttack", "CityBombardment"],
         ),
         (
             name: "Galley",
-            movement: 3,
-            attack_strength: 2.0,
-            defense_strength: 2.0,
-            health: 10.0,
+            // Core stats
+            attack: 10.0,
+            defense: 12.0,
+            health: 150.0,
+            movement_range: 3,
+            range: 2,  // Naval bombardment
+            // Costs
             gold_cost: 45.0,
             production_cost: 35.0,
+            // Requirements
             required_technologies: ["Sailing"],
             unit_class: "Naval",
             special_abilities: ["WaterMovement", "CarryLandUnits"],
         ),
         (
             name: "War Elephant",
-            movement: 2,
-            attack_strength: 7.0,
-            defense_strength: 3.0,
-            health: 20.0,
+            // Core stats
+            attack: 14.0,
+            defense: 8.0,
+            health: 120.0,
+            movement_range: 2,
+            range: 1,  // Melee
+            // Costs
             gold_cost: 100.0,
             production_cost: 80.0,
+            // Requirements
             required_technologies: ["Animal Handling"],
             unit_class: "Mounted",
             special_abilities: ["TrampleDamage", "FearEffect", "RequiresIvory"],

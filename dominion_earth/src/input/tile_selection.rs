@@ -91,8 +91,10 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
     capitals_query: &Query<(Entity, &Capital, &Position)>,
     player_civilizations_query: &Query<Entity, With<PlayerControlled>>,
     selected_capital: &mut SelectedCapital,
+    selected_unit: &mut core_sim::SelectedUnit,
+    commands: &mut Commands,
     debug_logging: &DebugLogging,
-) {
+) -> bool {
     let player_civilization_entities: Vec<Entity> = player_civilizations_query.iter().collect();
 
     let total_capitals_count = capitals_query.iter().count();
@@ -123,10 +125,22 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
                 selected_capital.capital_entity = Some(capital_entity);
                 selected_capital.civ_entity = Some(matching_player_civilization_entity);
                 selected_capital.show_production_menu = true;
-                break;
+
+                if let Some(prev_unit_entity) = selected_unit.unit_entity {
+                    commands
+                        .entity(prev_unit_entity)
+                        .remove::<core_sim::UnitSelected>();
+                }
+                selected_unit.unit_entity = None;
+                selected_unit.unit_id = None;
+                selected_unit.owner = None;
+
+                return true;
             }
         }
     }
+
+    false
 }
 
 fn find_player_civilization_entity_matching_capital_owner(
@@ -152,6 +166,9 @@ fn process_tile_selection_and_update_ui_state(
     capitals_query: &Query<(Entity, &Capital, &Position)>,
     player_civilizations_query: &Query<Entity, With<PlayerControlled>>,
     selected_capital: &mut SelectedCapital,
+    selected_unit: &mut core_sim::SelectedUnit,
+    commands: &mut Commands,
+    units_query: &Query<(Entity, &core_sim::MilitaryUnit, &core_sim::Position)>,
 ) {
     if world_map.get_tile(clicked_position).is_some() {
         debug_println!(
@@ -160,13 +177,40 @@ fn process_tile_selection_and_update_ui_state(
         );
         selected_tile.position = Some(clicked_position);
 
-        check_and_activate_capital_production_menu_if_player_capital_clicked(
-            clicked_position,
-            capitals_query,
-            player_civilizations_query,
-            selected_capital,
-            debug_logging,
-        );
+        let capital_was_clicked =
+            check_and_activate_capital_production_menu_if_player_capital_clicked(
+                clicked_position,
+                capitals_query,
+                player_civilizations_query,
+                selected_capital,
+                selected_unit,
+                commands,
+                debug_logging,
+            );
+
+        let unit_at_position = units_query
+            .iter()
+            .any(|(_, _, pos)| pos.x == clicked_position.x && pos.y == clicked_position.y);
+
+        if !capital_was_clicked && !unit_at_position {
+            debug_println!(
+                debug_logging,
+                "DEBUG TILE SELECTION: Empty tile clicked - clearing selections"
+            );
+
+            if let Some(prev_unit_entity) = selected_unit.unit_entity {
+                commands
+                    .entity(prev_unit_entity)
+                    .remove::<core_sim::UnitSelected>();
+            }
+            selected_unit.unit_entity = None;
+            selected_unit.unit_id = None;
+            selected_unit.owner = None;
+
+            selected_capital.show_production_menu = false;
+            selected_capital.capital_entity = None;
+            selected_capital.civ_entity = None;
+        }
 
         if let Some((_, world_tile, tile_neighbors)) =
             locate_tile_entity_at_specified_position(clicked_position, tile_query)
@@ -190,6 +234,7 @@ fn process_tile_selection_and_update_ui_state(
 }
 
 pub fn handle_tile_selection_on_mouse_click(
+    mut commands: Commands,
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     windows_query: Query<&Window>,
     camera_query: Query<(&Camera, &GlobalTransform)>,
@@ -200,12 +245,13 @@ pub fn handle_tile_selection_on_mouse_click(
     capitals_query: Query<(Entity, &Capital, &Position)>,
     player_civilizations_query: Query<Entity, With<PlayerControlled>>,
     mut selected_capital: ResMut<SelectedCapital>,
+    mut selected_unit: ResMut<core_sim::SelectedUnit>,
+    units_query: Query<(Entity, &core_sim::MilitaryUnit, &core_sim::Position)>,
 ) {
     if !mouse_button_input.just_pressed(MouseButton::Left) {
         return;
     }
 
-    // Check if cursor is over UI panels to avoid processing tile selection when clicking on UI
     let Ok(primary_window) = windows_query.single() else {
         return;
     };
@@ -258,6 +304,9 @@ pub fn handle_tile_selection_on_mouse_click(
                 &capitals_query,
                 &player_civilizations_query,
                 &mut selected_capital,
+                &mut selected_unit,
+                &mut commands,
+                &units_query,
             );
         }
         Err(coordinate_conversion_error_message) => {
@@ -273,54 +322,44 @@ pub fn handle_tile_hover_on_mouse_move(
     mut hovered_tile: ResMut<HoveredTile>,
     tile_query: Query<(Entity, &WorldTile, &TileNeighbors)>,
 ) {
-    // Get cursor position
     let Ok(primary_window) = windows_query.single() else {
         return;
     };
 
     let Some(cursor_screen_position) = primary_window.cursor_position() else {
-        // No cursor position available - clear hovered tile
         hovered_tile.position = None;
         hovered_tile.terrain_type = None;
         return;
     };
 
-    // Check if cursor is over UI panels to avoid processing tile hover when over UI
     let ui_bounds = UiPanelBounds::from_window(primary_window);
     if is_cursor_over_ui_panel(cursor_screen_position, &ui_bounds) {
-        // Cursor is over UI - clear hovered tile
         hovered_tile.position = None;
         hovered_tile.terrain_type = None;
         return;
     }
 
-    // Get camera and transform
     let Ok((camera, camera_global_transform)) = camera_query.single() else {
         return;
     };
 
-    // Convert cursor position to tile coordinates
     match convert_cursor_position_to_tile_coordinates(
         cursor_screen_position,
         camera,
         camera_global_transform,
     ) {
         Ok(tile_position) => {
-            // Find the tile at this position
             if let Some((_, world_tile, _)) =
                 locate_tile_entity_at_specified_position(tile_position, &tile_query)
             {
-                // Update hovered tile with position and terrain
                 hovered_tile.position = Some(tile_position);
                 hovered_tile.terrain_type = Some(world_tile.terrain_type.clone());
             } else {
-                // No tile found at this position
                 hovered_tile.position = None;
                 hovered_tile.terrain_type = None;
             }
         }
         Err(_) => {
-            // Invalid position - clear hovered tile
             hovered_tile.position = None;
             hovered_tile.terrain_type = None;
         }

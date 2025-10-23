@@ -8,6 +8,7 @@
   <property name="selected_terrain">None</property>
 
   <property name="civilizations_list">Loading…</property>
+
   <!-- UI dimensions from ui/constants.rs::display_layout::HEADER_HEIGHT (80px) and RIGHT_SIDEBAR_WIDTH (300px) -->
   <node
     position="absolute"
@@ -17,7 +18,8 @@
     bottom="0"
     background="#1a1a1a"
     flex_direction="column"
-    padding="10px">
+    padding="10px"
+    overflow="visible visible">
     <statistics_panel
       current_turn="{current_turn}"
       terrain_land_count="{terrain_land_count}"

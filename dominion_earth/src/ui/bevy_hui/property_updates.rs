@@ -64,6 +64,25 @@ pub struct HoveredTileInformation {
     pub terrain_type_text: String,
 }
 
+pub struct UnitInformation {
+    pub is_visible: String,
+    pub unit_name: String,
+    pub unit_type: String,
+    pub attack: String,
+    pub defense: String,
+    pub health: String,
+    pub max_health: String,
+    pub movement_remaining: String,
+    pub movement_range: String,
+    pub range: String,
+    pub experience: String,
+    pub fatigue: String,
+    pub supply: String,
+    pub decay: String,
+    pub effective_attack: String,
+    pub effective_defense: String,
+}
+
 /// Update UI properties with current game data
 pub fn update_ui_properties_system(
     mut ui_nodes: Query<(Entity, &mut TemplateProperties), With<HtmlNode>>,
@@ -78,6 +97,8 @@ pub fn update_ui_properties_system(
     terrain_counts: Res<TerrainCounts>,
     hovered_tile: Res<HoveredTile>,
     selected_capital: Res<SelectedCapital>,
+    selected_unit: Res<core_sim::SelectedUnit>,
+    units_query: Query<&core_sim::MilitaryUnit>,
     debug_logging: Res<DebugLogging>,
 ) {
     let game_data = collect_game_data_from_queries(&civs, &player_civs, &capitals, &cities);
@@ -98,6 +119,15 @@ pub fn update_ui_properties_system(
     let civilization_details_text = format_civilization_details(&game_data, &player_civs);
     let terrain_stats = calculate_terrain_statistics(&terrain_counts);
     let hovered_tile_info = format_hovered_tile_information(&hovered_tile);
+    let unit_info = build_unit_info_data(&selected_unit, &units_query, &selected_capital);
+
+    debug_println!(
+        debug_logging,
+        "UI SYSTEM: Unit info - is_visible: {}, unit_entity: {:?}, show_production_menu: {}",
+        unit_info.is_visible,
+        selected_unit.unit_entity,
+        selected_capital.show_production_menu
+    );
 
     update_all_ui_node_properties(
         &mut ui_nodes,
@@ -109,6 +139,7 @@ pub fn update_ui_properties_system(
         &civilization_details_text,
         &terrain_stats,
         &hovered_tile_info,
+        &unit_info,
     );
 }
 
@@ -129,6 +160,7 @@ pub fn should_update_ui_this_frame(
     terrain_counts: Res<TerrainCounts>,
     hovered_tile: Res<HoveredTile>,
     selected_capital: Res<SelectedCapital>,
+    selected_unit: Res<core_sim::SelectedUnit>,
 
     // Component changes
     changed_production_queues: Query<Entity, Changed<ProductionQueue>>,
@@ -170,9 +202,12 @@ pub fn should_update_ui_this_frame(
     let current_turn_changed = current_turn.is_changed();
     let terrain_counts_changed = terrain_counts.is_changed();
     let selected_capital_changed = selected_capital.is_changed();
+    let selected_unit_changed = selected_unit.is_changed();
 
-    let has_resource_changes =
-        current_turn_changed || terrain_counts_changed || selected_capital_changed;
+    let has_resource_changes = current_turn_changed
+        || terrain_counts_changed
+        || selected_capital_changed
+        || selected_unit_changed;
 
     if current_turn_changed {
         reasons.push("CurrentTurn changed".to_string());
@@ -183,16 +218,15 @@ pub fn should_update_ui_this_frame(
     if selected_capital_changed {
         reasons.push("SelectedCapital changed".to_string());
     }
+    if selected_unit_changed {
+        reasons.push("SelectedUnit changed".to_string());
+    }
 
-    // Handle HoveredTile changes separately with throttling
     let hovered_tile_changed = hovered_tile.is_changed();
     if hovered_tile_changed {
-        // Only log this for debugging, don't trigger full UI update
-        // The hovered tile info will be updated when other conditions trigger updates
         reasons.push("HoveredTile changed (throttled)".to_string());
     }
 
-    // Check for production queue changes
     let production_queue_count = changed_production_queues.iter().count();
     let has_production_changes = production_queue_count > 0;
 
@@ -208,7 +242,6 @@ pub fn should_update_ui_this_frame(
         || has_resource_changes
         || has_production_changes;
 
-    // Log when UI updates and why
     if should_update {
         println!("🔄 UI UPDATE TRIGGERED: {}", reasons.join(", "));
     }
@@ -309,7 +342,7 @@ fn create_visible_production_menu_data(
     production_queues: &Query<&ProductionQueue>,
     action_queues: &Query<&core_sim::ActionQueue>,
 ) -> UiProductionMenuData {
-    let capital_name = "Capital".to_string(); // TODO: Get actual capital name
+    let capital_name = "Capital".to_string();
 
     let (civilization_name, civilization_gold, civilization_production) =
         extract_civilization_information(civ_entity, civs);
@@ -531,6 +564,75 @@ fn format_hovered_tile_information(hovered_tile: &HoveredTile) -> HoveredTileInf
     }
 }
 
+fn build_unit_info_data(
+    selected_unit: &core_sim::SelectedUnit,
+    units_query: &Query<&core_sim::MilitaryUnit>,
+    selected_capital: &SelectedCapital,
+) -> UnitInformation {
+    if selected_capital.show_production_menu {
+        return UnitInformation {
+            is_visible: "none".to_string(),
+            unit_name: "None".to_string(),
+            unit_type: "None".to_string(),
+            attack: "0".to_string(),
+            defense: "0".to_string(),
+            health: "0".to_string(),
+            max_health: "0".to_string(),
+            movement_remaining: "0".to_string(),
+            movement_range: "0".to_string(),
+            range: "0".to_string(),
+            experience: "0".to_string(),
+            fatigue: "0".to_string(),
+            supply: "0".to_string(),
+            decay: "0".to_string(),
+            effective_attack: "0".to_string(),
+            effective_defense: "0".to_string(),
+        };
+    }
+
+    if let Some(unit_entity) = selected_unit.unit_entity {
+        if let Ok(unit) = units_query.get(unit_entity) {
+            return UnitInformation {
+                is_visible: "flex".to_string(),
+                unit_name: format!("Unit #{}", unit.id),
+                unit_type: unit.unit_type.name().to_string(),
+                attack: format!("{:.1}", unit.attack),
+                defense: format!("{:.1}", unit.defense),
+                health: format!("{:.0}", unit.health),
+                max_health: format!("{:.0}", unit.max_health),
+                movement_remaining: unit.movement_remaining.to_string(),
+                movement_range: unit.movement_range.to_string(),
+                range: unit.range.to_string(),
+                experience: format!("{:.0}", unit.experience * 100.0),
+                fatigue: format!("{:.0}", unit.fatigue * 100.0),
+                supply: format!("{:.0}", unit.supply * 100.0),
+                decay: format!("{:.0}", unit.decay * 100.0),
+                effective_attack: format!("{:.1}", unit.effective_attack()),
+                effective_defense: format!("{:.1}", unit.effective_defense()),
+            };
+        }
+    }
+
+    UnitInformation {
+        is_visible: "none".to_string(),
+        unit_name: "None".to_string(),
+        unit_type: "None".to_string(),
+        attack: "0".to_string(),
+        defense: "0".to_string(),
+        health: "0".to_string(),
+        max_health: "0".to_string(),
+        movement_remaining: "0".to_string(),
+        movement_range: "0".to_string(),
+        range: "0".to_string(),
+        experience: "0".to_string(),
+        fatigue: "0".to_string(),
+        supply: "0".to_string(),
+        decay: "0".to_string(),
+        effective_attack: "0".to_string(),
+        effective_defense: "0".to_string(),
+    }
+}
+
 fn update_all_ui_node_properties(
     ui_nodes: &mut Query<(Entity, &mut TemplateProperties), With<HtmlNode>>,
     cmd: &mut Commands,
@@ -541,6 +643,7 @@ fn update_all_ui_node_properties(
     civilization_details_text: &str,
     terrain_stats: &TerrainStatistics,
     hovered_tile_info: &HoveredTileInformation,
+    unit_info: &UnitInformation,
 ) {
     for (entity, mut template_properties) in ui_nodes.iter_mut() {
         update_game_state_properties(&mut template_properties, current_turn, player_stats);
@@ -552,6 +655,7 @@ fn update_all_ui_node_properties(
         );
         update_terrain_statistics_properties(&mut template_properties, terrain_stats);
         update_hovered_tile_properties(&mut template_properties, hovered_tile_info);
+        update_unit_info_properties(&mut template_properties, unit_info);
 
         cmd.trigger_targets(CompileContextEvent, entity);
     }
@@ -672,5 +776,39 @@ fn update_hovered_tile_properties(
     template_properties.insert(
         "hovered_terrain".to_string(),
         hovered_tile_info.terrain_type_text.clone(),
+    );
+}
+
+fn update_unit_info_properties(
+    template_properties: &mut TemplateProperties,
+    unit_info: &UnitInformation,
+) {
+    template_properties.insert("is_visible".to_string(), unit_info.is_visible.clone());
+    template_properties.insert("unit_name".to_string(), unit_info.unit_name.clone());
+    template_properties.insert("unit_type".to_string(), unit_info.unit_type.clone());
+    template_properties.insert("attack".to_string(), unit_info.attack.clone());
+    template_properties.insert("defense".to_string(), unit_info.defense.clone());
+    template_properties.insert("health".to_string(), unit_info.health.clone());
+    template_properties.insert("max_health".to_string(), unit_info.max_health.clone());
+    template_properties.insert(
+        "movement_remaining".to_string(),
+        unit_info.movement_remaining.clone(),
+    );
+    template_properties.insert(
+        "movement_range".to_string(),
+        unit_info.movement_range.clone(),
+    );
+    template_properties.insert("range".to_string(), unit_info.range.clone());
+    template_properties.insert("experience".to_string(), unit_info.experience.clone());
+    template_properties.insert("fatigue".to_string(), unit_info.fatigue.clone());
+    template_properties.insert("supply".to_string(), unit_info.supply.clone());
+    template_properties.insert("decay".to_string(), unit_info.decay.clone());
+    template_properties.insert(
+        "effective_attack".to_string(),
+        unit_info.effective_attack.clone(),
+    );
+    template_properties.insert(
+        "effective_defense".to_string(),
+        unit_info.effective_defense.clone(),
     );
 }

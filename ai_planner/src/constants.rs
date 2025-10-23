@@ -90,7 +90,7 @@ pub mod coordinator {
     pub mod cooldowns {
         pub const COOLDOWN_DECREMENT: u32 = 1; // Amount to decrease cooldown each turn
         pub const NO_COOLDOWN: u32 = 0; // No cooldown value
-        
+
         // Cooldown durations based on number of actions
         pub const MIN_ACTIONS_NO_COOLDOWN: usize = 0;
         pub const MAX_ACTIONS_NO_COOLDOWN: usize = 1;
@@ -102,8 +102,9 @@ pub mod coordinator {
 
     /// Economic costs for various actions
     pub mod costs {
-        pub const BASE_RESEARCH_COST: f32 = 50.0; // Base cost for research actions
-        pub const BASE_UNIT_COST: f32 = 30.0; // Base cost for unit creation
+        pub const BASE_RESEARCH_COST: f32 = 50.0;
+        pub const BASE_UNIT_COST: f32 = 30.0;
+        pub const BASE_BUILDING_COST: f32 = 25.0;
     }
 
     /// Military unit default statistics
@@ -115,6 +116,24 @@ pub mod coordinator {
 
     /// Territory control values
     pub mod territory {
-        pub const DEFAULT_CONTROL_STRENGTH: f32 = 1.0; // Base control strength for territories
+        pub const DEFAULT_CONTROL_STRENGTH: f32 = 1.0;
+    }
+
+    /// Trade and economy defaults
+    pub mod trade {
+        pub const DEFAULT_TRADE_ROUTE_VALUE: f32 = 10.0;
+        pub const DEFAULT_TRADE_ROUTE_SECURITY: f32 = 0.8;
+        pub const TRADE_INCOME_BONUS: f32 = 5.0;
+    }
+
+    /// Diplomacy impact values
+    pub mod diplomacy {
+        pub const WAR_DECLARATION_RELATION_PENALTY: f32 = 50.0;
+        pub const NEGOTIATION_TURNS_REMAINING: u32 = 3;
+    }
+
+    /// Defense and positioning
+    pub mod defense {
+        pub const DEFENSIVE_POSITIONING_DISTANCE: f32 = 5.0;
     }
 }

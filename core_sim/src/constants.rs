@@ -218,3 +218,57 @@ pub mod civilization_management {
     /// Starting unit ID counter value
     pub const STARTING_UNIT_ID_COUNTER: u32 = 0;
 }
+
+pub mod combat {
+    pub const BASE_DAMAGE_MULTIPLIER: f32 = 0.3;
+    pub const RANDOM_DAMAGE_VARIANCE_MIN: f32 = 0.7;
+    pub const RANDOM_DAMAGE_VARIANCE_MAX: f32 = 1.3;
+    pub const MAX_COMBAT_ROUNDS: u32 = 10;
+    pub const COMPLETE_CASUALTY_THRESHOLD: f32 = 1.0;
+    pub const MINIMUM_UNIT_HEALTH_THRESHOLD: f32 = 1.0;
+    pub const WINNER_EXPERIENCE_GAIN: f32 = 0.15;
+    pub const LOSER_EXPERIENCE_GAIN: f32 = 0.05;
+    pub const COMBAT_FATIGUE_INCREASE: f32 = 0.1;
+    pub const VICTOR_MORALE_INCREASE: f32 = 0.1;
+    pub const DEFEATED_MORALE_DECREASE: f32 = 0.15;
+    pub const HEAVY_CASUALTY_THRESHOLD: f32 = 0.5;
+    pub const HEAVY_CASUALTY_MORALE_PENALTY: f32 = 0.3;
+    pub const MAXIMUM_MORALE: f32 = 1.0;
+    pub const COMBAT_DECAY_INCREASE: f32 = 0.1;
+    pub const COMBAT_FATIGUE_FROM_CASUALTIES: f32 = 0.2;
+    pub const MELEE_RANGE: u32 = 1;
+    pub const ARCHER_RANGE: u32 = 2;
+    pub const SIEGE_RANGE: u32 = 3;
+    pub const NAVAL_BOMBARDMENT_RANGE: u32 = 2;
+    pub const CAVALRY_VS_ARCHER_BONUS: f32 = 1.5;
+    pub const CAVALRY_VS_SIEGE_BONUS: f32 = 1.3;
+    pub const INFANTRY_VS_CAVALRY_BONUS: f32 = 1.3;
+    pub const ARCHER_VS_INFANTRY_BONUS: f32 = 1.2;
+    pub const SIEGE_VS_ALL_BONUS: f32 = 1.4;
+    pub const NAVAL_VS_NAVAL_MULTIPLIER: f32 = 1.0;
+    pub const DEFAULT_TYPE_EFFECTIVENESS: f32 = 1.0;
+    pub const SIEGE_UNIT_BONUS: f32 = 0.5;
+    pub const FORTIFICATION_DEFENSE_BONUS: f32 = 0.3;
+    pub const STARVATION_PENALTY_TURNS_THRESHOLD: u32 = 10;
+    pub const STARVATION_PENALTY_PER_TURN: f32 = 0.1;
+    pub const MINIMUM_CITY_DEFENSE: f32 = 1.0;
+    pub const SIEGE_SUCCESSFUL_ASSAULT_CASUALTIES: f32 = 0.2;
+    pub const SIEGE_FAILED_ASSAULT_ATTACKER_CASUALTIES: f32 = 0.1;
+    pub const SIEGE_BOMBARDMENT_DEFENDER_CASUALTIES: f32 = 0.05;
+    pub const PROLONGED_SIEGE_TURNS_THRESHOLD: u32 = 20;
+    pub const PROLONGED_SIEGE_SURRENDER_CHANCE: f32 = 0.3;
+}
+
+pub mod unit_stats {
+    pub const FATIGUE_PENALTY_MULTIPLIER: f32 = 0.5;
+    pub const DECAY_ATTACK_PENALTY_MULTIPLIER: f32 = 0.3;
+    pub const DECAY_DEFENSE_PENALTY_MULTIPLIER: f32 = 0.4;
+    pub const MORALE_ATTACK_RANGE: f32 = 0.3;
+    pub const MORALE_ATTACK_BASE: f32 = 0.7;
+    pub const MORALE_DEFENSE_RANGE: f32 = 0.2;
+    pub const MORALE_DEFENSE_BASE: f32 = 0.8;
+    pub const LOYALTY_THRESHOLD: f32 = 0.5;
+    pub const CORRUPTION_THRESHOLD: f32 = 0.7;
+    pub const SUPPLY_MODIFIER_MINIMUM: f32 = 0.5;
+    pub const EXPERIENCE_BONUS_MULTIPLIER: f32 = 0.05;
+}

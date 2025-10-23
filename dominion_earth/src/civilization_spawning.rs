@@ -1,8 +1,3 @@
-//! Civilization spawning and world setup for Dominion Earth
-//!
-//! This module handles the initialization of civilizations, cities, and units
-//! at the start of the game.
-
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use bevy::prelude::*;
 use core_sim::{
@@ -12,7 +7,6 @@ use core_sim::{
     PlayerControlled, Position, ProductionQueue, Technologies, UnitType,
 };
 
-/// Spawn initial civilizations on the world map
 pub fn spawn_initial_civilizations(
     commands: &mut Commands,
     world_map: &mut WorldMap,
@@ -51,7 +45,6 @@ pub fn spawn_initial_civilizations(
     DebugUtils::log_civilization_spawn(debug_logging, spawned_count);
 }
 
-/// Load civilization data from RON file
 fn load_civilization_data(
     debug_logging: &DebugLogging,
 ) -> Option<core_sim::CivilizationDataCollection> {
@@ -74,7 +67,6 @@ fn load_civilization_data(
     }
 }
 
-/// Select random civilizations for the game
 fn select_random_civilizations(
     civilization_data: core_sim::CivilizationDataCollection,
     total_civilizations: u32,
@@ -90,7 +82,6 @@ fn select_random_civilizations(
         .collect()
 }
 
-/// Generate random starting positions for civilizations
 fn generate_starting_positions(
     selected_civs: &[CivilizationDefinition],
     world_map: &WorldMap,
@@ -106,7 +97,6 @@ fn generate_starting_positions(
     )
 }
 
-/// Spawn a single civilization with its capital and starting unit
 fn spawn_civilization(
     commands: &mut Commands,
     world_map: &mut WorldMap,
@@ -147,7 +137,6 @@ fn spawn_civilization(
     true
 }
 
-/// Check if a position is suitable for building
 fn is_buildable_position(world_map: &WorldMap, position: Position) -> bool {
     if let Some(tile) = world_map.get_tile(position) {
         match tile.terrain {
@@ -161,7 +150,6 @@ fn is_buildable_position(world_map: &WorldMap, position: Position) -> bool {
     }
 }
 
-/// Spawn the civilization entity
 fn spawn_civilization_entity(
     commands: &mut Commands,
     civ_def: &CivilizationDefinition,
@@ -200,7 +188,6 @@ fn spawn_civilization_entity(
     }
 }
 
-/// Spawn the capital city
 fn spawn_capital_city(
     commands: &mut Commands,
     civ_def: &CivilizationDefinition,
@@ -241,7 +228,6 @@ fn spawn_capital_city(
     }
 }
 
-/// Spawn the starting military unit
 fn spawn_starting_unit(
     commands: &mut Commands,
     civ_id: CivId,
@@ -249,15 +235,7 @@ fn spawn_starting_unit(
     civ_index: usize,
     is_player: bool,
 ) {
-    let initial_unit = MilitaryUnit {
-        id: civ_index as u32,
-        owner: civ_id,
-        unit_type: UnitType::Infantry,
-        position,
-        strength: 10.0,
-        movement_remaining: 2,
-        experience: 0.0,
-    };
+    let initial_unit = MilitaryUnit::new(civ_index as u32, civ_id, UnitType::Infantry, position);
 
     let mut unit_commands = commands.spawn((initial_unit, position, civ_id));
     unit_commands.insert(core_sim::ProvidesVision::unit_vision());
@@ -272,7 +250,6 @@ fn spawn_starting_unit(
     }
 }
 
-/// Claim starting territory for the civilization
 fn claim_starting_territory(
     world_map: &mut WorldMap,
     civ_id: CivId,

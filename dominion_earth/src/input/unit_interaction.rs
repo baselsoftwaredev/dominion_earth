@@ -2,6 +2,7 @@ use super::constants;
 use super::coordinates::convert_cursor_position_to_tile_coordinates;
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::game::GameState;
+use crate::production_input::SelectedCapital;
 use crate::ui::utilities::{is_cursor_over_ui_panel, UiPanelBounds};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
@@ -14,14 +15,16 @@ pub fn handle_player_unit_interaction(
     mouse_button: Res<ButtonInput<MouseButton>>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut selected_unit: ResMut<core_sim::SelectedUnit>,
+    mut selected_capital: ResMut<SelectedCapital>,
     mut units_query: Query<(Entity, &mut core_sim::MilitaryUnit, &core_sim::Position)>,
     pending_movements_query: Query<Entity, With<core_sim::PlayerMovementOrder>>,
     player_civs: Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
     world_map: Res<core_sim::resources::WorldMap>,
     debug_logging: Res<DebugLogging>,
     game_state: Res<GameState>,
+    capitals_query: Query<(Entity, &core_sim::Capital, &core_sim::Position)>,
+    player_civilizations_query: Query<Entity, With<core_sim::PlayerControlled>>,
 ) {
-    // Don't handle unit interaction in AI-only mode
     if game_state.ai_only {
         return;
     }
@@ -37,13 +40,12 @@ pub fn handle_player_unit_interaction(
     };
 
     if mouse_button.just_pressed(MouseButton::Right) {
-        // Check if cursor is over UI panels before processing unit movement
         if let Ok(window) = windows.single() {
             if let Some(cursor_pos) = window.cursor_position() {
                 let ui_bounds = UiPanelBounds::from_window(window);
 
                 if is_cursor_over_ui_panel(cursor_pos, &ui_bounds) {
-                    return; // Don't process unit movement if clicking on UI
+                    return;
                 }
             }
         }
@@ -62,13 +64,12 @@ pub fn handle_player_unit_interaction(
     }
 
     if mouse_button.just_pressed(MouseButton::Left) {
-        // Check if cursor is over UI panels before processing unit selection
         if let Ok(window) = windows.single() {
             if let Some(cursor_pos) = window.cursor_position() {
                 let ui_bounds = UiPanelBounds::from_window(window);
 
                 if is_cursor_over_ui_panel(cursor_pos, &ui_bounds) {
-                    return; // Don't process unit selection if clicking on UI
+                    return;
                 }
             }
         }
@@ -79,8 +80,11 @@ pub fn handle_player_unit_interaction(
             &camera_query,
             &units_query,
             &mut selected_unit,
+            &mut selected_capital,
             player_civ_id,
             &debug_logging,
+            &capitals_query,
+            &player_civilizations_query,
         );
     }
 
@@ -187,8 +191,11 @@ fn handle_unit_selection(
     camera_query: &Query<(&Camera, &GlobalTransform), With<Camera>>,
     units_query: &Query<(Entity, &mut core_sim::MilitaryUnit, &core_sim::Position)>,
     selected_unit: &mut ResMut<core_sim::SelectedUnit>,
+    selected_capital: &mut ResMut<SelectedCapital>,
     player_civ_id: CivId,
     debug_logging: &Res<DebugLogging>,
+    capitals_query: &Query<(Entity, &core_sim::Capital, &core_sim::Position)>,
+    player_civilizations_query: &Query<Entity, With<core_sim::PlayerControlled>>,
 ) {
     let Ok(window) = windows.single() else {
         return;
@@ -204,6 +211,25 @@ fn handle_unit_selection(
 
     match convert_cursor_position_to_tile_coordinates(cursor_pos, camera, camera_transform) {
         Ok(click_position) => {
+            let player_civilization_entities: Vec<Entity> =
+                player_civilizations_query.iter().collect();
+            let capital_at_position = capitals_query.iter().any(|(_, capital, capital_pos)| {
+                capital_pos.x == click_position.x
+                    && capital_pos.y == click_position.y
+                    && player_civilization_entities
+                        .iter()
+                        .enumerate()
+                        .any(|(idx, _)| capital.owner.0 == 0)
+            });
+
+            if capital_at_position {
+                DebugUtils::log_info(
+                    debug_logging,
+                    "Unit interaction: Capital at position, skipping unit selection",
+                );
+                return;
+            }
+
             let mut found_unit = false;
             for (entity, unit, position) in units_query.iter() {
                 if *position == click_position && unit.owner == player_civ_id {
@@ -218,6 +244,10 @@ fn handle_unit_selection(
                     selected_unit.owner = Some(unit.owner);
                     commands.entity(entity).insert(core_sim::UnitSelected);
                     found_unit = true;
+
+                    selected_capital.show_production_menu = false;
+                    selected_capital.capital_entity = None;
+                    selected_capital.civ_entity = None;
 
                     DebugUtils::log_info(
                         debug_logging,
@@ -239,6 +269,10 @@ fn handle_unit_selection(
                 selected_unit.unit_entity = None;
                 selected_unit.unit_id = None;
                 selected_unit.owner = None;
+
+                selected_capital.show_production_menu = false;
+                selected_capital.capital_entity = None;
+                selected_capital.civ_entity = None;
             }
         }
         Err(error_msg) => {
