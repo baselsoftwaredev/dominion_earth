@@ -32,9 +32,9 @@ impl Plugin for ResourcesPlugin {
             // Production Resources
             .init_resource::<production_input::SelectedCapital>()
             // Events
-            .add_event::<core_sim::PlayerProductionOrder>()
-            .add_event::<core_sim::SkipProductionThisTurn>()
-            .add_event::<core_sim::RequestTurnAdvance>();
+            .add_message::<core_sim::PlayerProductionOrder>()
+            .add_message::<core_sim::SkipProductionThisTurn>()
+            .add_message::<core_sim::RequestTurnAdvance>();
     }
 }
 

@@ -5,7 +5,8 @@ pub mod input_handling;
 pub mod menu;
 pub mod rendering;
 pub mod resources;
-pub mod save_load;
+// TODO: Re-enable once bevy_save is updated for Bevy 0.17
+// pub mod save_load;
 pub mod ui_integration;
 
 pub use audio::AudioPlugin;
@@ -15,7 +16,7 @@ pub use input_handling::InputHandlingPlugin;
 pub use menu::MenuPlugin;
 pub use rendering::RenderingPlugin;
 pub use resources::{ResourcesPlugin, ResourcesPluginWithConfig};
-pub use save_load::SaveLoadPlugin;
+// pub use save_load::SaveLoadPlugin;
 pub use ui_integration::UiIntegrationPlugin;
 
 pub struct DominionEarthPlugins;
@@ -30,7 +31,8 @@ impl bevy::app::PluginGroup for DominionEarthPlugins {
             .add(RenderingPlugin)
             .add(InputHandlingPlugin)
             .add(AudioPlugin)
-            .add(SaveLoadPlugin::default())
+            // TODO: Re-enable once bevy_save is updated for Bevy 0.17
+            // .add(SaveLoadPlugin::default())
             .add(UiIntegrationPlugin)
     }
 }
@@ -55,7 +57,8 @@ impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
             .add(RenderingPlugin)
             .add(InputHandlingPlugin)
             .add(AudioPlugin)
-            .add(SaveLoadPlugin::default())
+            // TODO: Re-enable once bevy_save is updated for Bevy 0.17
+            // .add(SaveLoadPlugin::default())
             .add(UiIntegrationPlugin)
     }
 }

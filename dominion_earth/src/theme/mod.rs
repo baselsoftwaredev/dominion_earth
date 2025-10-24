@@ -55,7 +55,7 @@ fn handle_button_interactions(
     mut next_screen: ResMut<NextState<Screen>>,
     mut next_menu: ResMut<NextState<Menu>>,
     mut global_volume: ResMut<GlobalVolume>,
-    mut app_exit: EventWriter<AppExit>,
+    mut app_exit: MessageWriter<AppExit>,
     screen: Res<State<Screen>>,
 ) {
     use bevy::audio::{GlobalVolume, Volume};

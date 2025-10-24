@@ -639,7 +639,7 @@ fn update_all_ui_node_properties(
         update_hovered_tile_properties(&mut template_properties, hovered_tile_info);
         update_unit_info_properties(&mut template_properties, unit_info);
 
-        cmd.trigger_targets(CompileContextEvent, entity);
+        cmd.trigger(CompileContextEvent { entity });
     }
 }
 

@@ -22,7 +22,7 @@ fn spawn_credits_menu(mut commands: Commands) {
         .spawn((
             widget::ui_root("Credits Menu"),
             GlobalZIndex(100),
-            StateScoped(Menu::Credits),
+            DespawnOnExit(Menu::Credits),
             CreditsMenuRoot, // Marker component
         ))
         .with_children(|parent| {
@@ -52,7 +52,7 @@ fn go_back(mut next_menu: ResMut<NextState<Menu>>) {
     next_menu.set(Menu::Main);
 }
 
-fn input_just_pressed(key: KeyCode) -> impl Condition<()> {
+fn input_just_pressed(key: KeyCode) -> impl SystemCondition<()> {
     IntoSystem::into_system(move |input: Res<ButtonInput<KeyCode>>| input.just_pressed(key))
 }
 

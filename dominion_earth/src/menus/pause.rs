@@ -38,7 +38,7 @@ fn spawn_pause_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
         .spawn((
             widget::ui_root("Pause Menu"),
             GlobalZIndex(constants::z_index::MENU_OVERLAY_Z_INDEX),
-            StateScoped(Menu::Pause),
+            DespawnOnExit(Menu::Pause),
             PauseMenuRoot,
         ))
         .with_children(|parent| {
@@ -59,7 +59,7 @@ fn close_pause_menu_on_escape(mut next_menu: ResMut<NextState<Menu>>) {
     next_menu.set(Menu::None);
 }
 
-fn input_just_pressed(key: KeyCode) -> impl Condition<()> {
+fn input_just_pressed(key: KeyCode) -> impl SystemCondition<()> {
     IntoSystem::into_system(move |input: Res<ButtonInput<KeyCode>>| input.just_pressed(key))
 }
 

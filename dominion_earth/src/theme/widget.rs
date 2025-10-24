@@ -2,6 +2,7 @@
 
 use crate::theme::{constants, interaction::InteractionPalette, palette::*};
 use bevy::prelude::*;
+use bevy::ui::{percent, px};
 
 /// A root UI node that fills the window and centers its content.
 pub fn ui_root(name: impl Into<String>) -> impl Bundle {
@@ -61,7 +62,7 @@ pub fn button(text: impl Into<String>, action: ButtonAction) -> impl Bundle {
             ..default()
         },
         BackgroundColor(BUTTON_BACKGROUND),
-        BorderColor(PANEL_BORDER),
+        BorderColor::all(PANEL_BORDER),
         Name::new(format!("Button: {}", text_string)),
         InteractionPalette {
             none: BUTTON_BACKGROUND,

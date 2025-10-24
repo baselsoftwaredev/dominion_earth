@@ -273,7 +273,7 @@ fn update_ui_panels_with_new_gold(
 
         let entity_name_string = entity_name.as_str();
         update_panel_gold_property_by_name(&mut properties, entity_name_string, new_gold_amount);
-        commands.trigger_targets(CompileContextEvent, ui_entity);
+        commands.trigger(CompileContextEvent { entity: ui_entity });
     }
 }
 
@@ -304,7 +304,7 @@ fn update_ui_panels_with_production_changes(
             new_queue_length,
         );
         // Note: Current production properties are now handled by property_updates.rs system
-        commands.trigger_targets(CompileContextEvent, ui_entity);
+        commands.trigger(CompileContextEvent { entity: ui_entity });
     }
 }
 
@@ -431,6 +431,6 @@ fn update_ui_panels_with_production_queue_changes(
             production_queue.queue_length(),
         );
         // Note: Current production properties are now handled by property_updates.rs system
-        commands.trigger_targets(CompileContextEvent, ui_entity);
+        commands.trigger(CompileContextEvent { entity: ui_entity });
     }
 }

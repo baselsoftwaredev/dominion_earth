@@ -22,7 +22,7 @@ fn spawn_splash_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             Name::new("Splash Screen"),
-            StateScoped(Screen::Splash),
+            DespawnOnExit(Screen::Splash),
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
@@ -67,7 +67,7 @@ fn tick_splash_timer(time: Res<Time>, mut timer: ResMut<SplashTimer>) {
 }
 
 fn check_splash_timer(timer: Res<SplashTimer>, mut next_screen: ResMut<NextState<Screen>>) {
-    if timer.0.finished() {
+    if timer.0.is_finished() {
         next_screen.set(Screen::MainMenu);
     }
 }

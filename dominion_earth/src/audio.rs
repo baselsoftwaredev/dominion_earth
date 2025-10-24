@@ -43,8 +43,12 @@ pub fn sound_effect(handle: Handle<AudioSource>) -> impl Bundle {
 ///     audio::play_sound_effect(&mut commands, &asset_server, "sounds/click.ogg");
 /// }
 /// ```
-pub fn play_sound_effect(commands: &mut Commands, asset_server: &AssetServer, sound_path: &str) {
-    commands.spawn(sound_effect(asset_server.load(sound_path)));
+pub fn play_sound_effect(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    sound_path: impl Into<String>,
+) {
+    commands.spawn(sound_effect(asset_server.load(sound_path.into())));
 }
 
 /// Helper function to play looping background music.
@@ -57,8 +61,12 @@ pub fn play_sound_effect(commands: &mut Commands, asset_server: &AssetServer, so
 ///     audio::play_music(&mut commands, &asset_server, "music/background.ogg");
 /// }
 /// ```
-pub fn play_music(commands: &mut Commands, asset_server: &AssetServer, music_path: &str) {
-    commands.spawn(music(asset_server.load(music_path)));
+pub fn play_music(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    music_path: impl Into<String>,
+) {
+    commands.spawn(music(asset_server.load(music_path.into())));
 }
 
 /// Stop all music currently playing.

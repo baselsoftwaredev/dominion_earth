@@ -47,7 +47,9 @@ fn register_player_gold_update_function(html_functions: &mut HtmlFunctions) {
 
             let player_gold_amount = extract_player_gold_amount(&player_civilizations);
             update_player_gold_property(&mut properties, player_gold_amount);
-            commands.trigger_targets(CompileContextEvent, scope_entity);
+            commands.trigger(CompileContextEvent {
+                entity: scope_entity,
+            });
         },
     );
 }
@@ -72,7 +74,9 @@ fn register_turn_update_function(html_functions: &mut HtmlFunctions) {
             };
 
             update_current_turn_property(&mut properties, current_turn.0);
-            commands.trigger_targets(CompileContextEvent, scope_entity);
+            commands.trigger(CompileContextEvent {
+                entity: scope_entity,
+            });
         },
     );
 }

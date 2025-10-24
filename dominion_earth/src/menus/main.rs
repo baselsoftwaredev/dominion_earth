@@ -18,7 +18,7 @@ fn spawn_main_menu(mut commands: Commands) {
         .spawn((
             widget::ui_root("Main Menu"),
             GlobalZIndex(100),
-            StateScoped(Menu::Main),
+            DespawnOnExit(Menu::Main),
             MainMenuRoot, // Marker component
         ))
         .with_children(|parent| {

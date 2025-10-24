@@ -7,11 +7,11 @@ pub struct CoreSimulationPlugin;
 
 impl Plugin for CoreSimulationPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<core_sim::ProductionUpdated>()
-            .add_event::<core_sim::ProcessAITurn>()
-            .add_event::<core_sim::AITurnComplete>()
-            .add_event::<core_sim::AllAITurnsComplete>()
-            .add_event::<core_sim::StartPlayerTurn>()
+        app.add_message::<core_sim::ProductionUpdated>()
+            .add_message::<core_sim::ProcessAITurn>()
+            .add_message::<core_sim::AITurnComplete>()
+            .add_message::<core_sim::AllAITurnsComplete>()
+            .add_message::<core_sim::StartPlayerTurn>()
             .init_resource::<core_sim::TurnPhase>()
             .init_resource::<core_sim::FogOfWarMaps>()
             .add_systems(

@@ -44,7 +44,7 @@ fn spawn_settings_menu(mut commands: Commands, debug_logging: Res<DebugLogging>)
         .spawn((
             widget::ui_root("Settings Menu"),
             GlobalZIndex(constants::z_index::MENU_OVERLAY_Z_INDEX),
-            StateScoped(Menu::Settings),
+            DespawnOnExit(Menu::Settings),
             SettingsMenuRoot,
         ))
         .with_children(|parent| {
@@ -111,7 +111,7 @@ fn determine_target_menu_from_screen(screen: Screen) -> Menu {
     }
 }
 
-fn input_just_pressed(key: KeyCode) -> impl Condition<()> {
+fn input_just_pressed(key: KeyCode) -> impl SystemCondition<()> {
     IntoSystem::into_system(move |input: Res<ButtonInput<KeyCode>>| input.just_pressed(key))
 }
 

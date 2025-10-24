@@ -190,7 +190,7 @@ fn spawn_capital_label_text2d(
             ..default()
         },
         TextColor(Color::srgb(1.0, 1.0, 1.0)),
-        TextLayout::new_with_justify(JustifyText::Center),
+        TextLayout::new_with_justify(Justify::Center),
         Transform::from_translation(world_position.extend(constants::CAPITAL_LABEL_Z_INDEX)),
         CapitalLabel {
             capital_entity,

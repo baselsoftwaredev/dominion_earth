@@ -38,7 +38,7 @@ fn close_menu(mut next_menu: ResMut<NextState<Menu>>) {
     next_menu.set(Menu::None);
 }
 
-fn input_just_pressed(key: KeyCode) -> impl Condition<()> {
+fn input_just_pressed(key: KeyCode) -> impl SystemCondition<()> {
     IntoSystem::into_system(move |input: Res<ButtonInput<KeyCode>>| input.just_pressed(key))
 }
 
