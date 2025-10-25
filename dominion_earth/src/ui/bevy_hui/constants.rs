@@ -21,7 +21,7 @@ pub mod ui_templates {
     pub const LEFT_SIDE_PANEL_PATH: &str = "ui/left_side_panel.html";
     pub const LEFT_SIDE_TOP_PATH: &str = "ui/components/top_panel/left_side_top.html";
     pub const GAME_PANEL_PATH: &str = "ui/components/left_side_panel/game_panel.html";
-    pub const PRODUCTION_MENU_PATH: &str = "ui/components/right_side_panel/production_menu.html";
+    pub const PRODUCTION_MENU_PATH: &str = "ui/components/left_side_panel/production_menu.html";
     pub const STATISTICS_PANEL_PATH: &str = "ui/components/left_side_panel/statistics_panel.html";
     pub const HOVERED_TILE_INFO_PATH: &str =
         "ui/components/right_side_panel/hovered_tile_info.html";
