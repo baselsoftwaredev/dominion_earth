@@ -248,6 +248,7 @@ if !primary_selection_made && !secondary_at_position {
 When implementing selection handlers, BOTH systems must clear each other:
 
 **System A (e.g., unit_interaction.rs):**
+
 ```rust
 // If unit found → select it, clear capital/city/etc
 if unit_found {
@@ -255,7 +256,7 @@ if unit_found {
     clear_capital_selection();
     clear_city_selection();
 }
-// If no unit → clear unit AND other selections  
+// If no unit → clear unit AND other selections
 else {
     clear_unit_selection();
     clear_capital_selection();
@@ -264,6 +265,7 @@ else {
 ```
 
 **System B (e.g., tile_selection.rs for capitals):**
+
 ```rust
 // If capital found → select it, clear unit/city/etc
 if capital_found {
@@ -276,6 +278,78 @@ if capital_found {
 This bidirectional clearing ensures panels never conflict.
 
 ## Panel-Specific Implementation Notes
+
+### Scrollable Panels
+
+When a panel container may overflow (e.g., left/right sidebars with multiple components), enable scrolling using the `overflow` property.
+
+**In bevy_hui HTML:**
+
+```html
+<node width="300px" height="100%" overflow="hidden scroll">
+  <!-- horizontal overflow hidden, vertical scroll enabled -->
+  <!-- panel content -->
+</node>
+```
+
+**Overflow values:**
+
+- `"scroll scroll"`: Both axes scrollable
+- `"hidden scroll"`: Horizontal hidden, vertical scroll (most common for sidebars)
+- `"scroll hidden"`: Horizontal scroll, vertical hidden
+- `"visible visible"`: No scrolling (default)
+
+**Based on Bevy UI scroll example:**
+
+- Panels automatically get scroll behavior when content exceeds container size
+- Mouse wheel scrolling works automatically when hovering over scrollable areas
+- Scroll position is maintained by Bevy's `ScrollPosition` component
+
+**IMPORTANT - Preventing Camera Zoom on UI Scroll:**
+
+To prevent the camera from zooming when scrolling over UI panels, the mouse input system must check if the cursor is over a UI panel before processing zoom events:
+
+```rust
+// In handle_mouse_input system
+pub fn handle_mouse_input(
+    mut mouse_wheel: MessageReader<MouseWheel>,
+    // ... other params
+    window_query: Query<&Window, With<PrimaryWindow>>,
+) {
+    let ui_bounds = window_query
+        .single()
+        .ok()
+        .map(UiPanelBounds::from_window);
+
+    handle_camera_zoom_controls(&mut mouse_wheel, &mut camera_query, ui_bounds.as_ref(), &last_cursor_pos);
+}
+
+// In handle_camera_zoom_controls
+fn handle_camera_zoom_controls(
+    mouse_wheel: &mut MessageReader<MouseWheel>,
+    camera_query: &mut Query<&mut Transform, With<Camera>>,
+    ui_bounds: Option<&UiPanelBounds>,
+    last_cursor_pos: &Local<Option<Vec2>>,
+) {
+    for wheel_event in mouse_wheel.read() {
+        // Skip camera zoom if cursor is over UI panel
+        if let (Some(cursor_pos), Some(bounds)) = (**last_cursor_pos, ui_bounds) {
+            if is_cursor_over_ui_panel(cursor_pos, bounds) {
+                continue; // Let UI handle the scroll event
+            }
+        }
+
+        // Apply camera zoom
+        apply_camera_zoom_from_wheel_event(wheel_event, &mut camera_transform);
+    }
+}
+```
+
+This ensures that:
+
+- Mouse wheel events over UI panels are ignored by the camera system
+- UI panels can handle scroll events independently
+- Camera zoom only occurs when scrolling over the game world
 
 ### Unit Stats Panel: Combat Effectiveness
 
@@ -290,12 +364,14 @@ effective_defense = base_defense * (1.0 - fatigue * 0.3) * supply
 ### Future Panel Types
 
 As you add more panels, follow the same patterns:
+
 - **City Panel**: City stats, building queue, garrison units
 - **Diplomacy Screen**: Civ relations, trade offers, declarations
 - **Technology Tree**: Research progress, available techs
 - **Event Panels**: Random events, quests, notifications
 
 Each should follow the structure outlined above with:
+
 - Data struct with `is_visible: String`
 - Builder function checking game state
 - Property update function
@@ -308,7 +384,8 @@ Each should follow the structure outlined above with:
 
 **Root Cause**: Selection state not being cleared properly.
 
-**Solution**: 
+**Solution**:
+
 - Ensure selection system has access to ALL relevant queries
 - Check that empty tile clicks clear ALL competing panel states
 - Verify bidirectional clearing (both systems clear each other)
@@ -318,6 +395,7 @@ Each should follow the structure outlined above with:
 **Root Cause**: Property name mismatch or wrong data type.
 
 **Solution**: Verify exact matches across:
+
 - HTML template property definitions (`<property name="field">`)
 - Parent component property bindings (`field="{field}"`)
 - Rust struct field names (`pub field: String`)
@@ -327,7 +405,8 @@ Each should follow the structure outlined above with:
 
 **Root Cause**: Selection state persists when it shouldn't.
 
-**Solution**: 
+**Solution**:
+
 - ALL selection handlers must clear competing states
 - Use bidirectional clearing pattern
 - When in doubt, clear everything when clicking empty space
@@ -337,6 +416,7 @@ Each should follow the structure outlined above with:
 **Root Cause**: Missing mutual exclusivity checks.
 
 **Solution**:
+
 - Each panel's builder function checks other panels' visibility state
 - Selection handlers clear competing selections before setting new ones
 - Implement priority system (higher priority panels hide lower priority)
@@ -345,7 +425,8 @@ Each should follow the structure outlined above with:
 
 **Root Cause**: Using `s:if` instead of `display` property.
 
-**Solution**: 
+**Solution**:
+
 - Change HTML from `s:if="{is_visible}"` to `display="{is_visible}"`
 - Change Rust struct field from `pub is_visible: bool` to `pub is_visible: String`
 - Set values to `"flex".to_string()` or `"none".to_string()`

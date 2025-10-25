@@ -3,6 +3,7 @@ pub mod constants;
 pub mod main_ui;
 pub mod production_orders;
 pub mod property_updates;
+pub mod scroll_setup;
 
 use crate::entity_utils;
 use crate::game::GameState;
@@ -14,6 +15,7 @@ use core_sim::components::MilitaryUnit;
 pub use capital_labels::{spawn_capital_labels, update_capital_labels, CapitalLabel};
 pub use main_ui::setup_main_ui;
 pub use property_updates::{should_update_ui_this_frame, update_ui_properties_system};
+pub use scroll_setup::{apply_scroll_overflow, setup_scrollable_panels};
 
 /// Bevy HUI implementation of the UI system
 pub struct BevyHuiSystem;
@@ -25,6 +27,8 @@ impl BevyHuiSystem {
             .add_systems(
                 Update,
                 (
+                    setup_scrollable_panels,
+                    apply_scroll_overflow,
                     update_ui_properties_system.run_if(should_update_ui_this_frame),
                     spawn_capital_labels,
                     update_capital_labels,
@@ -39,6 +43,8 @@ impl BevyHuiSystem {
             .add_systems(
                 Update,
                 (
+                    setup_scrollable_panels,
+                    apply_scroll_overflow,
                     update_ui_properties_system.run_if(should_update_ui_this_frame),
                     spawn_capital_labels,
                     update_capital_labels,

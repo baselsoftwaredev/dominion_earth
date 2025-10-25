@@ -1,4 +1,5 @@
 use super::constants;
+use crate::ui::utilities::{is_cursor_over_ui_panel, UiPanelBounds};
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
@@ -12,8 +13,17 @@ pub fn handle_mouse_input(
     mut cursor_moved: MessageReader<CursorMoved>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
     mut last_cursor_pos: Local<Option<Vec2>>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
-    handle_camera_zoom_controls(&mut mouse_wheel, &mut camera_query);
+    // Get UI panel bounds for cursor position checking
+    let ui_bounds = window_query.single().ok().map(UiPanelBounds::from_window);
+
+    handle_camera_zoom_controls(
+        &mut mouse_wheel,
+        &mut camera_query,
+        ui_bounds.as_ref(),
+        &last_cursor_pos,
+    );
     handle_camera_panning_controls(
         &mouse_button_input,
         &mut cursor_moved,
@@ -25,9 +35,19 @@ pub fn handle_mouse_input(
 fn handle_camera_zoom_controls(
     mouse_wheel: &mut MessageReader<MouseWheel>,
     camera_query: &mut Query<&mut Transform, With<Camera>>,
+    ui_bounds: Option<&UiPanelBounds>,
+    last_cursor_pos: &Local<Option<Vec2>>,
 ) {
     // Process all mouse wheel events for camera zoom
     for wheel_event in mouse_wheel.read() {
+        // Check if cursor is over a UI panel - if so, skip camera zoom
+        if let (Some(cursor_pos), Some(bounds)) = (**last_cursor_pos, ui_bounds) {
+            if is_cursor_over_ui_panel(cursor_pos, bounds) {
+                // Cursor is over UI, don't zoom the camera (let UI handle scroll)
+                continue;
+            }
+        }
+
         if let Ok(mut camera_transform) = camera_query.single_mut() {
             apply_camera_zoom_from_wheel_event(wheel_event, &mut camera_transform);
         }
