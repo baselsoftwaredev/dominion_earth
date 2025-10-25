@@ -11,7 +11,19 @@ pub fn hide_gameplay_ui_panels(
     mut html_ui_panels: Query<&mut Visibility, With<HtmlNode>>,
     mut top_panel: Query<
         &mut Visibility,
-        (With<crate::ui::top_panel::TopPanel>, Without<HtmlNode>),
+        (
+            With<crate::ui::top_panel::TopPanel>,
+            Without<HtmlNode>,
+            Without<crate::ui::right_panel::RightPanel>,
+        ),
+    >,
+    mut right_panel: Query<
+        &mut Visibility,
+        (
+            With<crate::ui::right_panel::RightPanel>,
+            Without<HtmlNode>,
+            Without<crate::ui::top_panel::TopPanel>,
+        ),
     >,
     debug_logging: Res<DebugLogging>,
 ) {
@@ -26,6 +38,11 @@ pub fn hide_gameplay_ui_panels(
     for mut panel_visibility in &mut top_panel {
         set_panel_hidden(&mut panel_visibility);
     }
+
+    // Hide native right panel
+    for mut panel_visibility in &mut right_panel {
+        set_panel_hidden(&mut panel_visibility);
+    }
 }
 
 /// Show all gameplay UI panels (those with HtmlNode component).
@@ -34,7 +51,19 @@ pub fn show_gameplay_ui_panels(
     mut html_ui_panels: Query<&mut Visibility, With<HtmlNode>>,
     mut top_panel: Query<
         &mut Visibility,
-        (With<crate::ui::top_panel::TopPanel>, Without<HtmlNode>),
+        (
+            With<crate::ui::top_panel::TopPanel>,
+            Without<HtmlNode>,
+            Without<crate::ui::right_panel::RightPanel>,
+        ),
+    >,
+    mut right_panel: Query<
+        &mut Visibility,
+        (
+            With<crate::ui::right_panel::RightPanel>,
+            Without<HtmlNode>,
+            Without<crate::ui::top_panel::TopPanel>,
+        ),
     >,
     debug_logging: Res<DebugLogging>,
 ) {
@@ -47,6 +76,11 @@ pub fn show_gameplay_ui_panels(
 
     // Show native top panel
     for mut panel_visibility in &mut top_panel {
+        set_panel_visible(&mut panel_visibility);
+    }
+
+    // Show native right panel
+    for mut panel_visibility in &mut right_panel {
         set_panel_visible(&mut panel_visibility);
     }
 }

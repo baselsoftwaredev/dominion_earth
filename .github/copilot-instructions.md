@@ -12,8 +12,6 @@
 **Always use debug seed for consistency: `--seed 1756118413`**
 
 ```bash
-cargo build                                              # Debug build
-cargo run -- --seed 1756118413                         # Run game
 cargo run -- --seed 1756118413 --debug-logging        # With debug output
 ```
 

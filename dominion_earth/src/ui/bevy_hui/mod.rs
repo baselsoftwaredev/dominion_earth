@@ -25,7 +25,11 @@ impl BevyHuiSystem {
         app.add_plugins((HuiPlugin, HuiAutoLoadPlugin::new(&["ui"])))
             .add_systems(
                 Startup,
-                (setup_main_ui, crate::ui::top_panel::spawn_top_panel),
+                (
+                    setup_main_ui,
+                    crate::ui::top_panel::spawn_top_panel,
+                    crate::ui::right_panel::spawn_right_panel,
+                ),
             )
             .add_systems(
                 Update,
@@ -37,6 +41,9 @@ impl BevyHuiSystem {
                     update_capital_labels,
                     crate::ui::top_panel::update_player_resources,
                     crate::ui::top_panel::update_turn_display,
+                    crate::ui::right_panel::update_statistics_panel,
+                    crate::ui::right_panel::update_hovered_tile_info,
+                    crate::ui::right_panel::update_civilizations_list,
                 ),
             );
     }
@@ -45,7 +52,11 @@ impl BevyHuiSystem {
         app.add_plugins((HuiPlugin, HuiAutoLoadPlugin::new(&["ui"])))
             .add_systems(
                 OnEnter(screen.clone()),
-                (setup_main_ui, crate::ui::top_panel::spawn_top_panel),
+                (
+                    setup_main_ui,
+                    crate::ui::top_panel::spawn_top_panel,
+                    crate::ui::right_panel::spawn_right_panel,
+                ),
             )
             .add_systems(OnExit(screen.clone()), cleanup_ui)
             .add_systems(
@@ -58,6 +69,9 @@ impl BevyHuiSystem {
                     update_capital_labels,
                     crate::ui::top_panel::update_player_resources,
                     crate::ui::top_panel::update_turn_display,
+                    crate::ui::right_panel::update_statistics_panel,
+                    crate::ui::right_panel::update_hovered_tile_info,
+                    crate::ui::right_panel::update_civilizations_list,
                 )
                     .run_if(in_state(screen)),
             );
@@ -68,6 +82,7 @@ fn cleanup_ui(
     mut commands: Commands,
     ui_panels: Query<Entity, With<HtmlNode>>,
     top_panel: Query<Entity, With<crate::ui::top_panel::TopPanel>>,
+    right_panel: Query<Entity, With<crate::ui::right_panel::RightPanel>>,
     children_query: Query<&Children>,
 ) {
     let mut despawned = std::collections::HashSet::new();
@@ -84,6 +99,16 @@ fn cleanup_ui(
 
     // Despawn native top panel
     for entity in &top_panel {
+        entity_utils::recursively_despawn_entity_with_children(
+            &mut commands,
+            entity,
+            &children_query,
+            &mut despawned,
+        );
+    }
+
+    // Despawn native right panel
+    for entity in &right_panel {
         entity_utils::recursively_despawn_entity_with_children(
             &mut commands,
             entity,

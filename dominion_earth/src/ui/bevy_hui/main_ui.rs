@@ -102,7 +102,10 @@ fn register_turn_advancement_function(html_functions: &mut HtmlFunctions) {
 fn spawn_main_ui_layout_panels(commands: &mut Commands, asset_server: &AssetServer) {
     // Top panel is now handled by native Bevy UI in top_panel.rs
     // spawn_top_panel(commands, asset_server);
-    spawn_right_side_panel(commands, asset_server);
+
+    // Right panel is now handled by native Bevy UI in right_panel.rs
+    // spawn_right_side_panel(commands, asset_server);
+
     spawn_left_side_panel(commands, asset_server);
 }
 
@@ -134,6 +137,8 @@ fn spawn_top_panel(commands: &mut Commands, asset_server: &AssetServer) {
 }
 
 /// Spawn right side panel with terrain and civilization information
+/// DEPRECATED: Now using native Bevy UI implementation in right_panel.rs
+#[allow(dead_code)]
 fn spawn_right_side_panel(commands: &mut Commands, asset_server: &AssetServer) {
     commands.spawn((
         HtmlNode(asset_server.load(constants::ui_templates::RIGHT_SIDE_PANEL_PATH)),
