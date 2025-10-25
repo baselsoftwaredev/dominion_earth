@@ -23,7 +23,10 @@ pub struct BevyHuiSystem;
 impl BevyHuiSystem {
     pub fn setup_plugins(app: &mut App) {
         app.add_plugins((HuiPlugin, HuiAutoLoadPlugin::new(&["ui"])))
-            .add_systems(Startup, setup_main_ui)
+            .add_systems(
+                Startup,
+                (setup_main_ui, crate::ui::top_panel::spawn_top_panel),
+            )
             .add_systems(
                 Update,
                 (
@@ -32,13 +35,18 @@ impl BevyHuiSystem {
                     update_ui_properties_system.run_if(should_update_ui_this_frame),
                     spawn_capital_labels,
                     update_capital_labels,
+                    crate::ui::top_panel::update_player_resources,
+                    crate::ui::top_panel::update_turn_display,
                 ),
             );
     }
 
     pub fn setup_plugins_for_screen<S: States>(app: &mut App, screen: S) {
         app.add_plugins((HuiPlugin, HuiAutoLoadPlugin::new(&["ui"])))
-            .add_systems(OnEnter(screen.clone()), setup_main_ui)
+            .add_systems(
+                OnEnter(screen.clone()),
+                (setup_main_ui, crate::ui::top_panel::spawn_top_panel),
+            )
             .add_systems(OnExit(screen.clone()), cleanup_ui)
             .add_systems(
                 Update,
@@ -48,6 +56,8 @@ impl BevyHuiSystem {
                     update_ui_properties_system.run_if(should_update_ui_this_frame),
                     spawn_capital_labels,
                     update_capital_labels,
+                    crate::ui::top_panel::update_player_resources,
+                    crate::ui::top_panel::update_turn_display,
                 )
                     .run_if(in_state(screen)),
             );
@@ -57,10 +67,23 @@ impl BevyHuiSystem {
 fn cleanup_ui(
     mut commands: Commands,
     ui_panels: Query<Entity, With<HtmlNode>>,
+    top_panel: Query<Entity, With<crate::ui::top_panel::TopPanel>>,
     children_query: Query<&Children>,
 ) {
     let mut despawned = std::collections::HashSet::new();
+
+    // Despawn HtmlNode-based panels
     for entity in &ui_panels {
+        entity_utils::recursively_despawn_entity_with_children(
+            &mut commands,
+            entity,
+            &children_query,
+            &mut despawned,
+        );
+    }
+
+    // Despawn native top panel
+    for entity in &top_panel {
         entity_utils::recursively_despawn_entity_with_children(
             &mut commands,
             entity,

@@ -8,12 +8,22 @@ use crate::debug_utils::DebugLogging;
 /// Hide all gameplay UI panels (those with HtmlNode component).
 /// Called when entering a menu during gameplay to provide clean menu presentation.
 pub fn hide_gameplay_ui_panels(
-    mut ui_panels: Query<&mut Visibility, With<HtmlNode>>,
+    mut html_ui_panels: Query<&mut Visibility, With<HtmlNode>>,
+    mut top_panel: Query<
+        &mut Visibility,
+        (With<crate::ui::top_panel::TopPanel>, Without<HtmlNode>),
+    >,
     debug_logging: Res<DebugLogging>,
 ) {
     crate::debug_println!(debug_logging, "🙈 Hiding gameplay UI panels");
 
-    for mut panel_visibility in &mut ui_panels {
+    // Hide HTML-based panels
+    for mut panel_visibility in &mut html_ui_panels {
+        set_panel_hidden(&mut panel_visibility);
+    }
+
+    // Hide native top panel
+    for mut panel_visibility in &mut top_panel {
         set_panel_hidden(&mut panel_visibility);
     }
 }
@@ -21,12 +31,22 @@ pub fn hide_gameplay_ui_panels(
 /// Show all gameplay UI panels (those with HtmlNode component).
 /// Called when exiting a menu to restore gameplay UI visibility.
 pub fn show_gameplay_ui_panels(
-    mut ui_panels: Query<&mut Visibility, With<HtmlNode>>,
+    mut html_ui_panels: Query<&mut Visibility, With<HtmlNode>>,
+    mut top_panel: Query<
+        &mut Visibility,
+        (With<crate::ui::top_panel::TopPanel>, Without<HtmlNode>),
+    >,
     debug_logging: Res<DebugLogging>,
 ) {
     crate::debug_println!(debug_logging, "👁️  Showing gameplay UI panels");
 
-    for mut panel_visibility in &mut ui_panels {
+    // Show HTML-based panels
+    for mut panel_visibility in &mut html_ui_panels {
+        set_panel_visible(&mut panel_visibility);
+    }
+
+    // Show native top panel
+    for mut panel_visibility in &mut top_panel {
         set_panel_visible(&mut panel_visibility);
     }
 }

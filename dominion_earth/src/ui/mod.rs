@@ -6,6 +6,7 @@ pub mod resources;
 // pub mod statistics_panel; // Commented out - needs bevy_hui implementation
 // pub mod tile_info; // Commented out - needs bevy_hui implementation
 pub mod bevy_hui;
+pub mod top_panel;
 pub mod traits;
 pub mod utilities;
 
@@ -16,6 +17,7 @@ pub use resources::*;
 // pub use statistics_panel::*; // Commented out
 // pub use tile_info::*; // Commented out
 pub use bevy_hui::*;
+pub use top_panel::*;
 pub use traits::*;
 pub use utilities::*;
 

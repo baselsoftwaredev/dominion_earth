@@ -100,12 +100,15 @@ fn register_turn_advancement_function(html_functions: &mut HtmlFunctions) {
 
 /// Spawn main UI layout panels with initial properties
 fn spawn_main_ui_layout_panels(commands: &mut Commands, asset_server: &AssetServer) {
-    spawn_top_panel(commands, asset_server);
+    // Top panel is now handled by native Bevy UI in top_panel.rs
+    // spawn_top_panel(commands, asset_server);
     spawn_right_side_panel(commands, asset_server);
     spawn_left_side_panel(commands, asset_server);
 }
 
 /// Spawn top panel with game information display
+/// DEPRECATED: Now using native Bevy UI implementation in top_panel.rs
+#[allow(dead_code)]
 fn spawn_top_panel(commands: &mut Commands, asset_server: &AssetServer) {
     commands.spawn((
         HtmlNode(asset_server.load(constants::ui_templates::TOP_PANEL_PATH)),
