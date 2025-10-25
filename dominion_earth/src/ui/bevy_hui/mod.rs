@@ -4,6 +4,7 @@ pub mod main_ui;
 pub mod production_orders;
 pub mod property_updates;
 
+use crate::entity_utils;
 use crate::game::GameState;
 use crate::ui::traits::*;
 use bevy::prelude::*;
@@ -47,10 +48,19 @@ impl BevyHuiSystem {
     }
 }
 
-/// Clean up all UI panels when leaving the gameplay screen
-fn cleanup_ui(mut commands: Commands, ui_panels: Query<Entity, With<HtmlNode>>) {
+fn cleanup_ui(
+    mut commands: Commands,
+    ui_panels: Query<Entity, With<HtmlNode>>,
+    children_query: Query<&Children>,
+) {
+    let mut despawned = std::collections::HashSet::new();
     for entity in &ui_panels {
-        commands.entity(entity).despawn();
+        entity_utils::recursively_despawn_entity_with_children(
+            &mut commands,
+            entity,
+            &children_query,
+            &mut despawned,
+        );
     }
 }
 

@@ -3,6 +3,7 @@ mod audio;
 mod civilization_spawning;
 mod constants;
 mod debug_utils;
+mod entity_utils;
 mod game;
 mod input;
 mod menus;
