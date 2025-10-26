@@ -1,12 +1,14 @@
-//! Native Bevy UI implementation for the top panel.
-//!
-//! Displays game title, player resources (gold, production), and current turn number.
+pub mod constants;
+pub mod resources_section;
+pub mod turn_section;
 
 use bevy::prelude::*;
-use core_sim::{resources::CurrentTurn, Civilization, PlayerControlled};
 
-use crate::theme::palette;
 use crate::ui::constants::display_layout;
+use constants::*;
+
+pub use resources_section::*;
+pub use turn_section::*;
 
 // ============================================================================
 // Marker Components
@@ -19,18 +21,6 @@ pub struct TopPanel;
 /// Marker component for the game title text
 #[derive(Component)]
 pub struct GameTitleText;
-
-/// Marker component for the gold display text
-#[derive(Component)]
-pub struct GoldDisplayText;
-
-/// Marker component for the production display text
-#[derive(Component)]
-pub struct ProductionDisplayText;
-
-/// Marker component for the turn display text
-#[derive(Component)]
-pub struct TurnDisplayText;
 
 // ============================================================================
 // Setup System
@@ -53,7 +43,7 @@ pub fn spawn_top_panel(mut commands: Commands) {
                 padding: UiRect::all(Val::Px(10.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.165, 0.165, 0.165, 1.0)), // #2a2a2a
+            BackgroundColor(PANEL_BACKGROUND),
             Name::new("Top Panel"),
         ))
         .with_children(|parent| {
@@ -62,10 +52,10 @@ pub fn spawn_top_panel(mut commands: Commands) {
                 GameTitleText,
                 Text::new("Dominion Earth"),
                 TextFont {
-                    font_size: 24.0,
+                    font_size: TITLE_FONT_SIZE,
                     ..default()
                 },
-                TextColor(Color::WHITE),
+                TextColor(TITLE_COLOR),
                 Node {
                     margin: UiRect::horizontal(Val::Px(20.0)),
                     ..default()
@@ -80,15 +70,15 @@ pub fn spawn_top_panel(mut commands: Commands) {
                         flex_direction: FlexDirection::Row,
                         justify_content: JustifyContent::SpaceBetween,
                         align_items: AlignItems::Center,
-                        padding: UiRect::all(Val::Px(15.0)),
-                        margin: UiRect::all(Val::Px(5.0)),
-                        min_width: Val::Px(500.0),
-                        border: UiRect::all(Val::Px(2.0)),
+                        padding: UiRect::all(PANEL_PADDING),
+                        margin: UiRect::all(PANEL_MARGIN),
+                        min_width: STATS_CONTAINER_MIN_WIDTH,
+                        border: UiRect::all(PANEL_BORDER_WIDTH),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.176, 0.176, 0.176, 1.0)), // #2d2d2d
-                    BorderColor::from(Color::srgba(0.267, 0.267, 0.267, 1.0)), // #444444
-                    BorderRadius::all(Val::Px(8.0)),
+                    BackgroundColor(STATS_CONTAINER_BACKGROUND),
+                    BorderColor::from(PANEL_BORDER),
+                    BorderRadius::all(PANEL_BORDER_RADIUS),
                     Name::new("Stats Container"),
                 ))
                 .with_children(|stats_parent| {
@@ -97,10 +87,10 @@ pub fn spawn_top_panel(mut commands: Commands) {
                         GoldDisplayText,
                         Text::new("Gold: 0"),
                         TextFont {
-                            font_size: 18.0,
+                            font_size: STATS_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(1.0, 0.8, 0.0, 1.0)), // #ffcc00
+                        TextColor(TEXT_PRIMARY),
                         Name::new("Gold Display"),
                     ));
 
@@ -109,10 +99,10 @@ pub fn spawn_top_panel(mut commands: Commands) {
                         ProductionDisplayText,
                         Text::new("Production: 0"),
                         TextFont {
-                            font_size: 18.0,
+                            font_size: STATS_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(1.0, 0.8, 0.0, 1.0)), // #ffcc00
+                        TextColor(TEXT_PRIMARY),
                         Name::new("Production Display"),
                     ));
 
@@ -121,47 +111,12 @@ pub fn spawn_top_panel(mut commands: Commands) {
                         TurnDisplayText,
                         Text::new("Turn: 1"),
                         TextFont {
-                            font_size: 18.0,
+                            font_size: STATS_FONT_SIZE,
                             ..default()
                         },
-                        TextColor(Color::srgba(1.0, 0.8, 0.0, 1.0)), // #ffcc00
+                        TextColor(TEXT_PRIMARY),
                         Name::new("Turn Display"),
                     ));
                 });
         });
-}
-
-// ============================================================================
-// Update Systems
-// ============================================================================
-
-/// Update gold and production displays from player civilization
-pub fn update_player_resources(
-    player_query: Query<&Civilization, With<PlayerControlled>>,
-    mut gold_text: Query<&mut Text, (With<GoldDisplayText>, Without<ProductionDisplayText>)>,
-    mut production_text: Query<&mut Text, With<ProductionDisplayText>>,
-) {
-    if let Some(player_civ) = player_query.iter().next() {
-        // Update gold display
-        if let Some(mut text) = gold_text.iter_mut().next() {
-            **text = format!("Gold: {}", player_civ.economy.gold);
-        }
-
-        // Update production display
-        if let Some(mut text) = production_text.iter_mut().next() {
-            **text = format!("Production: {}", player_civ.economy.production);
-        }
-    }
-}
-
-/// Update turn display from CurrentTurn resource
-pub fn update_turn_display(
-    current_turn: Res<CurrentTurn>,
-    mut turn_text: Query<&mut Text, With<TurnDisplayText>>,
-) {
-    if current_turn.is_changed() {
-        if let Some(mut text) = turn_text.iter_mut().next() {
-            **text = format!("Turn: {}", current_turn.0);
-        }
-    }
 }
