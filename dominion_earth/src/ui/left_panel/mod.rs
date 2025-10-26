@@ -4,6 +4,7 @@ pub mod unit_info_section;
 
 use bevy::prelude::*;
 use core_sim::RequestTurnAdvance;
+use moonshine_save::prelude::*;
 
 use crate::ui::constants::display_layout;
 use constants::*;
@@ -14,6 +15,7 @@ pub use unit_info_section::*;
 
 // Main left panel components
 #[derive(Component)]
+#[require(Unload)]
 pub struct LeftPanel;
 
 #[derive(Component)]

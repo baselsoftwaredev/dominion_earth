@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use moonshine_save::prelude::*;
 
 /// Component that links a game entity to its visual sprite entity
 ///
@@ -10,6 +11,7 @@ use bevy::prelude::*;
 /// - Model (saved): City, Civilization, MilitaryUnit, Position, etc.
 /// - View (not saved): SpriteEntityReference, UI components, Camera, etc.
 #[derive(Component, Debug, Clone, Copy, Reflect)]
+#[require(Unload)]
 pub struct SpriteEntityReference {
     pub sprite_entity: Entity,
 }

@@ -1,23 +1,18 @@
 use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
+use moonshine_save::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Position component for entities on the world map
 ///
 /// This is a "Model" component - critical game state that should be saved.
-/// Note: Add the `Save` component manually when spawning positioned entities.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
-}
-
-// Manual Component implementation to avoid proc macro issues
-impl Component for Position {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl Position {
@@ -84,19 +79,14 @@ impl Position {
 }
 
 /// Cardinal directions for movement and positioning
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub enum Direction {
     North,
     South,
     East,
     West,
-}
-
-// Manual Component implementation to avoid proc macro issues
-impl Component for Direction {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 /// Direction constants for easy access

@@ -3,15 +3,16 @@ use super::terrain::TerrainType;
 use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
+use moonshine_save::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// City component representing a settlement
 ///
 /// This is a "Model" component in MVC architecture - it contains the logical
 /// state of cities and should be saved/loaded.
-/// Note: Add the `Save` component manually when spawning cities.
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct City {
     pub name: String,
     pub owner: CivId,
@@ -19,12 +20,6 @@ pub struct City {
     pub production: f32,
     pub defense: f32,
     pub buildings: Vec<Building>,
-}
-
-// Manual Component implementation
-impl Component for City {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl City {
@@ -87,20 +82,14 @@ impl City {
 /// Capital component for tracking civilization capitals through different ages
 ///
 /// This is a "Model" component - saved state.
-/// Note: Add the `Save` component manually when spawning capitals.
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct Capital {
     pub owner: CivId,
     pub age: CapitalAge,
     pub sprite_index: u32,
     pub established_turn: u32,
-}
-
-// Manual Component implementation
-impl Component for Capital {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 /// Ages that a capital can evolve through
@@ -193,17 +182,12 @@ pub struct CapitalEvolutionRequirements {
 }
 
 /// Building in a city
-#[derive(Debug, Clone, PartialEq, Eq, Reflect)]
+#[derive(Component, Debug, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct Building {
     pub building_type: BuildingType,
     pub level: u32,
-}
-
-// Manual Component implementation
-impl Component for Building {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 /// Types of buildings that can be constructed
@@ -278,15 +262,10 @@ impl BuildingType {
 }
 
 /// Territory control component
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Component, Debug, Clone, Serialize, Deserialize)]
+#[require(Save)]
 pub struct Territory {
     pub owner: CivId,
     pub control_strength: f32,
     pub terrain_type: TerrainType,
-}
-
-// Manual Component implementation
-impl Component for Territory {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }

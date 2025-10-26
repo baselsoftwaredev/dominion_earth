@@ -1,6 +1,7 @@
 use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
+use moonshine_save::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{CivId, Position};
@@ -23,16 +24,11 @@ impl Default for VisibilityState {
 }
 
 /// Component that marks an entity as providing vision (units, cities)
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Reflect)]
+#[derive(Component, Debug, Clone, Copy, Serialize, Deserialize, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct ProvidesVision {
     pub range: i32,
-}
-
-// Manual Component implementation
-impl Component for ProvidesVision {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl ProvidesVision {

@@ -1,11 +1,13 @@
 use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
+use moonshine_save::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Terrain types for world map tiles
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Reflect)]
+#[derive(Component, Debug, Clone, PartialEq, Eq, Hash, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub enum TerrainType {
     Plains,
     Hills,
@@ -16,12 +18,6 @@ pub enum TerrainType {
     ShallowCoast,
     Ocean,
     River,
-}
-
-// Manual Component implementation
-impl Component for TerrainType {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl TerrainType {

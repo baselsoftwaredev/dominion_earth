@@ -2,6 +2,7 @@ use super::position::Position;
 use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
+use moonshine_save::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -9,16 +10,10 @@ use std::collections::HashMap;
 /// Note: Hash trait is required for use as HashMap key in FogOfWarMaps
 ///
 /// This is a "Model" component - core game state that should be saved.
-/// Note: Add the `Save` component manually when spawning civilizations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect)]
 #[reflect(Component, Hash, PartialEq)]
+#[require(Save)]
 pub struct CivId(pub u32);
-
-// Manual Component implementation
-impl Component for CivId {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
-}
 
 impl From<u32> for CivId {
     fn from(id: u32) -> Self {
@@ -29,9 +24,9 @@ impl From<u32> for CivId {
 /// Civilization component representing a playable faction
 ///
 /// This is a "Model" component - core game state.
-/// Note: Add the `Save` component manually when spawning civilizations.
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct Civilization {
     pub id: CivId,
     pub name: String,
@@ -43,15 +38,10 @@ pub struct Civilization {
     pub military: Military,
 }
 
-// Manual Component implementation
-impl Component for Civilization {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
-}
-
 /// AI personality traits that drive decision making
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct CivPersonality {
     pub land_hunger: f32,     // 0.0 - 1.0, desire to expand territory
     pub industry_focus: f32,  // 0.0 - 1.0, focus on economic development
@@ -61,12 +51,6 @@ pub struct CivPersonality {
     pub honor_treaties: f32,  // 0.0 - 1.0, diplomatic reliability
     pub militarism: f32,      // 0.0 - 1.0, focus on military strength
     pub isolationism: f32,    // 0.0 - 1.0, preference for isolation
-}
-
-// Manual Component implementation
-impl Component for CivPersonality {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl Default for CivPersonality {
@@ -104,8 +88,9 @@ impl Default for Technologies {
 }
 
 /// Economic state of a civilization
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct Economy {
     pub gold: f32,
     pub income: f32,
@@ -113,12 +98,6 @@ pub struct Economy {
     pub production: f32,
     #[reflect(skip_serializing)]
     pub trade_routes: Vec<TradeRoute>,
-}
-
-// Manual Component implementation
-impl Component for Economy {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl Default for Economy {
@@ -134,19 +113,14 @@ impl Default for Economy {
 }
 
 /// Trade route between cities/regions
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct TradeRoute {
     pub from: Position,
     pub to: Position,
     pub value: f32,
     pub security: f32,
-}
-
-// Manual Component implementation
-impl Component for TradeRoute {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 /// Military forces and capabilities
@@ -168,19 +142,14 @@ impl Default for Military {
 }
 
 /// Basic civilization statistics for simple tracking
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct CivStats {
     pub name: String,
     pub population: u32,
     pub cities: u32,
     pub military_strength: f32,
-}
-
-// Manual Component implementation
-impl Component for CivStats {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 // Re-export ActiveThisTurn from orders module

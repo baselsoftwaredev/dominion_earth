@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-// use bevy_save::prelude::*; // TODO: Re-enable when bevy_save is compatible with Bevy 0.17
 use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{ActiveCivTurn, CurrentTurn, GameConfig, MapTile, Resource, WorldMap};
@@ -9,64 +8,7 @@ use core_sim::{
     PlayerMovementOrder, Position, ProvidesVision, Technologies, TerrainType, TradeRoute,
     UnitSelected, UnitType, VisibilityMap, VisibilityState,
 };
-
-// TODO: Re-enable when bevy_save is compatible with Bevy 0.17
-/*
-pub struct DominionEarthPipeline {
-    save_name: String,
-}
-
-impl DominionEarthPipeline {
-    pub fn new(save_name: String) -> Self {
-        Self { save_name }
-    }
-}
-
-impl Pipeline for DominionEarthPipeline {
-    type Backend = DefaultBackend;
-    type Format = DefaultDebugFormat;
-    type Key<'a> = String;
-
-    fn key(&self) -> Self::Key<'_> {
-        format!("dominion_earth/{}", self.save_name)
-    }
-
-    fn capture(&self, builder: BuilderRef) -> Snapshot {
-        builder
-            .extract_entities_matching(|e| {
-                e.contains::<Position>()
-                    || e.contains::<Civilization>()
-                    || e.contains::<City>()
-                    || e.contains::<MilitaryUnit>()
-                    || e.contains::<TerrainType>()
-            })
-            .deny::<SpriteEntityReference>()
-            .extract_resource::<WorldMap>()
-            .extract_resource::<CurrentTurn>()
-            .extract_resource::<ActiveCivTurn>()
-            .extract_resource::<TurnPhase>()
-            .extract_resource::<GameConfig>()
-            .extract_resource::<FogOfWarMaps>()
-            .build()
-    }
-
-    fn apply(&self, world: &mut World, snapshot: &Snapshot) -> Result<(), bevy_save::Error> {
-        snapshot
-            .applier(world)
-            .despawn::<Or<(
-                With<Position>,
-                With<Civilization>,
-                With<City>,
-                With<MilitaryUnit>,
-                With<TerrainType>,
-            )>>()
-            .apply()?;
-
-        info!("Game state loaded successfully from: {}", self.save_name);
-        Ok(())
-    }
-}
-*/
+use moonshine_save::prelude::*;
 
 pub struct SaveLoadPlugin;
 
@@ -78,12 +20,11 @@ impl Default for SaveLoadPlugin {
 
 impl Plugin for SaveLoadPlugin {
     fn build(&self, app: &mut App) {
-        // TODO: Re-enable when bevy_save is compatible with Bevy 0.17
-        // app.add_plugins(SavePlugins)
         app
-            // Note: moonshine-save integration ready - using MVC architecture
-            // Model components (game logic): City, Civilization, MilitaryUnit, Position
-            // View components (visual): SpriteEntityReference (marked for unload)
+            // Add moonshine-save observers
+            .add_observer(save_on_default_event)
+            .add_observer(load_on_default_event)
+            // Register all Model component types for reflection and saving
             .register_type::<Position>()
             .register_type::<Direction>()
             .register_type::<CivId>()
@@ -128,7 +69,7 @@ impl Plugin for SaveLoadPlugin {
                 ),
             );
 
-        info!("SaveLoadPlugin initialized with bevy_save and MVC architecture (moonshine-save philosophy)");
+        info!("SaveLoadPlugin initialized with moonshine-save MVC architecture");
     }
 }
 
@@ -141,114 +82,48 @@ pub struct SaveLoadState {
     pub ui_needs_respawn: bool,
 }
 
-fn handle_save_requests(world: &mut World) {
-    let save_name = {
-        let mut save_state = world.resource_mut::<SaveLoadState>();
-        save_state.save_requested.take()
-    };
-
-    if let Some(save_name) = save_name {
+fn handle_save_requests(mut commands: Commands, mut save_state: ResMut<SaveLoadState>) {
+    if let Some(save_name) = save_state.save_requested.take() {
         info!("Saving game: {}", save_name);
-        // TODO: Re-enable when bevy_save is compatible with Bevy 0.17
-        warn!("Save functionality is currently disabled - waiting for bevy_save Bevy 0.17 compatibility");
-        /*
-        let pipeline = DominionEarthPipeline::new(save_name.clone());
 
-        match world.save(&pipeline) {
-            Ok(_) => info!("Game saved successfully: {}", save_name),
-            Err(e) => error!("Failed to save game: {:?}", e),
-        }
-        */
+        let file_path = format!("saves/{}.ron", save_name);
+
+        // Trigger moonshine-save
+        commands.trigger_save(
+            SaveWorld::default_into_file(file_path)
+                .include_resource::<WorldMap>()
+                .include_resource::<CurrentTurn>()
+                .include_resource::<ActiveCivTurn>()
+                .include_resource::<TurnPhase>()
+                .include_resource::<GameConfig>()
+                .include_resource::<FogOfWarMaps>(),
+        );
+
+        info!("Game save triggered: {}", save_name);
     }
 }
 
-fn handle_load_requests(world: &mut World) {
-    let load_name = {
-        let mut save_state = world.resource_mut::<SaveLoadState>();
-        save_state.load_requested.take()
-    };
-
-    if let Some(load_name) = load_name {
+fn handle_load_requests(mut commands: Commands, mut save_state: ResMut<SaveLoadState>) {
+    if let Some(load_name) = save_state.load_requested.take() {
         info!("Loading game: {}", load_name);
 
-        despawn_referenced_sprites(world);
-        despawn_ui_panels(world);
+        // Set flags for post-load restoration
+        save_state.needs_player_restore = true;
+        save_state.fog_of_war_needs_refresh = true;
+        save_state.ui_needs_respawn = true;
 
-        {
-            let mut save_state = world.resource_mut::<SaveLoadState>();
-            save_state.needs_player_restore = true;
-            save_state.fog_of_war_needs_refresh = true;
-            save_state.ui_needs_respawn = true;
-        }
+        let file_path = format!("saves/{}.ron", load_name);
 
-        // TODO: Re-enable when bevy_save is compatible with Bevy 0.17
-        warn!("Load functionality is currently disabled - waiting for bevy_save Bevy 0.17 compatibility");
-        /*
-        let pipeline = DominionEarthPipeline::new(load_name.clone());
+        // Trigger moonshine-save
+        // Note: This will automatically despawn all entities with Unload component
+        commands.trigger_load(LoadWorld::default_from_file(file_path));
 
-        match world.load(&pipeline) {
-            Ok(_) => info!("Game loaded successfully: {}", load_name),
-            Err(e) => error!("Failed to load game: {:?}", e),
-        }
-        */
+        info!("Game load triggered: {}", load_name);
     }
 }
 
-fn despawn_referenced_sprites(world: &mut World) {
-    let mut sprite_entities_to_despawn = Vec::new();
-
-    let mut query = world.query::<&SpriteEntityReference>();
-    for sprite_ref in query.iter(world) {
-        sprite_entities_to_despawn.push(sprite_ref.sprite_entity);
-    }
-
-    let despawn_count = sprite_entities_to_despawn.len();
-    for sprite_entity in sprite_entities_to_despawn {
-        if let Ok(entity_mut) = world.get_entity_mut(sprite_entity) {
-            entity_mut.despawn();
-        }
-    }
-
-    if despawn_count > 0 {
-        info!("Despawned {} sprite entities before loading", despawn_count);
-    }
-}
-
-fn despawn_ui_panels(world: &mut World) {
-    let mut ui_entities_to_despawn = Vec::new();
-
-    // Despawn TopPanel entities
-    let mut query = world.query_filtered::<Entity, With<crate::ui::top_panel::TopPanel>>();
-    for entity in query.iter(world) {
-        ui_entities_to_despawn.push(entity);
-    }
-
-    // Despawn RightPanel entities
-    let mut query = world.query_filtered::<Entity, With<crate::ui::right_panel::RightPanel>>();
-    for entity in query.iter(world) {
-        ui_entities_to_despawn.push(entity);
-    }
-
-    // Despawn LeftPanel entities
-    let mut query = world.query_filtered::<Entity, With<crate::ui::left_panel::LeftPanel>>();
-    for entity in query.iter(world) {
-        ui_entities_to_despawn.push(entity);
-    }
-
-    let despawn_count = ui_entities_to_despawn.len();
-    for entity in ui_entities_to_despawn {
-        if let Ok(entity_mut) = world.get_entity_mut(entity) {
-            entity_mut.despawn();
-        }
-    }
-
-    if despawn_count > 0 {
-        info!(
-            "Despawned {} UI panel entities before loading",
-            despawn_count
-        );
-    }
-}
+// despawn_referenced_sprites and despawn_ui_panels are no longer needed
+// as moonshine-save automatically despawns entities with #[require(Unload)]
 
 pub fn save_game(save_state: &mut ResMut<SaveLoadState>, save_name: &str) {
     save_state.save_requested = Some(save_name.to_string());
@@ -379,19 +254,3 @@ fn respawn_ui_after_load(mut commands: Commands, mut save_state: ResMut<SaveLoad
     save_state.ui_needs_respawn = false;
     info!("UI respawn complete after load");
 }
-
-// Note: moonshine-save helper functions (for future integration when compatible version is available)
-//
-// The following functions demonstrate the moonshine-save MVC philosophy:
-// - Model: Game state components (City, Civilization, MilitaryUnit, etc.) should be saved
-// - View: Visual components (SpriteEntityReference, UI, etc.) should be unloaded before load
-//
-// When moonshine-save becomes compatible with Bevy 0.16, use these patterns:
-//
-// pub fn trigger_moonshine_save(commands: &mut Commands, save_path: &str) {
-//     commands.trigger_save(SaveWorld::default_into_file(save_path));
-// }
-//
-// pub fn trigger_moonshine_load(commands: &mut Commands, load_path: &str) {
-//     commands.trigger_load(LoadWorld::default_from_file(load_path));
-// }

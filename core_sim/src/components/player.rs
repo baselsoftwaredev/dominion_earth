@@ -2,15 +2,12 @@ use super::civilization::CivId;
 use bevy::reflect::Reflect;
 use bevy_ecs::component::{Component, Mutable};
 use bevy_ecs::prelude::Resource;
+use moonshine_save::prelude::*;
 
 /// Marker component for player-controlled civilizations
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
+#[require(Save)]
 pub struct PlayerControlled;
-
-impl Component for PlayerControlled {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
-}
 
 /// Resource for tracking currently selected unit
 #[derive(Default, Resource)]
@@ -21,21 +18,13 @@ pub struct SelectedUnit {
 }
 
 /// Component to mark a unit as selected for player interaction
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
+#[require(Save)]
 pub struct UnitSelected;
 
-impl Component for UnitSelected {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
-}
-
 /// Component for pending player movement order
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
+#[require(Save)]
 pub struct PlayerMovementOrder {
     pub target_position: super::position::Position,
-}
-
-impl Component for PlayerMovementOrder {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }

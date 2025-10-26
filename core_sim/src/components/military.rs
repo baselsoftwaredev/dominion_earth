@@ -4,14 +4,15 @@ use crate::constants::unit_stats;
 use bevy::prelude::Reflect;
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
+use moonshine_save::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Military unit component - represents a game unit
 ///
 /// This is a "Model" component containing game state that should be saved.
-/// Note: Add the `Save` component manually when spawning units.
-#[derive(Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[require(Save)]
 pub struct MilitaryUnit {
     pub id: u32,
     pub owner: CivId,
@@ -35,11 +36,6 @@ pub struct MilitaryUnit {
     pub corruption: f32,
 
     pub experience: f32,
-}
-
-impl Component for MilitaryUnit {
-    type Mutability = Mutable;
-    const STORAGE_TYPE: bevy_ecs::component::StorageType = bevy_ecs::component::StorageType::Table;
 }
 
 impl MilitaryUnit {
