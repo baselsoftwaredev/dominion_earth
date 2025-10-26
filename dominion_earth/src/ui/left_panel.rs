@@ -1,7 +1,3 @@
-//! Native Bevy UI implementation for the left side panel.
-//!
-//! Displays game panel (Next Turn button), production menu, and unit info.
-
 use bevy::prelude::*;
 use core_sim::{
     Civilization, MilitaryUnit, PlayerControlled, PlayerProductionOrder, ProductionQueue,
@@ -11,25 +7,15 @@ use core_sim::{
 use crate::production_input::SelectedCapital;
 use crate::ui::constants::display_layout;
 
-// ============================================================================
-// Marker Components
-// ============================================================================
-
-/// Marker component for the left panel container
 #[derive(Component)]
 pub struct LeftPanel;
 
-// Game Panel Components
-/// Marker component for the game panel section
 #[derive(Component)]
 pub struct GamePanel;
 
-/// Marker component for the Next Turn button
 #[derive(Component)]
 pub struct NextTurnButton;
 
-// Production Menu Components
-/// Marker component for the production menu section
 #[derive(Component)]
 pub struct ProductionMenuPanel;
 
@@ -54,20 +40,15 @@ pub struct CurrentProductionProgressText;
 #[derive(Component)]
 pub struct ProductionQueueLengthText;
 
-/// Marker for Infantry production button
 #[derive(Component)]
 pub struct InfantryButton;
 
-/// Marker for Archer production button
 #[derive(Component)]
 pub struct ArcherButton;
 
-/// Marker for Cavalry production button
 #[derive(Component)]
 pub struct CavalryButton;
 
-// Unit Info Components
-/// Marker component for the unit info panel section
 #[derive(Component)]
 pub struct UnitInfoPanel;
 
@@ -113,11 +94,6 @@ pub struct UnitEffectiveAttackText;
 #[derive(Component)]
 pub struct UnitEffectiveDefenseText;
 
-// ============================================================================
-// Setup System
-// ============================================================================
-
-/// Spawn the left side panel UI hierarchy
 pub fn spawn_left_panel(mut commands: Commands) {
     commands
         .spawn((
@@ -132,11 +108,10 @@ pub fn spawn_left_panel(mut commands: Commands) {
                 padding: UiRect::all(Val::Px(10.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.102, 0.102, 0.102, 1.0)), // #1a1a1a
+            BackgroundColor(Color::srgba(0.102, 0.102, 0.102, 1.0)),
             Name::new("Left Panel"),
         ))
         .with_children(|parent| {
-            // Game Panel (Your Empire + Next Turn Button)
             parent
                 .spawn((
                     GamePanel,
@@ -149,20 +124,19 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         border: UiRect::all(Val::Px(2.0)),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.176, 0.176, 0.176, 1.0)), // #2d2d2d
-                    BorderColor::from(Color::srgba(0.267, 0.267, 0.267, 1.0)), // #444444
+                    BackgroundColor(Color::srgba(0.176, 0.176, 0.176, 1.0)),
+                    BorderColor::from(Color::srgba(0.267, 0.267, 0.267, 1.0)),
                     BorderRadius::all(Val::Px(8.0)),
                     Name::new("Game Panel"),
                 ))
                 .with_children(|game_parent| {
-                    // Panel title
                     game_parent.spawn((
                         Text::new("Your Empire"),
                         TextFont {
                             font_size: 20.0,
                             ..default()
                         },
-                        TextColor(Color::srgba(1.0, 0.8, 0.0, 1.0)), // #ffcc00
+                        TextColor(Color::srgba(1.0, 0.8, 0.0, 1.0)),
                         Node {
                             margin: UiRect::bottom(Val::Px(15.0)),
                             ..default()
@@ -170,7 +144,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         Name::new("Game Panel Title"),
                     ));
 
-                    // Next Turn Button
                     game_parent
                         .spawn((
                             NextTurnButton,
@@ -185,8 +158,8 @@ pub fn spawn_left_panel(mut commands: Commands) {
                                 border: UiRect::all(Val::Px(2.0)),
                                 ..default()
                             },
-                            BackgroundColor(Color::srgba(0.176, 0.176, 0.176, 1.0)), // #2d2d2d
-                            BorderColor::from(Color::srgba(0.4, 0.4, 0.4, 1.0)),     // #666666
+                            BackgroundColor(Color::srgba(0.176, 0.176, 0.176, 1.0)),
+                            BorderColor::from(Color::srgba(0.4, 0.4, 0.4, 1.0)),
                             BorderRadius::all(Val::Px(5.0)),
                             Name::new("Next Turn Button"),
                         ))
@@ -202,12 +175,11 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         });
                 });
 
-            // Production Menu Panel
             parent
                 .spawn((
                     ProductionMenuPanel,
                     Node {
-                        display: Display::None, // Hidden by default
+                        display: Display::None,
                         flex_direction: FlexDirection::Column,
                         padding: UiRect::all(Val::Px(15.0)),
                         margin: UiRect::all(Val::Px(5.0)),
@@ -216,13 +188,12 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         overflow: Overflow::clip_y(),
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.176, 0.176, 0.176, 1.0)), // #2d2d2d
-                    BorderColor::from(Color::srgba(0.267, 0.267, 0.267, 1.0)), // #444444
+                    BackgroundColor(Color::srgba(0.176, 0.176, 0.176, 1.0)),
+                    BorderColor::from(Color::srgba(0.267, 0.267, 0.267, 1.0)),
                     BorderRadius::all(Val::Px(8.0)),
                     Name::new("Production Menu Panel"),
                 ))
                 .with_children(|menu_parent| {
-                    // Header
                     menu_parent.spawn((
                         Text::new("Production Menu"),
                         TextFont {
@@ -237,7 +208,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         Name::new("Production Menu Title"),
                     ));
 
-                    // Capital Information Container
                     menu_parent
                         .spawn((
                             Node {
@@ -301,7 +271,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                             ));
                         });
 
-                    // Separator
                     menu_parent.spawn((
                         Node {
                             width: Val::Percent(100.0),
@@ -313,7 +282,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         Name::new("Separator"),
                     ));
 
-                    // Available Units Section
                     menu_parent
                         .spawn((
                             Node {
@@ -337,7 +305,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                                 },
                             ));
 
-                            // Infantry Button
                             units_parent
                                 .spawn((
                                     InfantryButton,
@@ -377,7 +344,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                                     ));
                                 });
 
-                            // Archer Button
                             units_parent
                                 .spawn((
                                     ArcherButton,
@@ -417,7 +383,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                                     ));
                                 });
 
-                            // Cavalry Button
                             units_parent
                                 .spawn((
                                     CavalryButton,
@@ -458,7 +423,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                                 });
                         });
 
-                    // Current Production Section
                     menu_parent
                         .spawn((
                             Node {
@@ -507,7 +471,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                             ));
                         });
 
-                    // Production Queue Section
                     menu_parent
                         .spawn((
                             Node {
@@ -542,7 +505,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                             ));
                         });
 
-                    // Separator
                     menu_parent.spawn((
                         Node {
                             width: Val::Percent(100.0),
@@ -553,7 +515,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         BackgroundColor(Color::srgba(0.267, 0.267, 0.267, 1.0)), // #444444
                     ));
 
-                    // Controls hint
                     menu_parent.spawn((
                         Text::new("Press [Esc] to close | Click buttons to queue units"),
                         TextFont {
@@ -564,7 +525,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                     ));
                 });
 
-            // Unit Info Panel
             parent
                 .spawn((
                     UnitInfoPanel,
@@ -582,7 +542,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                     Name::new("Unit Info Panel"),
                 ))
                 .with_children(|unit_parent| {
-                    // Header
                     unit_parent.spawn((
                         Text::new("Unit Information"),
                         TextFont {
@@ -597,7 +556,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         Name::new("Unit Info Title"),
                     ));
 
-                    // Unit Type
                     unit_parent.spawn((
                         UnitTypeText,
                         Text::new("Type: Unknown"),
@@ -612,7 +570,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         },
                     ));
 
-                    // Unit Health
                     unit_parent.spawn((
                         UnitHealthText,
                         Text::new("Health: 0/0"),
@@ -627,7 +584,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         },
                     ));
 
-                    // Unit Strength
                     unit_parent.spawn((
                         UnitStrengthText,
                         Text::new("Strength: 0"),
@@ -642,7 +598,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         },
                     ));
 
-                    // Unit Movement
                     unit_parent.spawn((
                         UnitMovementText,
                         Text::new("Movement: 0/0"),
@@ -656,11 +611,6 @@ pub fn spawn_left_panel(mut commands: Commands) {
         });
 }
 
-// ============================================================================
-// Button Interaction Systems
-// ============================================================================
-
-/// Handle Next Turn button interactions
 pub fn handle_next_turn_button(
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &mut BorderColor),
@@ -690,7 +640,6 @@ pub fn handle_next_turn_button(
     }
 }
 
-/// Handle Infantry button interactions
 pub fn handle_infantry_button(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<InfantryButton>)>,
     mut production_orders: MessageWriter<PlayerProductionOrder>,
@@ -711,7 +660,6 @@ pub fn handle_infantry_button(
     }
 }
 
-/// Handle Archer button interactions
 pub fn handle_archer_button(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<ArcherButton>)>,
     mut production_orders: MessageWriter<PlayerProductionOrder>,
@@ -732,7 +680,6 @@ pub fn handle_archer_button(
     }
 }
 
-/// Handle Cavalry button interactions
 pub fn handle_cavalry_button(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<CavalryButton>)>,
     mut production_orders: MessageWriter<PlayerProductionOrder>,
@@ -753,7 +700,6 @@ pub fn handle_cavalry_button(
     }
 }
 
-/// Common logic for handling unit production
 fn handle_unit_production(
     unit_type: UnitType,
     production_orders: &mut MessageWriter<PlayerProductionOrder>,
@@ -802,7 +748,6 @@ fn handle_unit_production(
     info!("Queued {:?} for production", unit_type);
 }
 
-/// Apply button hover effects for production buttons
 pub fn update_production_button_visuals(
     mut query: Query<
         (&Interaction, &mut BackgroundColor, &mut BorderColor),
@@ -820,7 +765,6 @@ pub fn update_production_button_visuals(
         match *interaction {
             Interaction::Pressed => {
                 *background = BackgroundColor(Color::srgba(0.0, 0.667, 0.667, 1.0));
-                // #0aa
             }
             Interaction::Hovered => {
                 *background = BackgroundColor(Color::srgba(0.251, 0.251, 0.251, 1.0)); // #404040
@@ -834,11 +778,6 @@ pub fn update_production_button_visuals(
     }
 }
 
-// ============================================================================
-// Update Systems
-// ============================================================================
-
-/// Update production menu visibility and data
 pub fn update_production_menu(
     selected_capital: Res<SelectedCapital>,
     civilizations: Query<&Civilization>,
@@ -930,7 +869,6 @@ pub fn update_production_menu(
     >,
 ) {
     if selected_capital.is_changed() {
-        // Update visibility
         if let Some(mut node) = menu_query.iter_mut().next() {
             node.display = if selected_capital.show_production_menu {
                 Display::Flex
@@ -939,17 +877,14 @@ pub fn update_production_menu(
             };
         }
 
-        // Update content if visible
         if selected_capital.show_production_menu {
             if let (Some(capital_entity), Some(civ_entity)) =
                 (selected_capital.capital_entity, selected_capital.civ_entity)
             {
-                // Update capital name
                 if let Some(mut text) = capital_name_text.iter_mut().next() {
                     **text = "Capital: Capital".to_string();
                 }
 
-                // Update civilization info
                 if let Ok(civ) = civilizations.get(civ_entity) {
                     if let Some(mut text) = civ_name_text.iter_mut().next() {
                         **text = format!("Civilization: {}", civ.name);
@@ -964,7 +899,6 @@ pub fn update_production_menu(
                     }
                 }
 
-                // Update production queue info
                 if let Ok(queue) = production_queues.get(capital_entity) {
                     if let Some(mut text) = current_prod_name_text.iter_mut().next() {
                         **text = queue
@@ -988,7 +922,6 @@ pub fn update_production_menu(
     }
 }
 
-/// Update unit info panel visibility and data
 pub fn update_unit_info(
     selected_unit: Res<core_sim::SelectedUnit>,
     units_query: Query<&MilitaryUnit>,
@@ -1145,7 +1078,6 @@ pub fn update_unit_info(
     >,
 ) {
     if selected_unit.is_changed() {
-        // Update visibility
         if let Some(mut node) = panel_query.iter_mut().next() {
             node.display = if selected_unit.unit_entity.is_some() {
                 Display::Flex
@@ -1154,7 +1086,6 @@ pub fn update_unit_info(
             };
         }
 
-        // Update content if visible
         if let Some(unit_entity) = selected_unit.unit_entity {
             if let Ok(unit) = units_query.get(unit_entity) {
                 if let Some(mut text) = unit_name_text.iter_mut().next() {

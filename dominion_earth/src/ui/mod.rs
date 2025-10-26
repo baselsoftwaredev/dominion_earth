@@ -1,6 +1,7 @@
 pub mod capital_labels;
 pub mod constants;
 pub mod left_panel;
+pub mod left_panel_constants;
 pub mod resources;
 pub mod right_panel;
 pub mod system_setup;
