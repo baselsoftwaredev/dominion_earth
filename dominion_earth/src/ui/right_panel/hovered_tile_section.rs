@@ -3,10 +3,6 @@ use core_sim::components::TerrainType;
 
 use crate::ui::resources::HoveredTile;
 
-// ============================================================================
-// Component Markers
-// ============================================================================
-
 #[derive(Component)]
 pub struct HoveredTileInfoPanel;
 
@@ -16,11 +12,6 @@ pub struct HoveredPositionText;
 #[derive(Component)]
 pub struct HoveredTerrainText;
 
-// ============================================================================
-// Update Systems
-// ============================================================================
-
-/// Update hovered tile information
 pub fn update_hovered_tile_info(
     hovered_tile: Res<HoveredTile>,
     mut position_text: Query<&mut Text, (With<HoveredPositionText>, Without<HoveredTerrainText>)>,
@@ -29,12 +20,10 @@ pub fn update_hovered_tile_info(
     if hovered_tile.is_changed() {
         match hovered_tile.position {
             Some(position) => {
-                // Update position
                 if let Some(mut text) = position_text.iter_mut().next() {
                     **text = format!("Position: ({}, {})", position.x, position.y);
                 }
 
-                // Update terrain
                 if let Some(mut text) = terrain_text.iter_mut().next() {
                     let terrain_name = match &hovered_tile.terrain_type {
                         Some(terrain) => format_terrain_type(terrain),
@@ -44,7 +33,6 @@ pub fn update_hovered_tile_info(
                 }
             }
             None => {
-                // No tile hovered
                 if let Some(mut text) = position_text.iter_mut().next() {
                     **text = "Position: None".to_string();
                 }
@@ -57,11 +45,6 @@ pub fn update_hovered_tile_info(
     }
 }
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-/// Format terrain type for display
 fn format_terrain_type(terrain: &TerrainType) -> String {
     match terrain {
         TerrainType::Plains => "Plains".to_string(),

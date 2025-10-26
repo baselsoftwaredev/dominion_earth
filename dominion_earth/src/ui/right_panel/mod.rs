@@ -8,24 +8,13 @@ use bevy::prelude::*;
 use crate::ui::constants::display_layout;
 use constants::*;
 
-// Re-export components from sub-modules
 pub use civilizations_section::*;
 pub use hovered_tile_section::*;
 pub use statistics_section::*;
 
-// ============================================================================
-// Main Right Panel Components
-// ============================================================================
-
-/// Marker component for the right panel container
 #[derive(Component)]
 pub struct RightPanel;
 
-// ============================================================================
-// Setup System
-// ============================================================================
-
-/// Spawn the right side panel UI hierarchy with all sections
 pub fn spawn_right_panel(mut commands: Commands) {
     commands
         .spawn((
@@ -41,11 +30,10 @@ pub fn spawn_right_panel(mut commands: Commands) {
                 overflow: Overflow::visible(),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.102, 0.102, 0.102, 1.0)), // #1a1a1a
+            BackgroundColor(Color::srgba(0.102, 0.102, 0.102, 1.0)),
             Name::new("Right Panel"),
         ))
         .with_children(|parent| {
-            // Statistics Panel
             parent
                 .spawn((
                     StatisticsPanel,
@@ -64,7 +52,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                     Name::new("Statistics Panel"),
                 ))
                 .with_children(|stats_parent| {
-                    // Panel title
                     stats_parent.spawn((
                         Text::new("World Statistics"),
                         TextFont {
@@ -79,7 +66,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                         Name::new("Statistics Title"),
                     ));
 
-                    // Turn info
                     stats_parent.spawn((
                         StatisticsTurnText,
                         Text::new("Turn: 1"),
@@ -95,7 +81,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                         Name::new("Turn Text"),
                     ));
 
-                    // Land count
                     stats_parent.spawn((
                         StatisticsLandText,
                         Text::new("Land: 0"),
@@ -111,7 +96,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                         Name::new("Land Count Text"),
                     ));
 
-                    // Water count
                     stats_parent.spawn((
                         StatisticsWaterText,
                         Text::new("Water: 0"),
@@ -127,7 +111,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                         Name::new("Water Count Text"),
                     ));
 
-                    // Mountain count
                     stats_parent.spawn((
                         StatisticsMountainText,
                         Text::new("Mountains: 0"),
@@ -140,7 +123,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                     ));
                 });
 
-            // Hovered Tile Info
             parent
                 .spawn((
                     HoveredTileInfoPanel,
@@ -159,7 +141,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                     Name::new("Hovered Tile Info Panel"),
                 ))
                 .with_children(|tile_parent| {
-                    // Panel title
                     tile_parent.spawn((
                         Text::new("Hovered Tile"),
                         TextFont {
@@ -174,7 +155,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                         Name::new("Hovered Tile Title"),
                     ));
 
-                    // Position
                     tile_parent.spawn((
                         HoveredPositionText,
                         Text::new("Position: None"),
@@ -190,7 +170,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                         Name::new("Hovered Position Text"),
                     ));
 
-                    // Terrain
                     tile_parent.spawn((
                         HoveredTerrainText,
                         Text::new("Terrain: None"),
@@ -203,7 +182,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                     ));
                 });
 
-            // Civilizations List
             parent
                 .spawn((
                     CivilizationsListPanel,
@@ -222,7 +200,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                     Name::new("Civilizations List Panel"),
                 ))
                 .with_children(|civs_parent| {
-                    // Panel title
                     civs_parent.spawn((
                         Text::new("Civilizations"),
                         TextFont {
@@ -237,7 +214,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                         Name::new("Civilizations Title"),
                     ));
 
-                    // Civilizations text (dynamic)
                     civs_parent.spawn((
                         CivilizationsListText,
                         Text::new("Loading..."),
@@ -250,7 +226,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                     ));
                 });
 
-            // Minimap
             parent
                 .spawn((
                     Node {
@@ -268,7 +243,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                     Name::new("Minimap Panel"),
                 ))
                 .with_children(|minimap_parent| {
-                    // Panel title
                     minimap_parent.spawn((
                         Text::new("Minimap"),
                         TextFont {
@@ -283,7 +257,6 @@ pub fn spawn_right_panel(mut commands: Commands) {
                         Name::new("Minimap Title"),
                     ));
 
-                    // Placeholder content
                     minimap_parent.spawn((
                         Text::new("Map view placeholder"),
                         TextFont {

@@ -3,10 +3,6 @@ use core_sim::resources::CurrentTurn;
 
 use crate::ui::resources::TerrainCounts;
 
-// ============================================================================
-// Component Markers
-// ============================================================================
-
 #[derive(Component)]
 pub struct StatisticsPanel;
 
@@ -22,15 +18,6 @@ pub struct StatisticsWaterText;
 #[derive(Component)]
 pub struct StatisticsMountainText;
 
-// ============================================================================
-// Update Systems
-// ============================================================================
-
-// ============================================================================
-// Update Systems
-// ============================================================================
-
-/// Update statistics panel with current turn and terrain counts
 pub fn update_statistics_panel(
     current_turn: Res<CurrentTurn>,
     terrain_counts: Res<TerrainCounts>,
@@ -71,14 +58,12 @@ pub fn update_statistics_panel(
         ),
     >,
 ) {
-    // Update turn text when it changes
     if current_turn.is_changed() {
         if let Some(mut text) = turn_text.iter_mut().next() {
             **text = format!("Turn: {}", current_turn.0);
         }
     }
 
-    // Update terrain counts when they change
     if terrain_counts.is_changed() {
         let land_count = terrain_counts.plains
             + terrain_counts.hills
