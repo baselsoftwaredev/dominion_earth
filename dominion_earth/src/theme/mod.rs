@@ -57,6 +57,7 @@ fn handle_button_interactions(
     mut global_volume: ResMut<GlobalVolume>,
     mut app_exit: MessageWriter<AppExit>,
     screen: Res<State<Screen>>,
+    mut save_load_state: ResMut<crate::plugins::save_load::SaveLoadState>,
 ) {
     use bevy::audio::{GlobalVolume, Volume};
 
@@ -110,6 +111,14 @@ fn handle_button_interactions(
                 widget::ButtonAction::RaiseVolume => {
                     let linear = (global_volume.volume.to_linear() + 0.1).min(3.0);
                     global_volume.volume = Volume::Linear(linear);
+                }
+                widget::ButtonAction::SaveGame => {
+                    println!("💾 Save game requested (F5)");
+                    crate::plugins::save_load::save_game(&mut save_load_state, "quicksave");
+                }
+                widget::ButtonAction::LoadGame => {
+                    println!("📂 Load game requested (F9)");
+                    crate::plugins::save_load::load_game(&mut save_load_state, "quicksave");
                 }
             }
         }

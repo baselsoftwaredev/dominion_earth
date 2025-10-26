@@ -37,6 +37,14 @@ fn spawn_pause_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
             parent.spawn(widget::header("Game Paused"));
             parent.spawn(widget::button("Continue", widget::ButtonAction::CloseMenu));
             parent.spawn(widget::button(
+                "Save Game (F5)",
+                widget::ButtonAction::SaveGame,
+            ));
+            parent.spawn(widget::button(
+                "Load Game (F9)",
+                widget::ButtonAction::LoadGame,
+            ));
+            parent.spawn(widget::button(
                 "Settings",
                 widget::ButtonAction::OpenSettings,
             ));

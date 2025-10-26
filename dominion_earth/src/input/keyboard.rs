@@ -1,15 +1,13 @@
 use crate::constants::input::camera;
 use crate::debug_utils::{DebugLogging, DebugUtils};
 use crate::game::GameState;
-// TODO: Re-enable once bevy_save is updated for Bevy 0.17
-// use crate::plugins::save_load::{load_game, save_game, SaveLoadState};
+use crate::plugins::save_load::{load_game, save_game, SaveLoadState};
 use bevy::prelude::*;
 
 pub fn handle_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut game_state: ResMut<GameState>,
-    // TODO: Re-enable once bevy_save is updated for Bevy 0.17
-    // mut save_load_state: ResMut<SaveLoadState>,
+    mut save_load_state: ResMut<SaveLoadState>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
     time: Res<Time>,
     debug_logging: Res<DebugLogging>,
@@ -24,15 +22,14 @@ pub fn handle_input(
         DebugUtils::log_game_state_change(&debug_logging, "auto-advance", game_state.auto_advance);
     }
 
-    // TODO: Re-enable once bevy_save is updated for Bevy 0.17
     // Save/Load hotkeys
-    // if keyboard_input.just_pressed(KeyCode::F5) {
-    //     save_game(&mut save_load_state, "quicksave");
-    // }
+    if keyboard_input.just_pressed(KeyCode::F5) {
+        save_game(&mut save_load_state, "quicksave");
+    }
 
-    // if keyboard_input.just_pressed(KeyCode::F9) {
-    //     load_game(&mut save_load_state, "quicksave");
-    // }
+    if keyboard_input.just_pressed(KeyCode::F9) {
+        load_game(&mut save_load_state, "quicksave");
+    }
 
     handle_camera_controls(&keyboard_input, &mut camera_query, &time);
 }

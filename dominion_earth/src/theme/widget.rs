@@ -115,4 +115,6 @@ pub enum ButtonAction {
     GoBack,
     LowerVolume,
     RaiseVolume,
+    SaveGame,
+    LoadGame,
 }

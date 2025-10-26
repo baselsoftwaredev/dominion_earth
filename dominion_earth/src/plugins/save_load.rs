@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_save::prelude::*;
+// use bevy_save::prelude::*; // TODO: Re-enable when bevy_save is compatible with Bevy 0.17
 use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{ActiveCivTurn, CurrentTurn, GameConfig, MapTile, Resource, WorldMap};
@@ -10,6 +10,8 @@ use core_sim::{
     UnitSelected, UnitType, VisibilityMap, VisibilityState,
 };
 
+// TODO: Re-enable when bevy_save is compatible with Bevy 0.17
+/*
 pub struct DominionEarthPipeline {
     save_name: String,
 }
@@ -64,6 +66,7 @@ impl Pipeline for DominionEarthPipeline {
         Ok(())
     }
 }
+*/
 
 pub struct SaveLoadPlugin;
 
@@ -75,7 +78,9 @@ impl Default for SaveLoadPlugin {
 
 impl Plugin for SaveLoadPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(SavePlugins)
+        // TODO: Re-enable when bevy_save is compatible with Bevy 0.17
+        // app.add_plugins(SavePlugins)
+        app
             // Note: moonshine-save integration ready - using MVC architecture
             // Model components (game logic): City, Civilization, MilitaryUnit, Position
             // View components (visual): SpriteEntityReference (marked for unload)
@@ -144,12 +149,16 @@ fn handle_save_requests(world: &mut World) {
 
     if let Some(save_name) = save_name {
         info!("Saving game: {}", save_name);
+        // TODO: Re-enable when bevy_save is compatible with Bevy 0.17
+        warn!("Save functionality is currently disabled - waiting for bevy_save Bevy 0.17 compatibility");
+        /*
         let pipeline = DominionEarthPipeline::new(save_name.clone());
 
         match world.save(&pipeline) {
             Ok(_) => info!("Game saved successfully: {}", save_name),
             Err(e) => error!("Failed to save game: {:?}", e),
         }
+        */
     }
 }
 
@@ -172,12 +181,16 @@ fn handle_load_requests(world: &mut World) {
             save_state.ui_needs_respawn = true;
         }
 
+        // TODO: Re-enable when bevy_save is compatible with Bevy 0.17
+        warn!("Load functionality is currently disabled - waiting for bevy_save Bevy 0.17 compatibility");
+        /*
         let pipeline = DominionEarthPipeline::new(load_name.clone());
 
         match world.load(&pipeline) {
             Ok(_) => info!("Game loaded successfully: {}", load_name),
             Err(e) => error!("Failed to load game: {:?}", e),
         }
+        */
     }
 }
 
@@ -351,11 +364,7 @@ fn refresh_fog_of_war_after_load(
     save_state.fog_of_war_needs_refresh = false;
 }
 
-fn respawn_ui_after_load(
-    mut commands: Commands,
-    mut save_state: ResMut<SaveLoadState>,
-    asset_server: Res<AssetServer>,
-) {
+fn respawn_ui_after_load(mut commands: Commands, mut save_state: ResMut<SaveLoadState>) {
     if !save_state.ui_needs_respawn {
         return;
     }
@@ -363,9 +372,9 @@ fn respawn_ui_after_load(
     info!("Respawning UI panels after load");
 
     // Respawn the native Bevy UI panels
-    crate::ui::top_panel::spawn_top_panel(&mut commands, &asset_server);
-    crate::ui::right_panel::spawn_right_panel(&mut commands, &asset_server);
-    crate::ui::left_panel::spawn_left_panel(&mut commands, &asset_server);
+    crate::ui::top_panel::spawn_top_panel(commands.reborrow());
+    crate::ui::right_panel::spawn_right_panel(commands.reborrow());
+    crate::ui::left_panel::spawn_left_panel(commands.reborrow());
 
     save_state.ui_needs_respawn = false;
     info!("UI respawn complete after load");
