@@ -61,6 +61,7 @@ pub fn spawn_unit_info_panel(commands: &mut Commands) -> Entity {
                 padding: UiRect::all(PANEL_PADDING),
                 margin: UiRect::all(PANEL_MARGIN),
                 border: UiRect::all(PANEL_BORDER_WIDTH),
+                flex_shrink: 0.0,
                 ..default()
             },
             BackgroundColor(PANEL_BACKGROUND),

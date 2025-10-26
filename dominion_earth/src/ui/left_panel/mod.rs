@@ -38,8 +38,10 @@ pub fn spawn_left_panel(mut commands: Commands) {
                 bottom: Val::Px(0.0),
                 flex_direction: FlexDirection::Column,
                 padding: UiRect::all(Val::Px(10.0)),
+                overflow: Overflow::scroll_y(),
                 ..default()
             },
+            ScrollPosition::default(),
             BackgroundColor(Color::srgba(0.102, 0.102, 0.102, 1.0)),
             Name::new("Left Panel"),
         ))
@@ -55,6 +57,7 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         padding: UiRect::all(PANEL_PADDING),
                         margin: UiRect::all(PANEL_MARGIN),
                         border: UiRect::all(PANEL_BORDER_WIDTH),
+                        flex_shrink: 0.0,
                         ..default()
                     },
                     BackgroundColor(PANEL_BACKGROUND),
