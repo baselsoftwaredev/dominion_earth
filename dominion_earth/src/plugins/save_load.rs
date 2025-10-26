@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_hui::prelude::{HtmlComponents, HtmlFunctions};
 use bevy_save::prelude::*;
 use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
@@ -203,11 +202,22 @@ fn despawn_referenced_sprites(world: &mut World) {
 }
 
 fn despawn_ui_panels(world: &mut World) {
-    use bevy_hui::prelude::HtmlNode;
-
     let mut ui_entities_to_despawn = Vec::new();
 
-    let mut query = world.query_filtered::<Entity, With<HtmlNode>>();
+    // Despawn TopPanel entities
+    let mut query = world.query_filtered::<Entity, With<crate::ui::top_panel::TopPanel>>();
+    for entity in query.iter(world) {
+        ui_entities_to_despawn.push(entity);
+    }
+
+    // Despawn RightPanel entities
+    let mut query = world.query_filtered::<Entity, With<crate::ui::right_panel::RightPanel>>();
+    for entity in query.iter(world) {
+        ui_entities_to_despawn.push(entity);
+    }
+
+    // Despawn LeftPanel entities
+    let mut query = world.query_filtered::<Entity, With<crate::ui::left_panel::LeftPanel>>();
     for entity in query.iter(world) {
         ui_entities_to_despawn.push(entity);
     }
@@ -345,8 +355,6 @@ fn respawn_ui_after_load(
     mut commands: Commands,
     mut save_state: ResMut<SaveLoadState>,
     asset_server: Res<AssetServer>,
-    mut html_components: HtmlComponents,
-    mut html_functions: HtmlFunctions,
 ) {
     if !save_state.ui_needs_respawn {
         return;
@@ -354,8 +362,10 @@ fn respawn_ui_after_load(
 
     info!("Respawning UI panels after load");
 
-    // Call the setup_main_ui function to recreate all UI panels
-    crate::ui::bevy_hui::setup_main_ui(commands, asset_server, html_components, html_functions);
+    // Respawn the native Bevy UI panels
+    crate::ui::top_panel::spawn_top_panel(&mut commands, &asset_server);
+    crate::ui::right_panel::spawn_right_panel(&mut commands, &asset_server);
+    crate::ui::left_panel::spawn_left_panel(&mut commands, &asset_server);
 
     save_state.ui_needs_respawn = false;
     info!("UI respawn complete after load");

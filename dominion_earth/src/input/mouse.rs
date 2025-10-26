@@ -4,7 +4,6 @@ use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use core_sim::tile::tile_components::WorldTile;
-// use bevy_hui::EguiContexts; // Commented out for now
 use core_sim::{Position, TerrainType};
 
 pub fn handle_mouse_input(

@@ -84,7 +84,7 @@ fn despawn_all_game_entities(
     sprite_entities: Query<Entity, (With<Sprite>, Without<core_sim::Position>)>,
     tile_entities: Query<Entity, With<core_sim::tile::tile_components::WorldTile>>,
     tilemap_entities: Query<Entity, With<bevy_ecs_tilemap::tiles::TileStorage>>,
-    capital_label_entities: Query<Entity, With<crate::ui::bevy_hui::CapitalLabel>>,
+    capital_label_entities: Query<Entity, With<crate::ui::CapitalLabel>>,
     tilemap_id: Option<ResMut<crate::rendering::common::TilemapIdResource>>,
     debug_logging: Res<DebugLogging>,
 ) {

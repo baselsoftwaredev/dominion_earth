@@ -2,45 +2,37 @@
 
 ## Overview
 
-This document covers best practices and patterns for implementing conditional UI panels in Dominion Earth using bevy_hui. While this guide uses the unit stats panel as the primary example, these patterns apply to all UI panels (production menus, city panels, diplomacy screens, etc.).
+This document covers best practices and patterns for implementing conditional UI panels in Dominion Earth using native Bevy UI. While this guide uses the unit stats panel as the primary example, these patterns apply to all UI panels (production menus, city panels, diplomacy screens, etc.).
 
 ## General Panel Architecture
 
 All conditional panels follow this structure:
 
-### 1. UI Template (HTML)
+### 1. Panel Component (Rust)
 
-Location: `dominion_earth/assets/ui/components/[sidebar]/[panel_name].html`
+Location: `dominion_earth/src/ui/[panel_name].rs`
 
-- Defines visual layout and styling
-- Contains property definitions with default values
-- Uses `display="{visibility_property}"` for conditional rendering
+- Defines the panel as a native Bevy UI component hierarchy
+- Uses `NodeBundle`, `TextBundle`, `ButtonBundle` for layout
+- Includes marker components for querying specific panels
 
-### 2. Data Structure (Rust)
+### 2. Spawn Function
 
-Location: `dominion_earth/src/ui/bevy_hui/property_updates.rs`
+Location: `dominion_earth/src/ui/[panel_name].rs`
 
-- Struct holding all panel data as Strings
-- Includes visibility property (String: "flex" or "none")
-- One struct per panel type
+- Function named `spawn_[panel_name]()`
+- Creates the panel entity hierarchy with native Bevy UI components
+- Applies styling using `Style`, `BackgroundColor`, etc.
 
-### 3. Builder Function
+### 3. Update Functions
 
-Location: `dominion_earth/src/ui/bevy_hui/property_updates.rs`
+Location: `dominion_earth/src/ui/[panel_name].rs`
 
-- Function named `build_[panel_name]_data()`
-- Queries game state and populates data structure
-- Returns data struct with appropriate visibility value
-
-### 4. Property Update Function
-
-Location: `dominion_earth/src/ui/bevy_hui/property_updates.rs`
-
-- Function named `update_[panel_name]_properties()`
-- Maps struct fields to template properties
+- Functions that query game state and update panel text/visibility
+- Use `Query<&mut Text>` or `Query<&mut Visibility>` to modify panels
 - Called during UI update cycle
 
-### 5. State Management (Selection Logic)
+### 4. State Management (Selection Logic)
 
 Location: `dominion_earth/src/input/` or relevant systems
 
@@ -48,14 +40,13 @@ Location: `dominion_earth/src/input/` or relevant systems
 - Resource/component to track selection state
 - Clear/update logic for mutual exclusivity
 
-## Example: Unit Stats Panel
+## Example: UI Panels
 
-### Specific Implementation Locations
+### Implementation Locations
 
-- **UI Template**: `dominion_earth/assets/ui/components/right_side_panel/unit_info.html`
-- **Data Structure**: `UnitInformation` struct in `property_updates.rs`
-- **Builder**: `build_unit_info_data()` in `property_updates.rs`
-- **Updater**: `update_unit_info_properties()` in `property_updates.rs`
+- **Left Panel**: `dominion_earth/src/ui/left_panel.rs` - Production menu and unit info
+- **Right Panel**: `dominion_earth/src/ui/right_panel.rs` - Statistics and tile/civilization info
+- **Top Panel**: `dominion_earth/src/ui/top_panel.rs` - Turn counter and player resources
 - **Selection Logic**:
   - `dominion_earth/src/input/unit_interaction.rs` (unit selection)
   - `dominion_earth/src/input/tile_selection.rs` (clearing selections on empty tiles)
@@ -103,55 +94,54 @@ All panels should implement clear show/hide conditions based on game state:
 - Higher-priority panel takes precedence
 - Panel is explicitly closed by user action
 
-### Example: Unit Stats Panel Visibility
+### Example: Left Panel Visibility
 
 **Shows When:**
 
-- Player clicks on their own unit
-- `selected_unit.unit_entity` is Some(entity)
-- Unit belongs to player civilization (`unit.owner == player_civ_id`)
-- Production menu is NOT showing
+- Player clicks on their own capital (production menu)
+- Player clicks on their own unit (unit info)
+- Panel sections use `Visibility::Visible` or `Visibility::Hidden` to show/hide
 
 **Hides When:**
 
-- Player clicks on capital → production menu takes precedence
-- Player clicks on empty tile (no unit, no capital)
+- Player clicks on empty tile → both sections hidden
 - Player clicks on enemy unit (not implemented to select)
-- `selected_unit.unit_entity` is None
+- Selection is cleared
 
 ### Mutual Exclusivity Pattern
 
 Multiple panels on the same sidebar should be mutually exclusive:
 
-**Example: Left Sidebar (Production Menu vs Unit Stats)**
+**Example: Left Sidebar (Production Menu vs Unit Info)**
 
-- When capital selected: production menu shows, unit stats hidden
-- When unit selected: unit stats show, production menu hidden
+- When capital selected: production menu shows, unit info hidden
+- When unit selected: unit info shows, production menu hidden
 - When empty tile selected: both hidden
 
 **Implementation Guidelines:**
 
-- Each panel's builder function checks other panels' state
+- Each panel's update function checks selection state
 - Selection systems clear conflicting selections
 - Bidirectional clearing: If A shows, clear B's state; if B shows, clear A's state
 - All related panels should be cleared when clicking empty space
 
-## Critical Implementation Rules for bevy_hui
+## Critical Implementation Rules for Native Bevy UI
 
-### Rule #1: Use Display Property, Not s:if
+### Rule #1: Use Visibility Component
 
-**CRITICAL**: For ALL conditional panels in bevy_hui, use `display="{property}"` instead of `s:if="{property}"`.
+**CRITICAL**: For ALL conditional panels, use Bevy's `Visibility` component to show/hide elements.
 
-- ❌ **NEVER use**: `s:if="{is_visible}"` with boolean values
-- ✅ **ALWAYS use**: `display="{visibility_property}"` with string values "flex" or "none"
+- ✅ **Use**: `Visibility::Visible` to show panels
+- ✅ **Use**: `Visibility::Hidden` to hide panels
+- ✅ **Query**: `Query<&mut Visibility>` to toggle panel visibility
 
 ### Why This Matters
 
-The `s:if` directive in bevy_hui doesn't work reliably with boolean string values ("true"/"false"). Using the `display` CSS property with "flex"/"none" values works consistently with bevy_hui's templating system and properly shows/hides panels.
+Bevy's `Visibility` component is the standard way to control whether entities are rendered. It integrates properly with Bevy's rendering pipeline and inherited visibility system.
 
 This applies to:
 
-- Unit panels
+- Unit info panels
 - Production menus
 - City information panels
 - Diplomacy screens
@@ -159,60 +149,63 @@ This applies to:
 
 ### Standard Code Pattern for Any Panel
 
-**In Rust (property_updates.rs)**:
+**Panel Spawning**:
 
 ```rust
-// Data structure for ANY panel
-pub struct PanelInformation {
-    pub is_visible: String,  // ALWAYS String, NEVER bool!
-    pub field1: String,
-    pub field2: String,
-    // ... other fields
-}
-
-// When panel should be visible
-PanelInformation {
-    is_visible: "flex".to_string(),
-    field1: actual_value.to_string(),
-    // ...
-}
-
-// When panel should be hidden
-PanelInformation {
-    is_visible: "none".to_string(),
-    field1: "default".to_string(),  // Still need default values
-    // ...
+pub fn spawn_panel(mut commands: Commands) {
+    commands.spawn((
+        NodeBundle {
+            style: Style {
+                width: Val::Px(300.0),
+                height: Val::Percent(100.0),
+                // ... other style properties
+                ..default()
+            },
+            background_color: Color::srgb(0.18, 0.18, 0.18).into(),
+            visibility: Visibility::Hidden, // Start hidden
+            ..default()
+        },
+        PanelMarker, // Component to identify this panel
+    ))
+    .with_children(|parent| {
+        // Spawn child UI elements
+    });
 }
 ```
 
-**In HTML Template** (any panel):
+**Panel Update System**:
 
-```html
-<property name="is_visible">none</property>
-<property name="field1">Default</property>
-<property name="field2">Default</property>
-
-<node
-  display="{is_visible}"
-  width="100%"
-  background="#2d2d2d"
-  border="2px solid #444444"
-  ...>
-  <text>{field1}</text>
-  <text>{field2}</text>
-  <!-- panel content -->
-</node>
+```rust
+pub fn update_panel_visibility(
+    mut panel_query: Query<&mut Visibility, With<PanelMarker>>,
+    selection: Res<SomeSelection>,
+) {
+    for mut visibility in &mut panel_query {
+        if selection.is_active() {
+            *visibility = Visibility::Visible;
+        } else {
+            *visibility = Visibility::Hidden;
+        }
+    }
+}
 ```
 
-### Rule #2: Property Name Consistency
+### Rule #2: Use Marker Components
 
-Properties must match EXACTLY across three locations:
+Always use marker components to identify specific panels for querying:
 
-1. **HTML Template**: Property definitions in component (`<property name="field_name">`)
-2. **Rust Struct**: Field names in data structure (`pub field_name: String`)
-3. **Parent Binding**: Property bindings when including component (`field_name="{field_name}"`)
+```rust
+#[derive(Component)]
+pub struct LeftPanel;
 
-**Important**: No prefixes! Pass property names directly without panel-specific prefixes (e.g., `attack` not `unit_attack` in the component itself, though parent may use prefixes for disambiguation).
+#[derive(Component)]
+pub struct ProductionMenu;
+
+#[derive(Component)]
+pub struct UnitInfoPanel;
+```
+
+This allows precise queries without relying on entity hierarchy traversal.
 
 ## Generic Selection Clearing Pattern
 
@@ -281,29 +274,38 @@ This bidirectional clearing ensures panels never conflict.
 
 ### Scrollable Panels
 
-When a panel container may overflow (e.g., left/right sidebars with multiple components), enable scrolling using the `overflow` property.
+When a panel container may overflow (e.g., left/right sidebars with multiple components), enable scrolling using the `overflow` style property.
 
-**In bevy_hui HTML:**
+**In Native Bevy UI:**
 
-```html
-<node width="300px" height="100%" overflow="hidden scroll">
-  <!-- horizontal overflow hidden, vertical scroll enabled -->
-  <!-- panel content -->
-</node>
+```rust
+NodeBundle {
+    style: Style {
+        width: Val::Px(300.0),
+        height: Val::Percent(100.0),
+        overflow: Overflow {
+            x: OverflowAxis::Clip,     // Horizontal clipping
+            y: OverflowAxis::Scroll,   // Vertical scrolling
+        },
+        // ... other properties
+        ..default()
+    },
+    // ... other bundle fields
+    ..default()
+}
 ```
 
-**Overflow values:**
+**Overflow options:**
 
-- `"scroll scroll"`: Both axes scrollable
-- `"hidden scroll"`: Horizontal hidden, vertical scroll (most common for sidebars)
-- `"scroll hidden"`: Horizontal scroll, vertical hidden
-- `"visible visible"`: No scrolling (default)
+- `OverflowAxis::Visible`: Content not clipped (default)
+- `OverflowAxis::Clip`: Content clipped at boundary
+- `OverflowAxis::Scroll`: Scrollable when content exceeds container
 
-**Based on Bevy UI scroll example:**
+**Scrolling behavior:**
 
 - Panels automatically get scroll behavior when content exceeds container size
 - Mouse wheel scrolling works automatically when hovering over scrollable areas
-- Scroll position is maintained by Bevy's `ScrollPosition` component
+- Scroll position is maintained by Bevy's built-in scroll system
 
 **IMPORTANT - Preventing Camera Zoom on UI Scroll:**
 
@@ -390,16 +392,16 @@ Each should follow the structure outlined above with:
 - Check that empty tile clicks clear ALL competing panel states
 - Verify bidirectional clearing (both systems clear each other)
 
-### Issue: Properties not updating in UI
+### Issue: Text not updating in UI
 
-**Root Cause**: Property name mismatch or wrong data type.
+**Root Cause**: Text component not being queried or updated properly.
 
-**Solution**: Verify exact matches across:
+**Solution**: Verify:
 
-- HTML template property definitions (`<property name="field">`)
-- Parent component property bindings (`field="{field}"`)
-- Rust struct field names (`pub field: String`)
-- Property insertion (`template_properties.insert("field", value)`)
+- Text components have marker components for querying
+- Update systems are running in the correct schedule
+- Query filters are correct (e.g., `With<SomeMarker>`)
+- Text updates use `text.sections[0].value = new_value.to_string()`
 
 ### Issue: Panel shows old/stale data
 
@@ -421,15 +423,16 @@ Each should follow the structure outlined above with:
 - Selection handlers clear competing selections before setting new ones
 - Implement priority system (higher priority panels hide lower priority)
 
-### Issue: Panel uses s:if and doesn't work
+### Issue: Panel visibility not toggling
 
-**Root Cause**: Using `s:if` instead of `display` property.
+**Root Cause**: Visibility component not being updated or queried incorrectly.
 
 **Solution**:
 
-- Change HTML from `s:if="{is_visible}"` to `display="{is_visible}"`
-- Change Rust struct field from `pub is_visible: bool` to `pub is_visible: String`
-- Set values to `"flex".to_string()` or `"none".to_string()`
+- Ensure you're querying `Query<&mut Visibility>`
+- Set visibility to `Visibility::Visible` or `Visibility::Hidden`
+- Check that the visibility update system is running
+- Verify marker components are correct
 
 ## Related Documentation
 

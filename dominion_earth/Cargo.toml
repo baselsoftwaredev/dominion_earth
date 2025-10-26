@@ -24,7 +24,6 @@ dev_native = [
 
 [dependencies]
 bevy = { workspace = true, features = ["default", "bevy_remote", "png"] }
-bevy_hui = "0.5"
 bevy_save = { workspace = true }
 core_sim = { path = "../core_sim" }
 ai_planner = { path = "../ai_planner" }

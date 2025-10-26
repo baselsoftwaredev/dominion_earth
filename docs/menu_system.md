@@ -18,11 +18,11 @@ This document describes the menu system added to Dominion Earth, based on the be
 
 **Solutions Applied**:
 
-1. **Added StateScoped to UI Panels** - Modified `dominion_earth/src/ui/bevy_hui/main_ui.rs`:
+1. **Added StateScoped to UI Panels** - Modified UI panel spawn functions:
 
    - Added `StateScoped(crate::screens::Screen::Gameplay)` to `spawn_top_panel()`
-   - Added `StateScoped(crate::screens::Screen::Gameplay)` to `spawn_right_side_panel()`
-   - Added `StateScoped(crate::screens::Screen::Gameplay)` to `spawn_left_side_panel()`
+   - Added `StateScoped(crate::screens::Screen::Gameplay)` to `spawn_right_panel()`
+   - Added `StateScoped(crate::screens::Screen::Gameplay)` to `spawn_left_panel()`
 
    This ensures UI panels only exist during gameplay and are automatically cleaned up when leaving the Gameplay screen.
 
@@ -59,9 +59,9 @@ This document describes the menu system added to Dominion Earth, based on the be
 
 Modified `dominion_earth/src/plugins/save_load.rs`:
 
-1. **Added `despawn_ui_panels()` function** - Despawns all HtmlNode entities (UI panels) before loading game state
+1. **Added `despawn_ui_panels()` function** - Despawns all native Bevy UI panel entities (TopPanel, RightPanel, LeftPanel) before loading game state
 2. **Added `ui_needs_respawn` flag** to `SaveLoadState` resource to track when UI needs to be recreated
-3. **Added `respawn_ui_after_load()` system** - Calls `setup_main_ui()` after game load to recreate fresh UI panels with correct data
+3. **Added `respawn_ui_after_load()` system** - Respawns the three native UI panels after game load to recreate fresh UI panels with correct data
 
 The fix ensures the following sequence:
 
@@ -183,7 +183,7 @@ Gameplay
 
 ### UI Integration
 
-- bevy_hui UI panels only display during Gameplay screen
+- Native Bevy UI panels only display during Gameplay screen
 - UI setup triggers on entering Gameplay state
 
 ## Usage
@@ -242,8 +242,8 @@ fn spawn_my_menu(mut commands: Commands) {
 - `dominion_earth/src/plugins/input_handling.rs`: Scoped to Gameplay screen
 - `dominion_earth/src/plugins/camera.rs`: Camera centering on Gameplay enter
 - `dominion_earth/src/plugins/ui_integration.rs`: UI scoped to Gameplay screen
-- `dominion_earth/src/ui/bevy_hui/mod.rs`: Added screen-scoped setup method
-- `dominion_earth/src/ui/bevy_hui/main_ui.rs`: Added StateScoped to UI panels (visibility fix)
+- `dominion_earth/src/ui/system_setup.rs`: Native Bevy UI system setup with screen-scoped methods
+- `dominion_earth/src/ui/top_panel.rs`, `right_panel.rs`, `left_panel.rs`: Added StateScoped to UI panels (visibility fix)
 
 ## Features
 

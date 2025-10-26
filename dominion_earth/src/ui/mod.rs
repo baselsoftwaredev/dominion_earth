@@ -1,15 +1,17 @@
+pub mod capital_labels;
 pub mod constants;
-pub mod resources;
-pub mod bevy_hui;
 pub mod left_panel;
+pub mod resources;
 pub mod right_panel;
+pub mod system_setup;
 pub mod top_panel;
 pub mod traits;
 pub mod utilities;
-pub use resources::*;
-pub use bevy_hui::*;
+pub use capital_labels::*;
 pub use left_panel::*;
+pub use resources::*;
 pub use right_panel::*;
+pub use system_setup::*;
 pub use top_panel::*;
 pub use traits::*;
 pub use utilities::*;
@@ -59,7 +61,4 @@ pub fn initialize_ui_system(
         selected_capital: selected_capital.capital_entity,
         production_queues: production_query.iter().cloned().collect(),
     };
-
-    // For bevy_hui, the actual rendering is handled by the update systems
-    // This function serves as a data collection point for the abstraction layer
 }

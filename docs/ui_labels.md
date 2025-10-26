@@ -10,7 +10,7 @@ Capital labels display the name of capital cities and their owning civilization 
 
 ### Architecture
 
-**Location**: `dominion_earth/src/ui/bevy_hui/capital_labels.rs`
+**Location**: `dominion_earth/src/ui/capital_labels.rs`
 
 **Components**:
 
@@ -28,17 +28,23 @@ Capital labels display the name of capital cities and their owning civilization 
 Capital label systems are integrated into the UI plugin with state scoping:
 
 ```rust
-// In ui/bevy_hui/mod.rs
+// In ui/system_setup.rs
 pub fn setup_plugins_for_screen<S: States>(app: &mut App, screen: S) {
-    app.add_plugins((HuiPlugin, HuiAutoLoadPlugin::new(&["ui"])))
-        .add_systems(OnEnter(screen.clone()), setup_main_ui)
+    app.add_systems(
+            OnEnter(screen.clone()),
+            (
+                crate::ui::top_panel::spawn_top_panel,
+                crate::ui::right_panel::spawn_right_panel,
+                crate::ui::left_panel::spawn_left_panel,
+            ),
+        )
         .add_systems(OnExit(screen.clone()), cleanup_ui)
         .add_systems(
             Update,
             (
-                update_ui_properties_system.run_if(should_update_ui_this_frame),
                 spawn_capital_labels,
                 update_capital_labels,
+                // ... other UI update systems
             )
                 .run_if(in_state(screen)),
         );
@@ -145,7 +151,7 @@ Labels are automatically despawned in two scenarios:
 
    ```rust
    // In screens/gameplay.rs - OnExit(Screen::Gameplay)
-   capital_label_entities: Query<Entity, With<crate::ui::bevy_hui::CapitalLabel>>
+   capital_label_entities: Query<Entity, With<crate::ui::CapitalLabel>>
 
    for label_entity in &capital_label_entities {
        commands.entity(label_entity).despawn();
@@ -253,6 +259,7 @@ Future labels should follow the capital label pattern:
 - **Fog of War**: May need to hide labels in unexplored areas (future enhancement)
 - **Camera System**: Zoom affects label visibility and readability
 - **Menu System**: Screen states control when labels are active
+- **Native Bevy UI**: All UI panels use native Bevy UI components
 
 ## API Reference
 

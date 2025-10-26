@@ -1206,18 +1206,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_hui"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6abec1e7978617ad43819f969daab595d39fade24ccbdbba6ae1188b6a73fe7"
-dependencies = [
- "bevy 0.17.2",
- "nom",
- "owo-colors",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "bevy_image"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3155,7 +3143,6 @@ dependencies = [
  "anyhow",
  "bevy 0.17.2",
  "bevy_ecs_tilemap",
- "bevy_hui",
  "bevy_save",
  "clap",
  "core_sim",
@@ -4938,12 +4925,6 @@ checksum = "36820e9051aca1014ddc75770aab4d68bc1e9e632f0f5627c4086bc216fb583b"
 dependencies = [
  "ttf-parser 0.25.1",
 ]
-
-[[package]]
-name = "owo-colors"
-version = "4.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c6901729fa79e91a0913333229e9ca5dc725089d1c363b2f4b4760709dc4a52"
 
 [[package]]
 name = "parking"
