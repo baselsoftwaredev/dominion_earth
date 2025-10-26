@@ -49,6 +49,94 @@ pub struct UnitEffectiveAttackText;
 #[derive(Component)]
 pub struct UnitEffectiveDefenseText;
 
+/// Spawns the complete unit info panel and returns its entity
+pub fn spawn_unit_info_panel(commands: &mut Commands) -> Entity {
+    commands
+        .spawn((
+            UnitInfoPanel,
+            Node {
+                display: Display::None, // Hidden by default
+                flex_direction: FlexDirection::Column,
+                padding: UiRect::all(PANEL_PADDING),
+                margin: UiRect::all(PANEL_MARGIN),
+                border: UiRect::all(PANEL_BORDER_WIDTH),
+                ..default()
+            },
+            BackgroundColor(PANEL_BACKGROUND),
+            BorderColor::from(PANEL_BORDER),
+            BorderRadius::all(PANEL_BORDER_RADIUS),
+            Name::new("Unit Info Panel"),
+        ))
+        .with_children(|unit_parent| {
+            unit_parent.spawn((
+                Text::new("Unit Information"),
+                TextFont {
+                    font_size: TITLE_FONT_SIZE,
+                    ..default()
+                },
+                TextColor(TITLE_COLOR),
+                Node {
+                    margin: UiRect::bottom(TITLE_MARGIN_BOTTOM),
+                    ..default()
+                },
+                Name::new("Unit Info Title"),
+            ));
+
+            unit_parent.spawn((
+                UnitTypeText,
+                Text::new("Type: Unknown"),
+                TextFont {
+                    font_size: SUBTITLE_FONT_SIZE,
+                    ..default()
+                },
+                TextColor(TEXT_PRIMARY),
+                Node {
+                    margin: UiRect::bottom(TEXT_MARGIN_BOTTOM),
+                    ..default()
+                },
+            ));
+
+            unit_parent.spawn((
+                UnitHealthText,
+                Text::new("Health: 0/0"),
+                TextFont {
+                    font_size: BODY_FONT_SIZE,
+                    ..default()
+                },
+                TextColor(TEXT_SECONDARY),
+                Node {
+                    margin: UiRect::bottom(TEXT_MARGIN_BOTTOM),
+                    ..default()
+                },
+            ));
+
+            unit_parent.spawn((
+                UnitStrengthText,
+                Text::new("Strength: 0"),
+                TextFont {
+                    font_size: BODY_FONT_SIZE,
+                    ..default()
+                },
+                TextColor(TEXT_SECONDARY),
+                Node {
+                    margin: UiRect::bottom(TEXT_MARGIN_BOTTOM),
+                    ..default()
+                },
+            ));
+
+            unit_parent.spawn((
+                UnitMovementText,
+                Text::new("Movement: 0/0"),
+                TextFont {
+                    font_size: BODY_FONT_SIZE,
+                    ..default()
+                },
+                TextColor(TEXT_SECONDARY),
+            ));
+        })
+        .id()
+}
+
 /// System to update unit info panel with selected unit data
 pub fn update_unit_info(
     selected_unit: Res<core_sim::SelectedUnit>,

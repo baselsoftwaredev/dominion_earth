@@ -38,7 +38,371 @@ pub struct ArcherButton;
 #[derive(Component)]
 pub struct CavalryButton;
 
-// Component markers for production menu UI elements
+/// Spawns the complete production menu panel and returns its entity
+pub fn spawn_production_menu_panel(commands: &mut Commands) -> Entity {
+    commands
+        .spawn((
+            ProductionMenuPanel,
+            Node {
+                display: Display::None,
+                flex_direction: FlexDirection::Column,
+                padding: UiRect::all(PANEL_PADDING),
+                margin: UiRect::all(PANEL_MARGIN),
+                border: UiRect::all(PANEL_BORDER_WIDTH),
+                max_height: PRODUCTION_MENU_MAX_HEIGHT,
+                overflow: Overflow::clip_y(),
+                ..default()
+            },
+            BackgroundColor(PANEL_BACKGROUND),
+            BorderColor::from(PANEL_BORDER),
+            BorderRadius::all(PANEL_BORDER_RADIUS),
+            Name::new("Production Menu Panel"),
+        ))
+        .with_children(|menu_parent| {
+            // Title
+            menu_parent.spawn((
+                Text::new("Production Menu"),
+                TextFont {
+                    font_size: TITLE_FONT_SIZE,
+                    ..default()
+                },
+                TextColor(TITLE_COLOR),
+                Node {
+                    margin: UiRect::bottom(TITLE_MARGIN_BOTTOM),
+                    ..default()
+                },
+                Name::new("Production Menu Title"),
+            ));
+
+            // Capital info section
+            menu_parent
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        margin: UiRect::bottom(SECTION_MARGIN_BOTTOM),
+                        ..default()
+                    },
+                    Name::new("Capital Info Container"),
+                ))
+                .with_children(|info_parent| {
+                    info_parent.spawn((
+                        ProductionCapitalNameText,
+                        Text::new("Capital: Unknown"),
+                        TextFont {
+                            font_size: SUBTITLE_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TEXT_PRIMARY),
+                        Node {
+                            margin: UiRect::bottom(TEXT_MARGIN_BOTTOM),
+                            ..default()
+                        },
+                    ));
+
+                    info_parent.spawn((
+                        ProductionCivNameText,
+                        Text::new("Civilization: Unknown"),
+                        TextFont {
+                            font_size: SUBTITLE_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TEXT_PRIMARY),
+                        Node {
+                            margin: UiRect::bottom(TEXT_MARGIN_BOTTOM),
+                            ..default()
+                        },
+                    ));
+
+                    info_parent.spawn((
+                        ProductionGoldText,
+                        Text::new("Gold: 0"),
+                        TextFont {
+                            font_size: BODY_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TEXT_SECONDARY),
+                        Node {
+                            margin: UiRect::bottom(TEXT_MARGIN_BOTTOM),
+                            ..default()
+                        },
+                    ));
+
+                    info_parent.spawn((
+                        ProductionProductionText,
+                        Text::new("Production: 0"),
+                        TextFont {
+                            font_size: BODY_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TEXT_SECONDARY),
+                    ));
+                });
+
+            // Separator
+            menu_parent.spawn((
+                Node {
+                    width: Val::Percent(100.0),
+                    height: SEPARATOR_HEIGHT,
+                    margin: UiRect::vertical(SEPARATOR_MARGIN),
+                    ..default()
+                },
+                BackgroundColor(PANEL_BORDER),
+                Name::new("Separator"),
+            ));
+
+            // Available units section
+            menu_parent
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        margin: UiRect::bottom(TITLE_MARGIN_BOTTOM),
+                        ..default()
+                    },
+                    Name::new("Available Units"),
+                ))
+                .with_children(|units_parent| {
+                    units_parent.spawn((
+                        Text::new("Available Units:"),
+                        TextFont {
+                            font_size: SUBTITLE_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TITLE_COLOR),
+                        Node {
+                            margin: UiRect::bottom(SECTION_MARGIN_BOTTOM),
+                            ..default()
+                        },
+                    ));
+
+                    // Infantry button
+                    units_parent
+                        .spawn((
+                            InfantryButton,
+                            Button,
+                            Node {
+                                height: BUTTON_HEIGHT,
+                                width: Val::Percent(100.0),
+                                justify_content: JustifyContent::SpaceBetween,
+                                align_items: AlignItems::Center,
+                                padding: UiRect::all(BUTTON_PADDING),
+                                margin: UiRect::bottom(BUTTON_MARGIN),
+                                border: UiRect::all(BUTTON_BORDER_WIDTH),
+                                ..default()
+                            },
+                            BackgroundColor(BUTTON_BACKGROUND),
+                            BorderColor::from(BUTTON_BORDER),
+                            BorderRadius::all(BUTTON_BORDER_RADIUS),
+                            Name::new("Infantry Button"),
+                        ))
+                        .with_children(|button_parent| {
+                            button_parent.spawn((
+                                Text::new("Infantry"),
+                                TextFont {
+                                    font_size: BODY_FONT_SIZE,
+                                    ..default()
+                                },
+                                TextColor(TEXT_PRIMARY),
+                            ));
+
+                            button_parent.spawn((
+                                Text::new("20 gold, 15 production"),
+                                TextFont {
+                                    font_size: SMALL_FONT_SIZE,
+                                    ..default()
+                                },
+                                TextColor(TEXT_TERTIARY),
+                            ));
+                        });
+
+                    // Archer button
+                    units_parent
+                        .spawn((
+                            ArcherButton,
+                            Button,
+                            Node {
+                                height: BUTTON_HEIGHT,
+                                width: Val::Percent(100.0),
+                                justify_content: JustifyContent::SpaceBetween,
+                                align_items: AlignItems::Center,
+                                padding: UiRect::all(BUTTON_PADDING),
+                                margin: UiRect::bottom(BUTTON_MARGIN),
+                                border: UiRect::all(BUTTON_BORDER_WIDTH),
+                                ..default()
+                            },
+                            BackgroundColor(BUTTON_BACKGROUND),
+                            BorderColor::from(BUTTON_BORDER),
+                            BorderRadius::all(BUTTON_BORDER_RADIUS),
+                            Name::new("Archer Button"),
+                        ))
+                        .with_children(|button_parent| {
+                            button_parent.spawn((
+                                Text::new("Archer"),
+                                TextFont {
+                                    font_size: BODY_FONT_SIZE,
+                                    ..default()
+                                },
+                                TextColor(TEXT_PRIMARY),
+                            ));
+
+                            button_parent.spawn((
+                                Text::new("25 gold, 20 production"),
+                                TextFont {
+                                    font_size: SMALL_FONT_SIZE,
+                                    ..default()
+                                },
+                                TextColor(TEXT_TERTIARY),
+                            ));
+                        });
+
+                    // Cavalry button
+                    units_parent
+                        .spawn((
+                            CavalryButton,
+                            Button,
+                            Node {
+                                height: BUTTON_HEIGHT,
+                                width: Val::Percent(100.0),
+                                justify_content: JustifyContent::SpaceBetween,
+                                align_items: AlignItems::Center,
+                                padding: UiRect::all(BUTTON_PADDING),
+                                margin: UiRect::bottom(BUTTON_MARGIN),
+                                border: UiRect::all(BUTTON_BORDER_WIDTH),
+                                ..default()
+                            },
+                            BackgroundColor(BUTTON_BACKGROUND),
+                            BorderColor::from(BUTTON_BORDER),
+                            BorderRadius::all(BUTTON_BORDER_RADIUS),
+                            Name::new("Cavalry Button"),
+                        ))
+                        .with_children(|button_parent| {
+                            button_parent.spawn((
+                                Text::new("Cavalry"),
+                                TextFont {
+                                    font_size: BODY_FONT_SIZE,
+                                    ..default()
+                                },
+                                TextColor(TEXT_PRIMARY),
+                            ));
+
+                            button_parent.spawn((
+                                Text::new("40 gold, 30 production"),
+                                TextFont {
+                                    font_size: SMALL_FONT_SIZE,
+                                    ..default()
+                                },
+                                TextColor(TEXT_TERTIARY),
+                            ));
+                        });
+                });
+
+            // Current production section
+            menu_parent
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        margin: UiRect::bottom(TITLE_MARGIN_BOTTOM),
+                        ..default()
+                    },
+                    Name::new("Current Production"),
+                ))
+                .with_children(|prod_parent| {
+                    prod_parent.spawn((
+                        Text::new("Currently Producing:"),
+                        TextFont {
+                            font_size: SUBTITLE_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TITLE_COLOR),
+                        Node {
+                            margin: UiRect::bottom(SECTION_MARGIN_BOTTOM),
+                            ..default()
+                        },
+                    ));
+
+                    prod_parent.spawn((
+                        CurrentProductionNameText,
+                        Text::new("None"),
+                        TextFont {
+                            font_size: BODY_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TEXT_PRIMARY),
+                        Node {
+                            margin: UiRect::bottom(TEXT_MARGIN_BOTTOM),
+                            ..default()
+                        },
+                    ));
+
+                    prod_parent.spawn((
+                        CurrentProductionProgressText,
+                        Text::new("Progress: 0%"),
+                        TextFont {
+                            font_size: SMALL_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TEXT_SECONDARY),
+                    ));
+                });
+
+            // Production queue section
+            menu_parent
+                .spawn((
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        margin: UiRect::bottom(TITLE_MARGIN_BOTTOM),
+                        ..default()
+                    },
+                    Name::new("Production Queue"),
+                ))
+                .with_children(|queue_parent| {
+                    queue_parent.spawn((
+                        Text::new("Production Queue:"),
+                        TextFont {
+                            font_size: SUBTITLE_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TITLE_COLOR),
+                        Node {
+                            margin: UiRect::bottom(SECTION_MARGIN_BOTTOM),
+                            ..default()
+                        },
+                    ));
+
+                    queue_parent.spawn((
+                        ProductionQueueLengthText,
+                        Text::new("Items queued: 0"),
+                        TextFont {
+                            font_size: BODY_FONT_SIZE,
+                            ..default()
+                        },
+                        TextColor(TEXT_SECONDARY),
+                    ));
+                });
+
+            // Separator
+            menu_parent.spawn((
+                Node {
+                    width: Val::Percent(100.0),
+                    height: SEPARATOR_HEIGHT,
+                    margin: UiRect::vertical(SEPARATOR_MARGIN),
+                    ..default()
+                },
+                BackgroundColor(PANEL_BORDER),
+                Name::new("Separator"),
+            ));
+
+            // Help text
+            menu_parent.spawn((
+                Text::new("Press [Esc] to close | Click buttons to queue units"),
+                TextFont {
+                    font_size: SMALL_FONT_SIZE,
+                    ..default()
+                },
+                TextColor(TEXT_TERTIARY),
+            ));
+        })
+        .id()
+}
 
 // Systems for handling production menu interactions
 
