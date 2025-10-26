@@ -19,7 +19,7 @@ impl Plugin for ResourcesPlugin {
             .init_resource::<ui::SelectedTile>()
             .init_resource::<ui::HoveredTile>()
             .init_resource::<ui::LastLoggedTile>()
-            .insert_resource(ui::UiSystemResource::new(Box::new(ui::BevyHuiSystem)))
+            .insert_resource(ui::UiSystemResource::new(Box::new(ui::BevyUiSystem)))
             // Core Simulation Resources
             .init_resource::<CurrentTurn>()
             .init_resource::<ActiveCivTurn>()

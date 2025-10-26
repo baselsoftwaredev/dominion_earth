@@ -1,6 +1,5 @@
 use crate::game;
 use crate::screens::Screen;
-use crate::ui::bevy_hui::production_orders::handle_production_updated_events;
 use bevy::prelude::*;
 
 pub struct CoreSimulationPlugin;
@@ -39,7 +38,6 @@ impl Plugin for CoreSimulationPlugin {
                     core_sim::handle_ai_turn_completion,
                     core_sim::handle_all_ai_turns_complete,
                     core_sim::auto_advance_turn_system,
-                    handle_production_updated_events,
                 )
                     .chain()
                     .run_if(in_state(Screen::Gameplay)),

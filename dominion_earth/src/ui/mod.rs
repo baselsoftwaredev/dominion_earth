@@ -1,23 +1,14 @@
 pub mod constants;
-// pub mod game_panel; // Commented out - needs bevy_hui implementation
-// pub mod minimap; // Commented out - needs bevy_hui implementation
-// pub mod production_menu; // Commented out - needs bevy_hui implementation
 pub mod resources;
-// pub mod statistics_panel; // Commented out - needs bevy_hui implementation
-// pub mod tile_info; // Commented out - needs bevy_hui implementation
 pub mod bevy_hui;
+pub mod left_panel;
 pub mod right_panel;
 pub mod top_panel;
 pub mod traits;
 pub mod utilities;
-
-// pub use game_panel::*; // Commented out
-// pub use minimap::*; // Commented out
-// pub use production_menu::*; // Commented out
 pub use resources::*;
-// pub use statistics_panel::*; // Commented out
-// pub use tile_info::*; // Commented out
 pub use bevy_hui::*;
+pub use left_panel::*;
 pub use right_panel::*;
 pub use top_panel::*;
 pub use traits::*;
