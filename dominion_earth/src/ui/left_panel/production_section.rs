@@ -45,6 +45,7 @@ pub fn spawn_production_menu_panel(commands: &mut Commands) -> Entity {
             ProductionMenuPanel,
             Node {
                 display: Display::None,
+                width: Val::Percent(100.0),
                 flex_direction: FlexDirection::Column,
                 padding: UiRect::all(PANEL_PADDING),
                 margin: UiRect::all(PANEL_MARGIN),

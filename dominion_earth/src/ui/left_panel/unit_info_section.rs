@@ -56,6 +56,7 @@ pub fn spawn_unit_info_panel(commands: &mut Commands) -> Entity {
             UnitInfoPanel,
             Node {
                 display: Display::None, // Hidden by default
+                width: Val::Percent(100.0),
                 flex_direction: FlexDirection::Column,
                 padding: UiRect::all(PANEL_PADDING),
                 margin: UiRect::all(PANEL_MARGIN),
