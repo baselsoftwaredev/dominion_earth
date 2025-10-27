@@ -24,6 +24,7 @@ pub fn handle_player_unit_interaction(
     game_state: Res<GameState>,
     capitals_query: Query<(Entity, &core_sim::Capital, &core_sim::Position)>,
     player_civilizations_query: Query<Entity, With<core_sim::PlayerControlled>>,
+    asset_server: Res<AssetServer>,
 ) {
     if game_state.ai_only {
         return;
@@ -33,11 +34,9 @@ pub fn handle_player_unit_interaction(
         return;
     }
 
-    let player_civ_id = if let Some(player_civ) = player_civs.iter().next() {
-        player_civ.id
-    } else {
-        return;
-    };
+    let player_civ = player_civs.iter().next().unwrap();
+    let player_civ_id = player_civ.id;
+    let player_sound_theme = player_civ.sound_theme.clone();
 
     if mouse_button.just_pressed(MouseButton::Right) {
         if let Ok(window) = windows.single() {
@@ -60,6 +59,9 @@ pub fn handle_player_unit_interaction(
             &world_map,
             player_civ_id,
             &debug_logging,
+            &player_sound_theme,
+            &asset_server,
+            &player_civs,
         );
     }
 
@@ -107,6 +109,9 @@ fn handle_unit_movement_command(
     world_map: &Res<core_sim::resources::WorldMap>,
     player_civ_id: CivId,
     debug_logging: &Res<DebugLogging>,
+    sound_theme: &str,
+    asset_server: &Res<AssetServer>,
+    player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
 ) {
     let Ok(window) = windows.single() else {
         return;
@@ -146,6 +151,15 @@ fn handle_unit_movement_command(
                                     commands
                                         .entity(entity)
                                         .insert(core_sim::PlayerMovementOrder { target_position });
+
+                                    // Play movement sound
+                                    crate::plugins::civilization_audio::play_player_sound(
+                                        commands,
+                                        asset_server,
+                                        "move",
+                                        player_civs,
+                                    );
+
                                     DebugUtils::log_info(
                                         debug_logging,
                                         &format!(

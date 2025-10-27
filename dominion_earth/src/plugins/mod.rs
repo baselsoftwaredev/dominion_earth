@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod camera;
+pub mod civilization_audio;
 pub mod core_simulation;
 pub mod input_handling;
 pub mod menu;
@@ -10,6 +11,7 @@ pub mod ui_integration;
 
 pub use audio::AudioPlugin;
 pub use camera::CameraPlugin;
+pub use civilization_audio::CivilizationAudioPlugin;
 pub use core_simulation::CoreSimulationPlugin;
 pub use input_handling::InputHandlingPlugin;
 pub use menu::MenuPlugin;
@@ -30,6 +32,7 @@ impl bevy::app::PluginGroup for DominionEarthPlugins {
             .add(RenderingPlugin)
             .add(InputHandlingPlugin)
             .add(AudioPlugin)
+            .add(CivilizationAudioPlugin)
             .add(SaveLoadPlugin::default())
             .add(UiIntegrationPlugin)
     }
@@ -55,6 +58,7 @@ impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
             .add(RenderingPlugin)
             .add(InputHandlingPlugin)
             .add(AudioPlugin)
+            .add(CivilizationAudioPlugin)
             .add(SaveLoadPlugin::default())
             .add(UiIntegrationPlugin)
     }

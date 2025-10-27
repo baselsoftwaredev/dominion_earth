@@ -36,6 +36,8 @@ pub struct Civilization {
     pub technologies: Technologies,
     pub economy: Economy,
     pub military: Military,
+    pub music_theme: String, // Path to civilization-specific music
+    pub sound_theme: String, // Identifier for sound effect set (e.g., "ancient_egypt", "greece")
 }
 
 /// AI personality traits that drive decision making

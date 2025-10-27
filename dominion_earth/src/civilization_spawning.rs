@@ -170,6 +170,8 @@ fn spawn_civilization_entity(
         technologies: Technologies::default(),
         economy: Economy::default(),
         military: Military::default(),
+        music_theme: civ_def.music_theme.clone(),
+        sound_theme: civ_def.sound_theme.clone(),
     };
 
     let mut civ_entity_commands = commands.spawn((civilization, position, ActiveThisTurn));

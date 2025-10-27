@@ -13,6 +13,18 @@ pub struct CivilizationDefinition {
     pub starting_technologies: Vec<String>,
     pub starting_units: Vec<UnitCount>,
     pub starting_buildings: Vec<BuildingCount>,
+    #[serde(default = "default_music_theme")]
+    pub music_theme: String, // e.g., "sounds/music/egypt.ogg"
+    #[serde(default = "default_sound_theme")]
+    pub sound_theme: String, // e.g., "egypt" for sound effect variations
+}
+
+fn default_music_theme() -> String {
+    "sounds/music/default.ogg".to_string()
+}
+
+fn default_sound_theme() -> String {
+    "default".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

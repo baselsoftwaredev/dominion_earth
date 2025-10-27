@@ -23,6 +23,7 @@ impl Plugin for CoreSimulationPlugin {
             .add_systems(
                 Update,
                 (
+                    game::initialize_active_civ_turn,
                     core_sim::spawn_action_queues_for_new_civilizations,
                     crate::ai_decision_systems::generate_ai_decisions_on_ai_turn,
                     core_sim::process_civilization_action_queues,

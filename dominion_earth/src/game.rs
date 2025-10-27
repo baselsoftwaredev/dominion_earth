@@ -122,6 +122,35 @@ pub fn initialize_fog_of_war(
     }
 }
 
+/// Initialize the ActiveCivTurn resource with all spawned civilizations
+pub fn initialize_active_civ_turn(
+    mut active_civ_turn: ResMut<core_sim::resources::ActiveCivTurn>,
+    civilizations: Query<&core_sim::Civilization>,
+    mut initialized: Local<bool>,
+) {
+    // Only run once when civilizations exist
+    if *initialized || civilizations.is_empty() {
+        return;
+    }
+
+    // Collect all civilization IDs
+    let mut civ_ids: Vec<core_sim::CivId> = civilizations.iter().map(|civ| civ.id).collect();
+
+    // Sort by ID for consistent turn order
+    civ_ids.sort_by_key(|id| id.0);
+
+    active_civ_turn.civs_per_turn = civ_ids.clone();
+    active_civ_turn.current_civ_index = 0;
+
+    info!(
+        "🎵 Initialized ActiveCivTurn with {} civilizations: {:?}",
+        civ_ids.len(),
+        civ_ids
+    );
+
+    *initialized = true;
+}
+
 /// Main game update system - optimized to only update when necessary
 pub fn game_update_system(
     mut game_state: ResMut<GameState>,

@@ -25,6 +25,8 @@
                 (building_type: "Granary", count: 1),
                 (building_type: "Temple", count: 1),
             ],
+            music_theme: "sounds/music/egypt.ogg",
+            sound_theme: "egypt",
         ),
         (
             name: "Ancient Greece",
@@ -50,6 +52,8 @@
                 (building_type: "Library", count: 1),
                 (building_type: "Barracks", count: 1),
             ],
+            music_theme: "sounds/music/greece.ogg",
+            sound_theme: "greece",
         ),
         (
             name: "Roman Empire",
@@ -75,6 +79,8 @@
                 (building_type: "Barracks", count: 1),
                 (building_type: "Walls", count: 1),
             ],
+            music_theme: "sounds/music/rome.ogg",
+            sound_theme: "rome",
         ),
         (
             name: "Han China",
@@ -101,6 +107,8 @@
                 (building_type: "Library", count: 1),
                 (building_type: "Workshop", count: 1),
             ],
+            music_theme: "sounds/music/china.ogg",
+            sound_theme: "china",
         ),
         (
             name: "Persian Empire",
@@ -126,6 +134,8 @@
                 (building_type: "Barracks", count: 1),
                 (building_type: "Market", count: 1),
             ],
+            music_theme: "sounds/music/persia.ogg",
+            sound_theme: "persia",
         ),
     ],
     world_generation: (
