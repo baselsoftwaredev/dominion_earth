@@ -85,6 +85,7 @@ fn despawn_all_game_entities(
     tile_entities: Query<Entity, With<core_sim::tile::tile_components::WorldTile>>,
     tilemap_entities: Query<Entity, With<bevy_ecs_tilemap::tiles::TileStorage>>,
     capital_label_entities: Query<Entity, With<crate::ui::CapitalLabel>>,
+    unit_label_entities: Query<Entity, With<crate::ui::UnitLabel>>,
     tilemap_id: Option<ResMut<crate::rendering::common::TilemapIdResource>>,
     debug_logging: Res<DebugLogging>,
 ) {
@@ -139,6 +140,18 @@ fn despawn_all_game_entities(
             capital_label_count
         );
         for label_entity in &capital_label_entities {
+            commands.entity(label_entity).despawn();
+        }
+    }
+
+    let unit_label_count = unit_label_entities.iter().count();
+    if unit_label_count > 0 {
+        crate::debug_println!(
+            debug_logging,
+            "  Despawning {} unit label entities",
+            unit_label_count
+        );
+        for label_entity in &unit_label_entities {
             commands.entity(label_entity).despawn();
         }
     }

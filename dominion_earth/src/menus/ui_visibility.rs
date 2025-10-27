@@ -14,6 +14,7 @@ pub fn hide_gameplay_ui_panels(
             Without<crate::ui::right_panel::RightPanel>,
             Without<crate::ui::left_panel::LeftPanel>,
             Without<crate::ui::capital_labels::CapitalLabel>,
+            Without<crate::ui::unit_labels::UnitLabel>,
         ),
     >,
     mut right_panel: Query<
@@ -23,6 +24,7 @@ pub fn hide_gameplay_ui_panels(
             Without<crate::ui::top_panel::TopPanel>,
             Without<crate::ui::left_panel::LeftPanel>,
             Without<crate::ui::capital_labels::CapitalLabel>,
+            Without<crate::ui::unit_labels::UnitLabel>,
         ),
     >,
     mut left_panel: Query<
@@ -32,6 +34,7 @@ pub fn hide_gameplay_ui_panels(
             Without<crate::ui::top_panel::TopPanel>,
             Without<crate::ui::right_panel::RightPanel>,
             Without<crate::ui::capital_labels::CapitalLabel>,
+            Without<crate::ui::unit_labels::UnitLabel>,
         ),
     >,
     mut capital_labels: Query<
@@ -41,6 +44,17 @@ pub fn hide_gameplay_ui_panels(
             Without<crate::ui::top_panel::TopPanel>,
             Without<crate::ui::right_panel::RightPanel>,
             Without<crate::ui::left_panel::LeftPanel>,
+            Without<crate::ui::unit_labels::UnitLabel>,
+        ),
+    >,
+    mut unit_labels: Query<
+        &mut Visibility,
+        (
+            With<crate::ui::unit_labels::UnitLabel>,
+            Without<crate::ui::top_panel::TopPanel>,
+            Without<crate::ui::right_panel::RightPanel>,
+            Without<crate::ui::left_panel::LeftPanel>,
+            Without<crate::ui::capital_labels::CapitalLabel>,
         ),
     >,
     debug_logging: Res<DebugLogging>,
@@ -66,6 +80,11 @@ pub fn hide_gameplay_ui_panels(
     for mut label_visibility in &mut capital_labels {
         set_panel_hidden(&mut label_visibility);
     }
+
+    // Hide unit labels
+    for mut label_visibility in &mut unit_labels {
+        set_panel_hidden(&mut label_visibility);
+    }
 }
 
 /// Show all gameplay UI panels.
@@ -78,6 +97,7 @@ pub fn show_gameplay_ui_panels(
             Without<crate::ui::right_panel::RightPanel>,
             Without<crate::ui::left_panel::LeftPanel>,
             Without<crate::ui::capital_labels::CapitalLabel>,
+            Without<crate::ui::unit_labels::UnitLabel>,
         ),
     >,
     mut right_panel: Query<
@@ -87,6 +107,7 @@ pub fn show_gameplay_ui_panels(
             Without<crate::ui::top_panel::TopPanel>,
             Without<crate::ui::left_panel::LeftPanel>,
             Without<crate::ui::capital_labels::CapitalLabel>,
+            Without<crate::ui::unit_labels::UnitLabel>,
         ),
     >,
     mut left_panel: Query<
@@ -96,6 +117,7 @@ pub fn show_gameplay_ui_panels(
             Without<crate::ui::top_panel::TopPanel>,
             Without<crate::ui::right_panel::RightPanel>,
             Without<crate::ui::capital_labels::CapitalLabel>,
+            Without<crate::ui::unit_labels::UnitLabel>,
         ),
     >,
     mut capital_labels: Query<
@@ -105,6 +127,17 @@ pub fn show_gameplay_ui_panels(
             Without<crate::ui::top_panel::TopPanel>,
             Without<crate::ui::right_panel::RightPanel>,
             Without<crate::ui::left_panel::LeftPanel>,
+            Without<crate::ui::unit_labels::UnitLabel>,
+        ),
+    >,
+    mut unit_labels: Query<
+        &mut Visibility,
+        (
+            With<crate::ui::unit_labels::UnitLabel>,
+            Without<crate::ui::top_panel::TopPanel>,
+            Without<crate::ui::right_panel::RightPanel>,
+            Without<crate::ui::left_panel::LeftPanel>,
+            Without<crate::ui::capital_labels::CapitalLabel>,
         ),
     >,
     debug_logging: Res<DebugLogging>,
@@ -128,6 +161,11 @@ pub fn show_gameplay_ui_panels(
 
     // Show capital labels
     for mut label_visibility in &mut capital_labels {
+        set_panel_visible(&mut label_visibility);
+    }
+
+    // Show unit labels
+    for mut label_visibility in &mut unit_labels {
         set_panel_visible(&mut label_visibility);
     }
 }
