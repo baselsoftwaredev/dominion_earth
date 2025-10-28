@@ -1,11 +1,14 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::{city::Capital, civilization::Civilization, military::MilitaryUnit, position::Position};
+use core_sim::{FogOfWarMaps, PlayerControlled, VisibilityState};
 use crate::constants::rendering::borders;
 use super::common::calculate_world_position_for_gizmo;
 
 pub fn render_civilization_borders(
     mut gizmos: Gizmos,
+    fog_of_war: Res<FogOfWarMaps>,
+    player_query: Query<&Civilization, With<PlayerControlled>>,
     tilemap_q: Query<(
         &TileStorage,
         &TilemapSize,
@@ -23,7 +26,36 @@ pub fn render_civilization_borders(
         return;
     };
 
+    // Get the player's civilization ID for fog of war checks
+    let player_civ_id = if let Ok(player_civ) = player_query.single() {
+        player_civ.id
+    } else {
+        return; // No player, don't render borders
+    };
+
+    // Get the player's visibility map
+    let visibility_map = if let Some(map) = fog_of_war.get(player_civ_id) {
+        map
+    } else {
+        return; // No visibility map yet
+    };
+
     for (unit, position) in units.iter() {
+        // Check fog of war visibility
+        let tile_visibility = visibility_map
+            .get(*position)
+            .unwrap_or(VisibilityState::Unexplored);
+
+        // Only render borders for units that:
+        // 1. Belong to the player's civ, OR
+        // 2. Are on tiles currently visible to the player
+        let belongs_to_player = unit.owner == player_civ_id;
+        let should_render = belongs_to_player || matches!(tile_visibility, VisibilityState::Visible);
+
+        if !should_render {
+            continue;
+        }
+
         if let Some(civ) = civilizations.iter().find(|civ| civ.id == unit.owner) {
             let world_pos = calculate_world_position_for_gizmo(
                 *position, map_size, tile_size, grid_size, map_type, anchor,
@@ -47,6 +79,21 @@ pub fn render_civilization_borders(
     }
 
     for (capital, position) in capitals.iter() {
+        // Check fog of war visibility
+        let tile_visibility = visibility_map
+            .get(*position)
+            .unwrap_or(VisibilityState::Unexplored);
+
+        // Only render borders for capitals that:
+        // 1. Belong to the player's civ, OR
+        // 2. Are on tiles currently visible to the player
+        let belongs_to_player = capital.owner == player_civ_id;
+        let should_render = belongs_to_player || matches!(tile_visibility, VisibilityState::Visible);
+
+        if !should_render {
+            continue;
+        }
+
         if let Some(civ) = civilizations.iter().find(|civ| civ.id == capital.owner) {
             let world_pos = calculate_world_position_for_gizmo(
                 *position, map_size, tile_size, grid_size, map_type, anchor,

@@ -41,6 +41,8 @@ impl Plugin for RenderingPlugin {
                     // Fog of War rendering
                     rendering::fog_of_war::apply_fog_of_war_to_tiles,
                     rendering::fog_of_war::hide_entities_in_fog,
+                    rendering::fog_of_war::hide_capital_labels_in_fog,
+                    rendering::fog_of_war::hide_unit_labels_in_fog,
                 )
                     .run_if(in_state(Screen::Gameplay)),
             );
