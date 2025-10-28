@@ -120,3 +120,8 @@ pub mod network {
 pub mod debug {
     pub const LOG_PRECISION: usize = 2; // Decimal places for debug coordinate logging
 }
+
+/// Audio and sound constants
+pub mod audio {
+    pub const DEFAULT_MUSIC_VOLUME: f32 = 1.0;
+}

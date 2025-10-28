@@ -9,7 +9,7 @@ pub mod prelude {
     pub use super::{constants, interaction::InteractionPalette, palette as ui_palette, widget};
 }
 
-use crate::{menus::Menu, screens::Screen};
+use crate::{debug_utils::DebugLogging, menus::Menu, screens::Screen};
 use bevy::prelude::*;
 
 pub fn plugin(app: &mut App) {
@@ -57,25 +57,28 @@ fn handle_button_interactions(
     mut global_volume: ResMut<GlobalVolume>,
     mut app_exit: MessageWriter<AppExit>,
     screen: Res<State<Screen>>,
-    mut save_load_state: ResMut<crate::plugins::save_load::SaveLoadState>,
+    debug_logging: Res<DebugLogging>,
 ) {
     use bevy::audio::{GlobalVolume, Volume};
 
     for (interaction, action) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
-            println!(
+            crate::debug_println!(
+                debug_logging,
                 "🎮 Button pressed: {:?} (current screen: {:?})",
                 action,
                 screen.get()
             );
             match action {
                 widget::ButtonAction::EnterGameplay => {
-                    // Only allow entering gameplay from MainMenu
                     if **screen != Screen::MainMenu {
-                        println!("⚠️  Ignoring EnterGameplay button - not in MainMenu!");
+                        crate::debug_println!(
+                            debug_logging,
+                            "⚠️  Ignoring EnterGameplay button - not in MainMenu!"
+                        );
                         continue;
                     }
-                    println!("🎮 Transitioning to Gameplay screen");
+                    crate::debug_println!(debug_logging, "🎮 Transitioning to Gameplay screen");
                     next_screen.set(Screen::Gameplay);
                 }
                 widget::ButtonAction::OpenSettings => {
@@ -98,29 +101,38 @@ fn handle_button_interactions(
                     next_screen.set(Screen::MainMenu);
                 }
                 widget::ButtonAction::GoBack => {
-                    next_menu.set(if **screen == Screen::MainMenu {
-                        Menu::Main
-                    } else {
-                        Menu::Pause
-                    });
+                    next_menu.set(determine_parent_menu_from_screen(**screen));
                 }
                 widget::ButtonAction::LowerVolume => {
-                    let linear = (global_volume.volume.to_linear() - 0.1).max(0.0);
-                    global_volume.volume = Volume::Linear(linear);
+                    apply_volume_adjustment(
+                        &mut global_volume,
+                        -constants::audio::VOLUME_ADJUSTMENT_STEP,
+                    );
                 }
                 widget::ButtonAction::RaiseVolume => {
-                    let linear = (global_volume.volume.to_linear() + 0.1).min(3.0);
-                    global_volume.volume = Volume::Linear(linear);
-                }
-                widget::ButtonAction::SaveGame => {
-                    println!("💾 Save game requested (F5)");
-                    crate::plugins::save_load::save_game(&mut save_load_state, "quicksave");
-                }
-                widget::ButtonAction::LoadGame => {
-                    println!("📂 Load game requested (F9)");
-                    crate::plugins::save_load::load_game(&mut save_load_state, "quicksave");
+                    apply_volume_adjustment(
+                        &mut global_volume,
+                        constants::audio::VOLUME_ADJUSTMENT_STEP,
+                    );
                 }
             }
         }
     }
+}
+
+fn determine_parent_menu_from_screen(screen: Screen) -> Menu {
+    if screen == Screen::MainMenu {
+        Menu::Main
+    } else {
+        Menu::Pause
+    }
+}
+
+fn apply_volume_adjustment(global_volume: &mut ResMut<GlobalVolume>, adjustment: f32) {
+    use bevy::audio::Volume;
+    let current_linear_volume = global_volume.volume.to_linear();
+    let adjusted_volume = (current_linear_volume + adjustment)
+        .max(constants::audio::MINIMUM_VOLUME_LEVEL)
+        .min(constants::audio::MAXIMUM_VOLUME_LEVEL);
+    global_volume.volume = Volume::Linear(adjusted_volume);
 }

@@ -22,3 +22,9 @@ pub mod layout {
 pub mod z_index {
     pub const MENU_OVERLAY_Z_INDEX: i32 = 100;
 }
+
+pub mod audio {
+    pub const VOLUME_ADJUSTMENT_STEP: f32 = 0.1;
+    pub const MINIMUM_VOLUME_LEVEL: f32 = 0.0;
+    pub const MAXIMUM_VOLUME_LEVEL: f32 = 3.0;
+}

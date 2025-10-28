@@ -1,3 +1,4 @@
+use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
 use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
@@ -10,6 +11,20 @@ use core_sim::{
 };
 use moonshine_save::prelude::*;
 
+#[derive(Resource, Reflect, Clone)]
+#[reflect(Resource)]
+pub struct SavedMusicVolume {
+    pub volume: f32,
+}
+
+impl Default for SavedMusicVolume {
+    fn default() -> Self {
+        Self {
+            volume: crate::constants::audio::DEFAULT_MUSIC_VOLUME,
+        }
+    }
+}
+
 pub struct SaveLoadPlugin;
 
 impl Default for SaveLoadPlugin {
@@ -20,11 +35,8 @@ impl Default for SaveLoadPlugin {
 
 impl Plugin for SaveLoadPlugin {
     fn build(&self, app: &mut App) {
-        app
-            // Add moonshine-save observers
-            .add_observer(save_on_default_event)
+        app.add_observer(save_on_default_event)
             .add_observer(load_on_default_event)
-            // Register all Model component types for reflection and saving
             .register_type::<Position>()
             .register_type::<Direction>()
             .register_type::<CivId>()
@@ -57,6 +69,8 @@ impl Plugin for SaveLoadPlugin {
             .register_type::<FogOfWarMaps>()
             .register_type::<VisibilityMap>()
             .register_type::<VisibilityState>()
+            .register_type::<SavedMusicVolume>()
+            .insert_resource(SavedMusicVolume::default())
             .insert_resource(SaveLoadState::default())
             .add_systems(
                 Update,
@@ -66,6 +80,7 @@ impl Plugin for SaveLoadPlugin {
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
                     respawn_ui_after_load,
+                    restore_music_volume_after_load,
                 ),
             );
 
@@ -82,13 +97,19 @@ pub struct SaveLoadState {
     pub ui_needs_respawn: bool,
 }
 
-fn handle_save_requests(mut commands: Commands, mut save_state: ResMut<SaveLoadState>) {
+fn handle_save_requests(
+    mut commands: Commands,
+    mut save_state: ResMut<SaveLoadState>,
+    global_volume: Res<GlobalVolume>,
+    mut saved_volume: ResMut<SavedMusicVolume>,
+) {
     if let Some(save_name) = save_state.save_requested.take() {
         info!("Saving game: {}", save_name);
 
+        sync_current_volume_to_save(&global_volume, &mut saved_volume);
+
         let file_path = format!("saves/{}.ron", save_name);
 
-        // Trigger moonshine-save
         commands.trigger_save(
             SaveWorld::default_into_file(file_path)
                 .include_resource::<WorldMap>()
@@ -96,34 +117,41 @@ fn handle_save_requests(mut commands: Commands, mut save_state: ResMut<SaveLoadS
                 .include_resource::<ActiveCivTurn>()
                 .include_resource::<TurnPhase>()
                 .include_resource::<GameConfig>()
-                .include_resource::<FogOfWarMaps>(),
+                .include_resource::<FogOfWarMaps>()
+                .include_resource::<SavedMusicVolume>(),
         );
 
         info!("Game save triggered: {}", save_name);
     }
 }
 
+fn sync_current_volume_to_save(
+    global_volume: &Res<GlobalVolume>,
+    saved_volume: &mut ResMut<SavedMusicVolume>,
+) {
+    saved_volume.volume = global_volume.volume.to_linear();
+    info!("Saved music volume: {}", saved_volume.volume);
+}
+
 fn handle_load_requests(mut commands: Commands, mut save_state: ResMut<SaveLoadState>) {
     if let Some(load_name) = save_state.load_requested.take() {
         info!("Loading game: {}", load_name);
 
-        // Set flags for post-load restoration
-        save_state.needs_player_restore = true;
-        save_state.fog_of_war_needs_refresh = true;
-        save_state.ui_needs_respawn = true;
+        mark_all_post_load_restoration_flags(&mut save_state);
 
         let file_path = format!("saves/{}.ron", load_name);
 
-        // Trigger moonshine-save
-        // Note: This will automatically despawn all entities with Unload component
         commands.trigger_load(LoadWorld::default_from_file(file_path));
 
         info!("Game load triggered: {}", load_name);
     }
 }
 
-// despawn_referenced_sprites and despawn_ui_panels are no longer needed
-// as moonshine-save automatically despawns entities with #[require(Unload)]
+fn mark_all_post_load_restoration_flags(save_state: &mut ResMut<SaveLoadState>) {
+    save_state.needs_player_restore = true;
+    save_state.fog_of_war_needs_refresh = true;
+    save_state.ui_needs_respawn = true;
+}
 
 pub fn save_game(save_state: &mut ResMut<SaveLoadState>, save_name: &str) {
     save_state.save_requested = Some(save_name.to_string());
@@ -246,11 +274,20 @@ fn respawn_ui_after_load(mut commands: Commands, mut save_state: ResMut<SaveLoad
 
     info!("Respawning UI panels after load");
 
-    // Respawn the native Bevy UI panels
     crate::ui::top_panel::spawn_top_panel(commands.reborrow());
     crate::ui::right_panel::spawn_right_panel(commands.reborrow());
     crate::ui::left_panel::spawn_left_panel(commands.reborrow());
 
     save_state.ui_needs_respawn = false;
     info!("UI respawn complete after load");
+}
+
+fn restore_music_volume_after_load(
+    saved_volume: Res<SavedMusicVolume>,
+    mut global_volume: ResMut<GlobalVolume>,
+) {
+    if saved_volume.is_changed() && !saved_volume.is_added() {
+        global_volume.volume = Volume::Linear(saved_volume.volume);
+        info!("Restored music volume to: {}", saved_volume.volume);
+    }
 }
