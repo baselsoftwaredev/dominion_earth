@@ -7,6 +7,14 @@ use bevy_ecs::prelude::*;
 use moonshine_save::prelude::*;
 use serde::{Deserialize, Serialize};
 
+/// Direction the unit sprite is facing (for rendering)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect, Default)]
+pub enum FacingDirection {
+    Left,
+    #[default]
+    Right,
+}
+
 /// Military unit component - represents a game unit
 ///
 /// This is a "Model" component containing game state that should be saved.
@@ -18,6 +26,7 @@ pub struct MilitaryUnit {
     pub owner: CivId,
     pub unit_type: UnitType,
     pub position: Position,
+    pub facing: FacingDirection,
 
     pub attack: f32,
     pub defense: f32,
@@ -46,6 +55,7 @@ impl MilitaryUnit {
             owner,
             unit_type,
             position,
+            facing: FacingDirection::default(),
             attack: unit_type.base_attack(),
             defense: unit_type.base_defense(),
             health: max_health,

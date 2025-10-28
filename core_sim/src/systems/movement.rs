@@ -1,5 +1,5 @@
 use crate::{
-    components::position::MovementOrder,
+    components::{military::FacingDirection, position::MovementOrder},
     constants::{movement_validation, terrain_stats},
     debug_utils::CoreDebugUtils,
     MilitaryUnit, PlayerMovementOrder, Position, TerrainType, WorldMap,
@@ -10,6 +10,18 @@ fn calculate_manhattan_distance_between_positions(from: Position, to: Position) 
     let x_distance = (to.x - from.x).abs() as u32;
     let y_distance = (to.y - from.y).abs() as u32;
     x_distance + y_distance
+}
+
+fn update_unit_facing_direction_from_movement(
+    unit: &mut MilitaryUnit,
+    current_position: Position,
+    target_position: Position,
+) {
+    if target_position.x < current_position.x {
+        unit.facing = FacingDirection::Left;
+    } else if target_position.x > current_position.x {
+        unit.facing = FacingDirection::Right;
+    }
 }
 
 fn validate_movement_to_adjacent_tile(
@@ -58,6 +70,12 @@ pub fn execute_movement_orders(
         match validate_movement_to_adjacent_tile(current_position, target_position, &world_map) {
             Ok(movement_cost) => {
                 if unit.movement_remaining >= movement_cost {
+                    update_unit_facing_direction_from_movement(
+                        &mut unit,
+                        current_position,
+                        target_position,
+                    );
+
                     *position = target_position;
                     unit.movement_remaining -= movement_cost;
 
@@ -103,13 +121,18 @@ pub fn execute_ai_movement_orders(
     for (entity, mut unit, mut position, movement_order) in movement_query.iter_mut() {
         let current_position = *position;
 
-        // Process the next step in the movement order
         if let Some(next_position) = movement_order.next_position() {
             commands.entity(entity).remove::<MovementOrder>();
 
             match validate_movement_to_adjacent_tile(current_position, next_position, &world_map) {
                 Ok(movement_cost) => {
                     if unit.movement_remaining >= movement_cost {
+                        update_unit_facing_direction_from_movement(
+                            &mut unit,
+                            current_position,
+                            next_position,
+                        );
+
                         *position = next_position;
                         unit.movement_remaining -= movement_cost;
 
@@ -135,7 +158,6 @@ pub fn execute_ai_movement_orders(
                 }
             }
         } else {
-            // Movement order is complete, remove it
             commands.entity(entity).remove::<MovementOrder>();
         }
     }

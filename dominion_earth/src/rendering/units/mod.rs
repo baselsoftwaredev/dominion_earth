@@ -3,8 +3,23 @@ use crate::constants::rendering::z_layers;
 use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
-use core_sim::components::{military::MilitaryUnit, position::Position};
+use core_sim::components::{
+    military::{FacingDirection, MilitaryUnit},
+    position::Position,
+};
 use core_sim::tile::tile_assets::TileAssets;
+
+mod constants {
+    pub const SPRITE_SCALE_FACING_LEFT: f32 = -1.0;
+    pub const SPRITE_SCALE_FACING_RIGHT: f32 = 1.0;
+}
+
+fn apply_unit_facing_to_sprite_scale(transform: &mut Transform, facing: FacingDirection) {
+    transform.scale.x = match facing {
+        FacingDirection::Left => constants::SPRITE_SCALE_FACING_LEFT,
+        FacingDirection::Right => constants::SPRITE_SCALE_FACING_RIGHT,
+    };
+}
 
 pub fn spawn_unit_sprites(
     mut commands: Commands,
@@ -17,7 +32,6 @@ pub fn spawn_unit_sprites(
         &TilemapType,
         &TilemapAnchor,
     )>,
-    // Also check for units without sprite references (e.g., loaded from save or spawned before tilemap was ready)
     units: Query<
         (Entity, &MilitaryUnit, &Position),
         Or<(
@@ -25,9 +39,9 @@ pub fn spawn_unit_sprites(
             Without<core_sim::components::rendering::SpriteEntityReference>,
         )>,
     >,
+    mut transforms: Query<&mut Transform>,
     debug_logging: Res<DebugLogging>,
 ) {
-    // Wait for TileAssets to be loaded
     let Some(tile_assets) = tile_assets else {
         return;
     };
@@ -50,6 +64,7 @@ pub fn spawn_unit_sprites(
             unit_entity,
             unit,
             pos,
+            &mut transforms,
             &debug_logging,
         );
     }
@@ -76,10 +91,9 @@ pub fn recreate_missing_unit_sprites(
         ),
         With<MilitaryUnit>,
     >,
-    sprite_entities: Query<&Transform>,
+    mut transforms: Query<&mut Transform>,
     debug_logging: Res<DebugLogging>,
 ) {
-    // Wait for TileAssets to be loaded
     let Some(tile_assets) = tile_assets else {
         return;
     };
@@ -91,15 +105,12 @@ pub fn recreate_missing_unit_sprites(
 
     for (unit_entity, unit, pos, sprite_ref) in units.iter() {
         let needs_new_sprite = if let Some(sprite_ref) = sprite_ref {
-            // Check if the referenced sprite entity still exists
-            sprite_entities.get(sprite_ref.sprite_entity).is_err()
+            transforms.get(sprite_ref.sprite_entity).is_err()
         } else {
-            // No sprite reference at all
             true
         };
 
         if needs_new_sprite {
-            // Remove old invalid sprite reference if it exists
             if sprite_ref.is_some() {
                 commands
                     .entity(unit_entity)
@@ -118,6 +129,7 @@ pub fn recreate_missing_unit_sprites(
                 unit_entity,
                 unit,
                 pos,
+                &mut transforms,
                 &debug_logging,
             );
         }
@@ -136,13 +148,14 @@ fn spawn_unit_sprite(
     unit_entity: Entity,
     unit: &MilitaryUnit,
     pos: &Position,
+    transforms: &mut Query<&mut Transform>,
     debug_logging: &DebugLogging,
 ) {
     let sprite_index = match unit.unit_type {
         core_sim::components::military::UnitType::Infantry => tile_assets.ancient_infantry_index,
-        core_sim::components::military::UnitType::Archer => tile_assets.ancient_infantry_index, // TODO: Add archer sprite
-        core_sim::components::military::UnitType::Cavalry => tile_assets.ancient_infantry_index, // TODO: Add cavalry sprite
-        _ => tile_assets.ancient_infantry_index, // Default to infantry
+        core_sim::components::military::UnitType::Archer => tile_assets.ancient_infantry_index,
+        core_sim::components::military::UnitType::Cavalry => tile_assets.ancient_infantry_index,
+        _ => tile_assets.ancient_infantry_index,
     };
 
     crate::debug_println!(
@@ -168,6 +181,10 @@ fn spawn_unit_sprite(
         z_layers::UNIT_Z,
         debug_logging,
     ) {
+        if let Ok(mut transform) = transforms.get_mut(sprite_entity) {
+            apply_unit_facing_to_sprite_scale(&mut transform, unit.facing);
+        }
+
         commands
             .entity(unit_entity)
             .insert(core_sim::components::rendering::SpriteEntityReference { sprite_entity });
@@ -191,7 +208,7 @@ pub fn update_unit_sprites(
             &core_sim::components::rendering::SpriteEntityReference,
         ),
         (
-            Changed<Position>,
+            Or<(Changed<Position>, Changed<MilitaryUnit>)>,
             With<core_sim::components::rendering::SpriteEntityReference>,
         ),
     >,
@@ -218,12 +235,15 @@ pub fn update_unit_sprites(
             transform.translation.x = tile_center.x;
             transform.translation.y = tile_center.y;
 
+            apply_unit_facing_to_sprite_scale(&mut transform, unit.facing);
+
             crate::debug_println!(
                 debug_logging,
-                "DEBUG: Updated {:?} sprite position to world coordinates ({}, {})",
+                "DEBUG: Updated {:?} sprite position to world coordinates ({}, {}) facing {:?}",
                 unit.unit_type,
                 tile_center.x,
-                tile_center.y
+                tile_center.y,
+                unit.facing
             );
         }
     }
