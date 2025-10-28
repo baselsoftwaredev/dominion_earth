@@ -245,9 +245,9 @@ fn handle_unit_selection(
             for (entity, unit, position) in units_query.iter() {
                 if *position == click_position && unit.owner == player_civ_id {
                     if let Some(prev_entity) = selected_unit.unit_entity {
-                        commands
-                            .entity(prev_entity)
-                            .remove::<core_sim::UnitSelected>();
+                        if let Some(mut entity_commands) = commands.get_entity(prev_entity).ok() {
+                            entity_commands.remove::<core_sim::UnitSelected>();
+                        }
                     }
 
                     selected_unit.unit_entity = Some(entity);
@@ -275,9 +275,9 @@ fn handle_unit_selection(
 
             if !found_unit {
                 if let Some(prev_entity) = selected_unit.unit_entity {
-                    commands
-                        .entity(prev_entity)
-                        .remove::<core_sim::UnitSelected>();
+                    if let Some(mut entity_commands) = commands.get_entity(prev_entity).ok() {
+                        entity_commands.remove::<core_sim::UnitSelected>();
+                    }
                 }
                 selected_unit.unit_entity = None;
                 selected_unit.unit_id = None;

@@ -70,7 +70,14 @@ pub fn setup_game(
     game_config: Res<GameConfig>,
     game_state: Res<GameState>,
     debug_logging: Res<DebugLogging>,
+    save_load_state: Res<crate::plugins::save_load::SaveLoadState>,
 ) {
+    // Skip setup if we're loading from a save file
+    if save_load_state.is_loading_from_save {
+        println!("Skipping game setup - loading from save");
+        return;
+    }
+
     // Initialize the random number generator with configured seed
     rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
     DebugUtils::log_world_generation(&debug_logging, game_config.random_seed);

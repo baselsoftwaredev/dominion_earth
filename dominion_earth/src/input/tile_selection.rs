@@ -134,9 +134,11 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
 
                 if !unit_at_position {
                     if let Some(prev_unit_entity) = selected_unit.unit_entity {
-                        commands
-                            .entity(prev_unit_entity)
-                            .remove::<core_sim::UnitSelected>();
+                        if let Some(mut entity_commands) =
+                            commands.get_entity(prev_unit_entity).ok()
+                        {
+                            entity_commands.remove::<core_sim::UnitSelected>();
+                        }
                     }
                     selected_unit.unit_entity = None;
                     selected_unit.unit_id = None;
@@ -208,9 +210,9 @@ fn process_tile_selection_and_update_ui_state(
             );
 
             if let Some(prev_unit_entity) = selected_unit.unit_entity {
-                commands
-                    .entity(prev_unit_entity)
-                    .remove::<core_sim::UnitSelected>();
+                if let Some(mut entity_commands) = commands.get_entity(prev_unit_entity).ok() {
+                    entity_commands.remove::<core_sim::UnitSelected>();
+                }
             }
             selected_unit.unit_entity = None;
             selected_unit.unit_id = None;

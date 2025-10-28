@@ -1,13 +1,12 @@
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
-use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{ActiveCivTurn, CurrentTurn, GameConfig, MapTile, Resource, WorldMap};
 use core_sim::{
     Building, BuildingType, Capital, CapitalAge, City, CivId, CivPersonality, CivStats,
     Civilization, Direction, Economy, FogOfWarMaps, Military, MilitaryUnit, PlayerControlled,
-    PlayerMovementOrder, Position, ProvidesVision, Technologies, TerrainType, TradeRoute,
-    UnitSelected, UnitType, VisibilityMap, VisibilityState,
+    PlayerMovementOrder, Position, ProvidesVision, Technologies, TerrainType, TradeRoute, UnitType,
+    VisibilityMap, VisibilityState,
 };
 use moonshine_save::prelude::*;
 
@@ -56,7 +55,6 @@ impl Plugin for SaveLoadPlugin {
             .register_type::<BuildingType>()
             .register_type::<CivStats>()
             .register_type::<PlayerControlled>()
-            .register_type::<UnitSelected>()
             .register_type::<PlayerMovementOrder>()
             .register_type::<ProvidesVision>()
             .register_type::<WorldMap>()
@@ -77,10 +75,13 @@ impl Plugin for SaveLoadPlugin {
                 (
                     handle_save_requests,
                     handle_load_requests,
+                    cleanup_world_before_load,
+                    trigger_pending_load,
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
                     respawn_ui_after_load,
                     restore_music_volume_after_load,
+                    clear_loading_flag,
                 ),
             );
 
@@ -95,6 +96,9 @@ pub struct SaveLoadState {
     pub needs_player_restore: bool,
     pub fog_of_war_needs_refresh: bool,
     pub ui_needs_respawn: bool,
+    pub is_loading_from_save: bool,
+    pub pending_load_name: Option<String>,
+    pub frames_since_load_triggered: u32,
 }
 
 fn handle_save_requests(
@@ -133,17 +137,61 @@ fn sync_current_volume_to_save(
     info!("Saved music volume: {}", saved_volume.volume);
 }
 
-fn handle_load_requests(mut commands: Commands, mut save_state: ResMut<SaveLoadState>) {
+fn handle_load_requests(mut save_state: ResMut<SaveLoadState>) {
     if let Some(load_name) = save_state.load_requested.take() {
-        info!("Loading game: {}", load_name);
+        info!("Load requested: {}", load_name);
+        // Store the pending load - we'll clean up first, then trigger the load
+        save_state.pending_load_name = Some(load_name);
+        save_state.is_loading_from_save = true;
+    }
+}
+
+fn cleanup_world_before_load(
+    mut commands: Commands,
+    mut save_state: ResMut<SaveLoadState>,
+    sprite_entities: Query<Entity, (With<Sprite>, Without<Position>)>,
+    label_entities: Query<Entity, Or<(With<crate::ui::CapitalLabel>, With<crate::ui::UnitLabel>)>>,
+) {
+    if save_state.pending_load_name.is_none() {
+        return;
+    }
+
+    info!("Cleaning up visual entities before load");
+
+    // Despawn all sprites
+    let sprite_count = sprite_entities.iter().count();
+    for sprite_entity in sprite_entities.iter() {
+        commands.entity(sprite_entity).despawn();
+    }
+    info!("Despawned {} sprite entities", sprite_count);
+
+    // Despawn all labels
+    let label_count = label_entities.iter().count();
+    for label_entity in label_entities.iter() {
+        commands.entity(label_entity).despawn();
+    }
+    if label_count > 0 {
+        info!("Despawned {} label entities", label_count);
+    }
+}
+
+fn trigger_pending_load(mut commands: Commands, mut save_state: ResMut<SaveLoadState>) {
+    if let Some(load_name) = save_state.pending_load_name.take() {
+        info!("Triggering load for: {}", load_name);
 
         mark_all_post_load_restoration_flags(&mut save_state);
 
         let file_path = format!("saves/{}.ron", load_name);
-
         commands.trigger_load(LoadWorld::default_from_file(file_path));
 
+        save_state.frames_since_load_triggered = 0;
+
         info!("Game load triggered: {}", load_name);
+    }
+
+    // Increment frame counter while loading
+    if save_state.is_loading_from_save {
+        save_state.frames_since_load_triggered += 1;
     }
 }
 
@@ -289,5 +337,22 @@ fn restore_music_volume_after_load(
     if saved_volume.is_changed() && !saved_volume.is_added() {
         global_volume.volume = Volume::Linear(saved_volume.volume);
         info!("Restored music volume to: {}", saved_volume.volume);
+    }
+}
+
+fn clear_loading_flag(mut save_state: ResMut<SaveLoadState>) {
+    // Clear the loading flag after all restoration is complete AND a few frames have passed
+    // This ensures sprite systems don't run during the load process
+    const MIN_FRAMES_AFTER_LOAD: u32 = 3;
+
+    if save_state.is_loading_from_save
+        && !save_state.needs_player_restore
+        && !save_state.fog_of_war_needs_refresh
+        && !save_state.ui_needs_respawn
+        && save_state.frames_since_load_triggered >= MIN_FRAMES_AFTER_LOAD
+    {
+        info!("All load restoration complete, clearing loading flag");
+        save_state.is_loading_from_save = false;
+        save_state.frames_since_load_triggered = 0;
     }
 }

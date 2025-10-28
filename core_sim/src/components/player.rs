@@ -18,8 +18,9 @@ pub struct SelectedUnit {
 }
 
 /// Component to mark a unit as selected for player interaction
+/// This is transient UI state and should not be saved
 #[derive(Component, Debug, Clone, Reflect)]
-#[require(Save)]
+#[require(Unload)]
 pub struct UnitSelected;
 
 /// Component for pending player movement order

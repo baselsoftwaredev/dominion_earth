@@ -3,6 +3,13 @@ use crate::screens::Screen;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::TilemapPlugin;
 
+/// Run condition to prevent sprite systems from running during load
+fn not_loading_from_save(
+    save_state: Option<Res<crate::plugins::save_load::SaveLoadState>>,
+) -> bool {
+    save_state.map_or(true, |state| !state.is_loading_from_save)
+}
+
 /// Plugin for all rendering systems and setup
 pub struct RenderingPlugin;
 
@@ -27,7 +34,8 @@ impl Plugin for RenderingPlugin {
                     rendering::capitals::spawn_animated_capital_tiles
                         .after(rendering::tilemap::spawn_world_tiles),
                 )
-                    .run_if(in_state(Screen::Gameplay)),
+                    .run_if(in_state(Screen::Gameplay))
+                    .run_if(not_loading_from_save),
             )
             // Runtime Rendering Update Systems
             .add_systems(
@@ -44,7 +52,8 @@ impl Plugin for RenderingPlugin {
                     rendering::fog_of_war::hide_capital_labels_in_fog,
                     rendering::fog_of_war::hide_unit_labels_in_fog,
                 )
-                    .run_if(in_state(Screen::Gameplay)),
+                    .run_if(in_state(Screen::Gameplay))
+                    .run_if(not_loading_from_save),
             );
     }
 }
