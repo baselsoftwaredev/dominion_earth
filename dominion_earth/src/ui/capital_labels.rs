@@ -2,6 +2,7 @@ use crate::debug_println;
 use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
+use bevy::text::TextBackgroundColor;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::{
     components::{Capital, City, Civilization},
@@ -15,13 +16,19 @@ pub struct CapitalLabel {
     pub capital_position: Position,
 }
 
-/// Constants for capital label styling
 pub mod constants {
     pub const CAPITAL_LABEL_FONT_SIZE: f32 = 16.0;
     pub const CAPITAL_LABEL_Z_INDEX: f32 = 100.0;
     pub const CAPITAL_LABEL_NORTH_OFFSET_TILES: f32 = 1.0;
     pub const CAPITAL_LABEL_VERTICAL_OFFSET_PIXELS: f32 = -40.0;
     pub const CAPITAL_LABEL_BACKGROUND_ALPHA: f32 = 0.7;
+    pub const LABEL_TEXT_COLOR_RED: f32 = 1.0;
+    pub const LABEL_TEXT_COLOR_GREEN: f32 = 1.0;
+    pub const LABEL_TEXT_COLOR_BLUE: f32 = 1.0;
+    pub const UNKNOWN_CIVILIZATION_COLOR_RED: f32 = 0.5;
+    pub const UNKNOWN_CIVILIZATION_COLOR_GREEN: f32 = 0.5;
+    pub const UNKNOWN_CIVILIZATION_COLOR_BLUE: f32 = 0.5;
+    pub const NORTH_TILE_OFFSET_Y: i32 = 1;
 }
 /// System to spawn capital labels using Text2d (world-space text that scales with camera)
 pub fn spawn_capital_labels(
@@ -44,7 +51,8 @@ pub fn spawn_capital_labels(
     };
 
     for (capital_entity, position, capital, city) in capitals_query.iter() {
-        let civilization_name = get_civilization_name(&civilizations_query, capital.owner);
+        let (civilization_name, civilization_color) =
+            get_civilization_info(&civilizations_query, capital.owner);
 
         let north_tile_world_position = calculate_north_tile_world_position(
             position, map_size, tile_size, grid_size, map_type, anchor,
@@ -56,6 +64,7 @@ pub fn spawn_capital_labels(
             *position,
             &city.name,
             &civilization_name,
+            civilization_color,
             north_tile_world_position,
         );
 
@@ -77,7 +86,8 @@ pub fn spawn_capital_labels(
             continue;
         }
 
-        let civilization_name = get_civilization_name(&civilizations_query, capital.owner);
+        let (civilization_name, civilization_color) =
+            get_civilization_info(&civilizations_query, capital.owner);
 
         let north_tile_world_position = calculate_north_tile_world_position(
             position, map_size, tile_size, grid_size, map_type, anchor,
@@ -89,6 +99,7 @@ pub fn spawn_capital_labels(
             *position,
             &city.name,
             &civilization_name,
+            civilization_color,
             north_tile_world_position,
         );
 
@@ -140,16 +151,25 @@ pub fn update_capital_labels(
         }
     }
 }
-/// Helper function to get civilization name from query
-fn get_civilization_name(
+/// Helper function to get civilization name and color from query
+fn get_civilization_info(
     civilizations_query: &Query<&Civilization>,
     civ_id: core_sim::CivId,
-) -> String {
+) -> (String, [f32; 3]) {
     civilizations_query
         .iter()
         .find(|civ| civ.id == civ_id)
-        .map(|civ| civ.name.clone())
-        .unwrap_or_else(|| "Unknown".to_string())
+        .map(|civ| (civ.name.clone(), civ.color))
+        .unwrap_or_else(|| {
+            (
+                "Unknown".to_string(),
+                [
+                    constants::UNKNOWN_CIVILIZATION_COLOR_RED,
+                    constants::UNKNOWN_CIVILIZATION_COLOR_GREEN,
+                    constants::UNKNOWN_CIVILIZATION_COLOR_BLUE,
+                ],
+            )
+        })
 }
 
 /// Helper function to calculate world position of the north neighboring tile
@@ -163,7 +183,7 @@ fn calculate_north_tile_world_position(
 ) -> Vec2 {
     let north_tile_pos = TilePos {
         x: capital_position.x as u32,
-        y: (capital_position.y as i32 + 1) as u32,
+        y: (capital_position.y as i32 + constants::NORTH_TILE_OFFSET_Y) as u32,
     };
 
     let mut world_pos =
@@ -179,9 +199,13 @@ fn spawn_capital_label_text2d(
     capital_position: Position,
     city_name: &str,
     civilization_name: &str,
+    civilization_color: [f32; 3],
     world_position: Vec2,
 ) {
     let label_text = format!("{}\n({})", city_name, civilization_name);
+
+    let background_color = create_label_background_color(civilization_color);
+    let text_color = create_label_text_color();
 
     commands.spawn((
         Text2d::new(label_text),
@@ -189,7 +213,8 @@ fn spawn_capital_label_text2d(
             font_size: constants::CAPITAL_LABEL_FONT_SIZE,
             ..default()
         },
-        TextColor(Color::srgb(1.0, 1.0, 1.0)),
+        TextColor(text_color),
+        TextBackgroundColor(background_color),
         TextLayout::new_with_justify(Justify::Center),
         Transform::from_translation(world_position.extend(constants::CAPITAL_LABEL_Z_INDEX)),
         CapitalLabel {
@@ -197,4 +222,21 @@ fn spawn_capital_label_text2d(
             capital_position,
         },
     ));
+}
+
+fn create_label_background_color(civilization_color: [f32; 3]) -> Color {
+    Color::srgba(
+        civilization_color[0],
+        civilization_color[1],
+        civilization_color[2],
+        constants::CAPITAL_LABEL_BACKGROUND_ALPHA,
+    )
+}
+
+fn create_label_text_color() -> Color {
+    Color::srgb(
+        constants::LABEL_TEXT_COLOR_RED,
+        constants::LABEL_TEXT_COLOR_GREEN,
+        constants::LABEL_TEXT_COLOR_BLUE,
+    )
 }
