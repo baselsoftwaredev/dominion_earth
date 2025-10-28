@@ -1,5 +1,9 @@
 # Dominion Earth - AI Coding Instructions
 
+If you don't understand something, ask for clarification!
+If you don't know how to do something, ask for help!
+If you don't understad my requirements, ask questions!
+
 ## Architecture
 
 - **core_sim/**: Pure ECS simulation engine using `bevy_ecs` (no graphics dependencies)

@@ -4,8 +4,10 @@ use crate::TerrainType;
 ///
 /// This module provides centralized debug logging that respects both RUST_LOG and DEBUG_LOGGING environment variables.
 /// These utilities can be used across all packages in the workspace.
+#[cfg(debug_assertions)]
 pub struct CoreDebugUtils;
 
+#[cfg(debug_assertions)]
 impl CoreDebugUtils {
     /// Checks if debug logging is enabled by checking RUST_LOG or DEBUG_LOGGING environment variables
     pub fn is_debug_enabled() -> bool {
