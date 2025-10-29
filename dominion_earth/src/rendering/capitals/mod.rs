@@ -5,6 +5,7 @@ use core_sim::tile::tile_assets::TileAssets;
 use core_sim::components::{city::Capital, position::Position};
 use crate::constants::rendering::{animation, z_layers};
 use crate::debug_utils::DebugLogging;
+use crate::screens::{LoadingState, Screen};
 use super::tilemap::spawn_entity_on_tile;
 
 #[derive(Component, Debug, Clone)]
@@ -64,6 +65,8 @@ pub fn spawn_animated_capital_sprite(
                         animation::ANCIENT_CAPITAL_END_FRAME,
                         animation::ANCIENT_CAPITAL_ANIMATION_SPEED,
                     ),
+                    DespawnOnExit(Screen::Gameplay),         // Auto-despawn when leaving Gameplay
+                    DespawnOnEnter(LoadingState::Loading),   // Auto-despawn when loading starts
                 ))
                 .id();
 
@@ -84,6 +87,8 @@ pub fn spawn_animated_capital_sprite(
                         },
                     ),
                     Transform::from_translation(world_pos),
+                    DespawnOnExit(Screen::Gameplay),         // Auto-despawn when leaving Gameplay
+                    DespawnOnEnter(LoadingState::Loading),   // Auto-despawn when loading starts
                 ))
                 .id();
 

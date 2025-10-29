@@ -1,5 +1,6 @@
 use crate::debug_println;
 use crate::debug_utils::DebugLogging;
+use crate::screens::{LoadingState, Screen};
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy::text::TextBackgroundColor;
@@ -227,6 +228,8 @@ fn spawn_unit_label_text2d(
             unit_entity,
             unit_position,
         },
+        DespawnOnExit(Screen::Gameplay), // Auto-despawn when leaving Gameplay
+        DespawnOnEnter(LoadingState::Loading), // Auto-despawn when loading starts
     ));
 }
 

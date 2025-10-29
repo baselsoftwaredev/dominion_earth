@@ -1,5 +1,6 @@
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
+use core_sim::components::military::FacingDirection;
 use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{ActiveCivTurn, CurrentTurn, GameConfig, MapTile, Resource, WorldMap};
 use core_sim::{
@@ -9,6 +10,8 @@ use core_sim::{
     VisibilityMap, VisibilityState,
 };
 use moonshine_save::prelude::*;
+
+use crate::screens::LoadingState;
 
 #[derive(Resource, Reflect, Clone)]
 #[reflect(Resource)]
@@ -47,6 +50,7 @@ impl Plugin for SaveLoadPlugin {
             .register_type::<TradeRoute>()
             .register_type::<MilitaryUnit>()
             .register_type::<UnitType>()
+            .register_type::<FacingDirection>()
             .register_type::<TerrainType>()
             .register_type::<City>()
             .register_type::<Capital>()
@@ -74,13 +78,8 @@ impl Plugin for SaveLoadPlugin {
                 Update,
                 (
                     handle_save_requests,
-                    // Load sequence must run in strict order to prevent sprite recreation
-                    (
-                        handle_load_requests,
-                        cleanup_world_before_load,
-                        trigger_pending_load,
-                    )
-                        .chain(),
+                    // Load sequence: state change triggers DespawnOnEnter, then load, then restore
+                    (handle_load_requests, trigger_pending_load).chain(),
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
                     respawn_ui_after_load,
@@ -143,70 +142,19 @@ fn sync_current_volume_to_save(
 
 /// Handle load requests and set the loading flag to prevent sprite systems from running
 /// This must be public so rendering systems can order themselves after it
-pub fn handle_load_requests(mut save_state: ResMut<SaveLoadState>) {
+pub fn handle_load_requests(
+    mut save_state: ResMut<SaveLoadState>,
+    mut next_loading_state: ResMut<NextState<LoadingState>>,
+) {
     if let Some(load_name) = save_state.load_requested.take() {
         info!("Load requested: {}", load_name);
         // Store the pending load - we'll clean up first, then trigger the load
         save_state.pending_load_name = Some(load_name);
         // Set loading flag IMMEDIATELY to prevent any sprite systems from running
         save_state.is_loading_from_save = true;
-        info!("🚫 Loading flag set - sprite systems should be blocked");
-    }
-}
-
-fn cleanup_world_before_load(
-    mut commands: Commands,
-    mut save_state: ResMut<SaveLoadState>,
-    sprite_entities: Query<Entity, (With<Sprite>, Without<Position>)>,
-    label_entities: Query<Entity, Or<(With<crate::ui::CapitalLabel>, With<crate::ui::UnitLabel>)>>,
-    entities_with_sprite_refs: Query<(
-        Entity,
-        &core_sim::components::rendering::SpriteEntityReference,
-    )>,
-) {
-    if save_state.pending_load_name.is_none() {
-        return;
-    }
-
-    info!("🧹 Cleaning up visual entities before load");
-
-    // Despawn sprite entities that are referenced by game entities
-    // AND remove the SpriteEntityReference components
-    let sprite_ref_count = entities_with_sprite_refs.iter().count();
-    for (entity, sprite_ref) in entities_with_sprite_refs.iter() {
-        // Despawn the actual sprite entity (silently to avoid errors if already despawned)
-        commands.entity(sprite_ref.sprite_entity).despawn();
-        // Remove the reference component from the game entity
-        commands
-            .entity(entity)
-            .remove::<core_sim::components::rendering::SpriteEntityReference>();
-    }
-    if sprite_ref_count > 0 {
-        info!(
-            "🧹 Despawned {} referenced sprite entities and removed their reference components",
-            sprite_ref_count
-        );
-    }
-
-    // Despawn any other sprites that aren't referenced (orphaned sprites)
-    let sprite_count = sprite_entities.iter().count();
-    for sprite_entity in sprite_entities.iter() {
-        commands.entity(sprite_entity).despawn();
-    }
-    if sprite_count > 0 {
-        info!(
-            "🧹 Despawned {} total sprite entities from query",
-            sprite_count
-        );
-    }
-
-    // Despawn all labels
-    let label_count = label_entities.iter().count();
-    for label_entity in label_entities.iter() {
-        commands.entity(label_entity).despawn();
-    }
-    if label_count > 0 {
-        info!("🧹 Despawned {} label entities", label_count);
+        // Enter Loading state - this will trigger DespawnOnEnter for all sprites
+        next_loading_state.set(LoadingState::Loading);
+        info!("🚫 Entering LoadingState - sprites will auto-despawn");
     }
 }
 
@@ -375,7 +323,10 @@ fn restore_music_volume_after_load(
     }
 }
 
-fn clear_loading_flag(mut save_state: ResMut<SaveLoadState>) {
+fn clear_loading_flag(
+    mut save_state: ResMut<SaveLoadState>,
+    mut next_loading_state: ResMut<NextState<LoadingState>>,
+) {
     // Clear the loading flag after all restoration is complete AND a few frames have passed
     // This ensures sprite systems don't run during the load process
     const MIN_FRAMES_AFTER_LOAD: u32 = 3;
@@ -386,8 +337,10 @@ fn clear_loading_flag(mut save_state: ResMut<SaveLoadState>) {
         && !save_state.ui_needs_respawn
         && save_state.frames_since_load_triggered >= MIN_FRAMES_AFTER_LOAD
     {
-        info!("All load restoration complete, clearing loading flag");
+        info!("All load restoration complete, clearing loading flag and returning to Idle state");
         save_state.is_loading_from_save = false;
         save_state.frames_since_load_triggered = 0;
+        // Exit Loading state - sprites can now be created again
+        next_loading_state.set(LoadingState::Idle);
     }
 }

@@ -70,7 +70,6 @@ pub fn spawn_unit_sprites(
     }
 }
 
-/// Recreate sprites for units that have invalid sprite references (e.g., after loading)
 pub fn recreate_missing_unit_sprites(
     mut commands: Commands,
     tile_assets: Option<Res<TileAssets>>,
@@ -160,11 +159,12 @@ fn spawn_unit_sprite(
 
     crate::debug_println!(
         debug_logging,
-        "DEBUG: Spawning unit sprite for {:?} at ({}, {}) with sprite index {}",
+        "Spawning unit sprite for {:?} at ({}, {}) with sprite index {} facing {:?}",
         unit.unit_type,
         pos.x,
         pos.y,
-        sprite_index
+        sprite_index,
+        unit.facing
     );
 
     if let Some(sprite_entity) = spawn_entity_on_tile(
@@ -181,8 +181,24 @@ fn spawn_unit_sprite(
         z_layers::UNIT_Z,
         debug_logging,
     ) {
+        let scale_x = match unit.facing {
+            FacingDirection::Left => constants::SPRITE_SCALE_FACING_LEFT,
+            FacingDirection::Right => constants::SPRITE_SCALE_FACING_RIGHT,
+        };
+
         if let Ok(mut transform) = transforms.get_mut(sprite_entity) {
-            apply_unit_facing_to_sprite_scale(&mut transform, unit.facing);
+            transform.scale.x = scale_x;
+            crate::debug_println!(
+                debug_logging,
+                "Applied facing {:?} (scale.x = {}) to sprite immediately",
+                unit.facing,
+                scale_x
+            );
+        } else {
+            crate::debug_println!(
+                debug_logging,
+                "Transform not available yet for sprite, will be updated by update_unit_sprites"
+            );
         }
 
         commands
@@ -239,11 +255,35 @@ pub fn update_unit_sprites(
 
             crate::debug_println!(
                 debug_logging,
-                "DEBUG: Updated {:?} sprite position to world coordinates ({}, {}) facing {:?}",
+                "Updated {:?} sprite position to world coordinates ({}, {}) facing {:?}",
                 unit.unit_type,
                 tile_center.x,
                 tile_center.y,
                 unit.facing
+            );
+        }
+    }
+}
+
+pub fn apply_facing_to_new_sprites(
+    mut transform_q: Query<&mut Transform>,
+    query: Query<
+        (
+            &MilitaryUnit,
+            &core_sim::components::rendering::SpriteEntityReference,
+        ),
+        Added<core_sim::components::rendering::SpriteEntityReference>,
+    >,
+    debug_logging: Res<DebugLogging>,
+) {
+    for (unit, sprite_ref) in query.iter() {
+        if let Ok(mut transform) = transform_q.get_mut(sprite_ref.sprite_entity) {
+            apply_unit_facing_to_sprite_scale(&mut transform, unit.facing);
+            crate::debug_println!(
+                debug_logging,
+                "Applied facing {:?} to newly created sprite for {:?}",
+                unit.facing,
+                unit.unit_type
             );
         }
     }

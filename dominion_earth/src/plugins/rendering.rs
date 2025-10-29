@@ -46,6 +46,7 @@ impl Plugin for RenderingPlugin {
                 (
                     rendering::units::recreate_missing_unit_sprites
                         .after(crate::plugins::save_load::handle_load_requests),
+                    rendering::units::apply_facing_to_new_sprites,
                     rendering::units::update_unit_sprites,
                     rendering::capitals::update_capital_sprites,
                     rendering::capitals::update_animated_capital_sprites,

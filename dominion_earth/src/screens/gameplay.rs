@@ -77,15 +77,9 @@ fn cleanup_all_menu_entities(
 
 fn despawn_all_game_entities(
     mut commands: Commands,
-    game_entities: Query<
-        (Entity, Option<&core_sim::SpriteEntityReference>),
-        With<core_sim::Position>,
-    >,
-    sprite_entities: Query<Entity, (With<Sprite>, Without<core_sim::Position>)>,
+    game_entities: Query<Entity, With<core_sim::Position>>,
     tile_entities: Query<Entity, With<core_sim::tile::tile_components::WorldTile>>,
     tilemap_entities: Query<Entity, With<bevy_ecs_tilemap::tiles::TileStorage>>,
-    capital_label_entities: Query<Entity, With<crate::ui::CapitalLabel>>,
-    unit_label_entities: Query<Entity, With<crate::ui::UnitLabel>>,
     tilemap_id: Option<ResMut<crate::rendering::common::TilemapIdResource>>,
     debug_logging: Res<DebugLogging>,
 ) {
@@ -94,23 +88,8 @@ fn despawn_all_game_entities(
         "🧹 Cleaning up game world - exiting Gameplay screen"
     );
 
-    let mut referenced_sprites = std::collections::HashSet::new();
-    for (_entity, sprite_ref) in &game_entities {
-        if let Some(sprite_ref) = sprite_ref {
-            referenced_sprites.insert(sprite_ref.sprite_entity);
-        }
-    }
-
-    let mut sprite_count = 0;
-    for sprite_entity in &sprite_entities {
-        commands.entity(sprite_entity).despawn();
-        sprite_count += 1;
-    }
-    crate::debug_println!(
-        debug_logging,
-        "  Despawned {} sprite entities",
-        sprite_count
-    );
+    // Note: Sprites and labels with DespawnOnExit(Screen::Gameplay) will be auto-cleaned by Bevy
+    // We only need to manually cleanup game entities, tiles, and tilemaps
 
     let tile_count = tile_entities.iter().count();
     if tile_count > 0 {
@@ -132,30 +111,6 @@ fn despawn_all_game_entities(
         }
     }
 
-    let capital_label_count = capital_label_entities.iter().count();
-    if capital_label_count > 0 {
-        crate::debug_println!(
-            debug_logging,
-            "  Despawning {} capital label entities",
-            capital_label_count
-        );
-        for label_entity in &capital_label_entities {
-            commands.entity(label_entity).despawn();
-        }
-    }
-
-    let unit_label_count = unit_label_entities.iter().count();
-    if unit_label_count > 0 {
-        crate::debug_println!(
-            debug_logging,
-            "  Despawning {} unit label entities",
-            unit_label_count
-        );
-        for label_entity in &unit_label_entities {
-            commands.entity(label_entity).despawn();
-        }
-    }
-
     if tilemap_id.is_some() {
         commands.remove_resource::<crate::rendering::common::TilemapIdResource>();
         crate::debug_println!(debug_logging, "  Removed TilemapIdResource");
@@ -163,9 +118,11 @@ fn despawn_all_game_entities(
 
     let entity_count = game_entities.iter().count();
     crate::debug_println!(debug_logging, "  Despawning {} game entities", entity_count);
-    for (entity, _) in &game_entities {
+    for entity in &game_entities {
         commands.entity(entity).despawn();
     }
+
+    crate::debug_println!(debug_logging, "✅ Game world cleanup complete");
 }
 
 fn reset_all_game_resources(

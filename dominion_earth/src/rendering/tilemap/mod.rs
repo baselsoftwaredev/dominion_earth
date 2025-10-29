@@ -2,6 +2,7 @@ use super::common::TilemapIdResource;
 use super::fog_of_war::TileSprite;
 use crate::constants::rendering::tile_size;
 use crate::debug_utils::DebugLogging;
+use crate::screens::{LoadingState, Screen};
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::tile::tile_assets::TileAssets;
@@ -118,6 +119,8 @@ pub fn spawn_entity_on_tile(
                     },
                 ),
                 Transform::from_translation(world_pos),
+                DespawnOnExit(Screen::Gameplay), // Auto-despawn when leaving Gameplay
+                DespawnOnEnter(LoadingState::Loading), // Auto-despawn when loading starts
             ))
             .id();
 
