@@ -11,6 +11,7 @@ mod plugins;
 mod production_input;
 mod rendering;
 mod screens;
+mod settings;
 mod theme;
 mod ui;
 mod unit_assets;

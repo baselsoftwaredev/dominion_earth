@@ -27,6 +27,7 @@ pub struct DominionEarthPlugins;
 impl bevy::app::PluginGroup for DominionEarthPlugins {
     fn build(self) -> bevy::app::PluginGroupBuilder {
         bevy::app::PluginGroupBuilder::start::<Self>()
+            .add(crate::settings::SettingsPersistencePlugin)
             .add(ResourcesPlugin)
             .add(MenuPlugin)
             .add(CoreSimulationPlugin)
@@ -53,6 +54,7 @@ pub struct DominionEarthPluginsWithConfig {
 impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
     fn build(self) -> bevy::app::PluginGroupBuilder {
         let mut builder = bevy::app::PluginGroupBuilder::start::<Self>()
+            .add(crate::settings::SettingsPersistencePlugin)
             .add(ResourcesPlugin::with_config(self.config))
             .add(MenuPlugin)
             .add(CoreSimulationPlugin)

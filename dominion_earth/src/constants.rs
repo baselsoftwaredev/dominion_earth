@@ -118,10 +118,19 @@ pub mod network {
 
 /// Debug and logging constants
 pub mod debug {
-    pub const LOG_PRECISION: usize = 2; // Decimal places for debug coordinate logging
+    pub const LOG_PRECISION: usize = 2;
 }
 
-/// Audio and sound constants
 pub mod audio {
     pub const DEFAULT_MUSIC_VOLUME: f32 = 1.0;
+}
+
+pub mod settings {
+    pub const PERCENTAGE_MULTIPLIER: f32 = 100.0;
+}
+
+pub mod ui {
+    pub mod spacing {
+        pub const VOLUME_CONTROLS_GAP: f32 = 20.0;
+    }
 }

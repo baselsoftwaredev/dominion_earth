@@ -55,6 +55,7 @@ fn handle_button_interactions(
     mut next_screen: ResMut<NextState<Screen>>,
     mut next_menu: ResMut<NextState<Menu>>,
     mut global_volume: ResMut<GlobalVolume>,
+    settings: Res<crate::settings::GameSettings>,
     mut app_exit: MessageWriter<AppExit>,
     screen: Res<State<Screen>>,
     debug_logging: Res<DebugLogging>,
@@ -114,6 +115,14 @@ fn handle_button_interactions(
                         &mut global_volume,
                         constants::audio::VOLUME_ADJUSTMENT_STEP,
                     );
+                }
+                widget::ButtonAction::SaveSettings => {
+                    crate::debug_println!(debug_logging, "💾 Saving settings to file...");
+                    if let Err(e) = settings.save() {
+                        error!("❌ Failed to save settings: {}", e);
+                    } else {
+                        info!("✅ Settings saved successfully");
+                    }
                 }
             }
         }

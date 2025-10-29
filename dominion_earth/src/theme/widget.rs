@@ -115,4 +115,5 @@ pub enum ButtonAction {
     GoBack,
     LowerVolume,
     RaiseVolume,
+    SaveSettings,
 }

@@ -1,5 +1,3 @@
-//! The settings menu.
-
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
 
@@ -7,6 +5,7 @@ use crate::{
     debug_utils::DebugLogging,
     menus::{ui_visibility, Menu},
     screens::Screen,
+    settings::sync_volume_to_settings,
     theme::prelude::*,
 };
 
@@ -33,7 +32,7 @@ pub fn plugin(app: &mut App) {
 
     app.add_systems(
         Update,
-        update_global_volume_label.run_if(in_state(Menu::Settings)),
+        (update_global_volume_label, sync_volume_to_settings).run_if(in_state(Menu::Settings)),
     );
 }
 
@@ -50,14 +49,15 @@ fn spawn_settings_menu(mut commands: Commands, debug_logging: Res<DebugLogging>)
         .with_children(|parent| {
             parent.spawn(widget::header("Settings"));
 
-            // Volume settings
             parent
                 .spawn((
                     Name::new("Volume Container"),
                     Node {
                         flex_direction: FlexDirection::Row,
                         align_items: AlignItems::Center,
-                        column_gap: ui_palette::px(20.0),
+                        column_gap: ui_palette::px(
+                            crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
+                        ),
                         ..default()
                     },
                 ))
@@ -77,6 +77,11 @@ fn spawn_settings_menu(mut commands: Commands, debug_logging: Res<DebugLogging>)
                     parent.spawn(widget::button_small("+", widget::ButtonAction::RaiseVolume));
                 });
 
+            parent.spawn(widget::button(
+                "Save Settings",
+                widget::ButtonAction::SaveSettings,
+            ));
+
             parent.spawn(widget::button("Back", widget::ButtonAction::GoBack));
         });
 }
@@ -90,7 +95,8 @@ fn update_global_volume_label(
     mut label_query: Query<&mut Text, With<GlobalVolumeLabel>>,
 ) {
     if let Ok(mut text) = label_query.single_mut() {
-        let percent = 100.0 * global_volume.volume.to_linear();
+        let percent =
+            crate::constants::settings::PERCENTAGE_MULTIPLIER * global_volume.volume.to_linear();
         **text = format!("{percent:3.0}%");
     }
 }
