@@ -3,6 +3,7 @@ pub mod camera;
 pub mod civilization_audio;
 pub mod core_simulation;
 pub mod input_handling;
+pub mod inspector;
 pub mod menu;
 pub mod rendering;
 pub mod resources;
@@ -14,6 +15,7 @@ pub use camera::CameraPlugin;
 pub use civilization_audio::CivilizationAudioPlugin;
 pub use core_simulation::CoreSimulationPlugin;
 pub use input_handling::InputHandlingPlugin;
+pub use inspector::InspectorPlugin;
 pub use menu::MenuPlugin;
 pub use rendering::RenderingPlugin;
 pub use resources::{ResourcesPlugin, ResourcesPluginWithConfig};
@@ -50,7 +52,7 @@ pub struct DominionEarthPluginsWithConfig {
 
 impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
     fn build(self) -> bevy::app::PluginGroupBuilder {
-        bevy::app::PluginGroupBuilder::start::<Self>()
+        let mut builder = bevy::app::PluginGroupBuilder::start::<Self>()
             .add(ResourcesPlugin::with_config(self.config))
             .add(MenuPlugin)
             .add(CoreSimulationPlugin)
@@ -60,6 +62,13 @@ impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
             .add(AudioPlugin)
             .add(CivilizationAudioPlugin)
             .add(SaveLoadPlugin::default())
-            .add(UiIntegrationPlugin)
+            .add(UiIntegrationPlugin);
+
+        #[cfg(debug_assertions)]
+        {
+            builder = builder.add(InspectorPlugin);
+        }
+
+        builder
     }
 }
