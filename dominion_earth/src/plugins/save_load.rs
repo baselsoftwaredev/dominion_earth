@@ -79,7 +79,6 @@ impl Plugin for SaveLoadPlugin {
                 Update,
                 (
                     handle_save_requests,
-                    // Load sequence: state change triggers DespawnOnEnter, then load, then restore
                     (handle_load_requests, trigger_pending_load).chain(),
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
@@ -94,7 +93,8 @@ impl Plugin for SaveLoadPlugin {
     }
 }
 
-#[derive(Resource, Default)]
+/// Resource tracking save/load state and post-load restoration progress
+#[derive(Resource, Default, Debug)]
 pub struct SaveLoadState {
     pub save_requested: Option<String>,
     pub load_requested: Option<String>,
@@ -142,7 +142,8 @@ fn sync_current_volume_to_save(
     info!("Saved music volume: {}", saved_volume.volume);
 }
 
-/// Handle load requests and set the loading flag to prevent sprite systems from running
+/// Handle load requests and transition to loading state to prevent sprite systems from running
+///
 /// This must be public so rendering systems can order themselves after it
 pub fn handle_load_requests(
     mut save_state: ResMut<SaveLoadState>,
@@ -150,13 +151,10 @@ pub fn handle_load_requests(
 ) {
     if let Some(load_name) = save_state.load_requested.take() {
         info!("Load requested: {}", load_name);
-        // Store the pending load - we'll clean up first, then trigger the load
         save_state.pending_load_name = Some(load_name);
-        // Set loading flag IMMEDIATELY to prevent any sprite systems from running
         save_state.is_loading_from_save = true;
-        // Enter Loading state - this will trigger DespawnOnEnter for all sprites
         next_loading_state.set(LoadingState::Loading);
-        info!("🚫 Entering LoadingState - sprites will auto-despawn");
+        info!("Entering LoadingState - sprites will auto-despawn");
     }
 }
 
@@ -174,7 +172,6 @@ fn trigger_pending_load(mut commands: Commands, mut save_state: ResMut<SaveLoadS
         info!("Game load triggered: {}", load_name);
     }
 
-    // Increment frame counter while loading
     if save_state.is_loading_from_save {
         save_state.frames_since_load_triggered += 1;
     }
@@ -215,7 +212,9 @@ fn restore_player_control_after_load(
     civilizations.sort_by_key(|(_, civ)| civ.id.0);
 
     if let Some((first_civ_entity, first_civ)) = civilizations.first() {
-        commands.entity(*first_civ_entity).insert(PlayerControlled);
+        commands
+            .entity(*first_civ_entity)
+            .try_insert(PlayerControlled);
 
         let player_civ_id = first_civ.id;
         info!(
@@ -225,13 +224,13 @@ fn restore_player_control_after_load(
 
         for (city_entity, city) in cities_query.iter() {
             if city.owner == player_civ_id {
-                commands.entity(city_entity).insert(PlayerControlled);
+                commands.entity(city_entity).try_insert(PlayerControlled);
             }
         }
 
         for (unit_entity, unit) in units_query.iter() {
             if unit.owner == player_civ_id {
-                commands.entity(unit_entity).insert(PlayerControlled);
+                commands.entity(unit_entity).try_insert(PlayerControlled);
             }
         }
 
@@ -255,14 +254,18 @@ fn refresh_fog_of_war_after_load(
     }
 
     let Some(mut fog_of_war) = fog_of_war else {
+        save_state.fog_of_war_needs_refresh = false;
         return;
     };
 
     let Some(world_map) = world_map else {
+        save_state.fog_of_war_needs_refresh = false;
         return;
     };
 
     let Ok(player_civ) = player_query.single() else {
+        // No player civ yet - fog of war will be updated by regular game systems
+        save_state.fog_of_war_needs_refresh = false;
         return;
     };
 
@@ -330,8 +333,6 @@ fn sync_game_config_to_settings_after_load(
     mut game_settings: ResMut<GameSettings>,
     save_state: Res<SaveLoadState>,
 ) {
-    // When a game is being loaded, update GameSettings to match the loaded GameConfig
-    // This ensures the settings menu reflects the loaded game's configuration
     if save_state.is_loading_from_save {
         if let Some(game_config) = game_config {
             if game_config.is_changed() && !game_config.is_added() {
@@ -350,8 +351,6 @@ fn clear_loading_flag(
     mut save_state: ResMut<SaveLoadState>,
     mut next_loading_state: ResMut<NextState<LoadingState>>,
 ) {
-    // Clear the loading flag after all restoration is complete AND a few frames have passed
-    // This ensures sprite systems don't run during the load process
     const MIN_FRAMES_AFTER_LOAD: u32 = 3;
 
     if save_state.is_loading_from_save
@@ -363,7 +362,6 @@ fn clear_loading_flag(
         info!("All load restoration complete, clearing loading flag and returning to Idle state");
         save_state.is_loading_from_save = false;
         save_state.frames_since_load_triggered = 0;
-        // Exit Loading state - sprites can now be created again
         next_loading_state.set(LoadingState::Idle);
     }
 }
