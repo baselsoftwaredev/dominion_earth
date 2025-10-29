@@ -49,6 +49,7 @@ pub struct PersonalityData {
     pub honor_treaties: f32,
     pub militarism: f32,
     pub isolationism: f32,
+    pub exploration_drive: f32,
 }
 
 impl From<PersonalityData> for CivPersonality {
@@ -62,6 +63,7 @@ impl From<PersonalityData> for CivPersonality {
             honor_treaties: data.honor_treaties,
             militarism: data.militarism,
             isolationism: data.isolationism,
+            exploration_drive: data.exploration_drive,
         }
     }
 }

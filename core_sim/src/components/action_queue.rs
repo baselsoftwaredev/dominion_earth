@@ -1,9 +1,6 @@
+use crate::components::{ai::AIAction, civilization::CivId};
 use bevy_ecs::component::{Component, Mutable};
 use std::collections::VecDeque;
-use crate::components::{
-    ai::AIAction,
-    civilization::CivId,
-};
 
 /// Action queue component for each civilization's AI
 /// Each civilization maintains its own queue of actions to execute
@@ -68,7 +65,7 @@ impl ActionQueue {
         }
 
         let priority = Self::calculate_action_priority(&action);
-        
+
         let queued_action = QueuedAction {
             action,
             turn_queued: current_turn,
@@ -79,7 +76,8 @@ impl ActionQueue {
         };
 
         // Insert in priority order (higher priority first)
-        let insert_position = self.queued_actions
+        let insert_position = self
+            .queued_actions
             .iter()
             .position(|existing| existing.queue_priority < priority)
             .unwrap_or(self.queued_actions.len());
@@ -91,7 +89,9 @@ impl ActionQueue {
     pub fn dequeue_next_action(&mut self, current_turn: u32) -> Option<QueuedAction> {
         // Find the first action that's ready to execute
         if let Some(index) = self.queued_actions.iter().position(|action| {
-            action.execution_turn.map_or(true, |turn| turn <= current_turn)
+            action
+                .execution_turn
+                .map_or(true, |turn| turn <= current_turn)
         }) {
             self.queued_actions.remove(index)
         } else {
@@ -102,7 +102,9 @@ impl ActionQueue {
     /// Peek at the next action without removing it
     pub fn peek_next_action(&self, current_turn: u32) -> Option<&QueuedAction> {
         self.queued_actions.iter().find(|action| {
-            action.execution_turn.map_or(true, |turn| turn <= current_turn)
+            action
+                .execution_turn
+                .map_or(true, |turn| turn <= current_turn)
         })
     }
 
@@ -134,9 +136,14 @@ impl ActionQueue {
 
     /// Get actions ready for current turn
     pub fn get_ready_actions_count(&self, current_turn: u32) -> usize {
-        self.queued_actions.iter().filter(|action| {
-            action.execution_turn.map_or(true, |turn| turn <= current_turn)
-        }).count()
+        self.queued_actions
+            .iter()
+            .filter(|action| {
+                action
+                    .execution_turn
+                    .map_or(true, |turn| turn <= current_turn)
+            })
+            .count()
     }
 
     /// Reset turn processing counter
@@ -162,9 +169,12 @@ impl ActionQueue {
             AIAction::BuildUnit { priority, .. } => priority + constants::UNIT_PRIORITY_BONUS,
             AIAction::Research { priority, .. } => priority + constants::RESEARCH_PRIORITY_BONUS,
             AIAction::Expand { priority, .. } => priority + constants::EXPANSION_PRIORITY_BONUS,
-            AIAction::BuildBuilding { priority, .. } => priority + constants::BUILDING_PRIORITY_BONUS,
+            AIAction::BuildBuilding { priority, .. } => {
+                priority + constants::BUILDING_PRIORITY_BONUS
+            }
             AIAction::Trade { priority, .. } => priority + constants::TRADE_PRIORITY_BONUS,
             AIAction::Diplomacy { priority, .. } => priority + constants::DIPLOMACY_PRIORITY_BONUS,
+            AIAction::Explore { priority, .. } => priority + constants::EXPLORATION_PRIORITY_BONUS,
         }
     }
 }
@@ -174,7 +184,7 @@ pub mod constants {
     pub const DEFAULT_MAX_QUEUE_SIZE: usize = 20;
     pub const DEFAULT_ACTIONS_PER_TURN: usize = 3;
     pub const DEFAULT_MAX_RETRIES: u8 = 2;
-    
+
     // Priority bonuses for different action types (added to action's base priority)
     pub const DEFENSE_PRIORITY_BONUS: f32 = 10.0;
     pub const ATTACK_PRIORITY_BONUS: f32 = 8.0;
@@ -184,6 +194,7 @@ pub mod constants {
     pub const BUILDING_PRIORITY_BONUS: f32 = 2.0;
     pub const TRADE_PRIORITY_BONUS: f32 = 1.0;
     pub const DIPLOMACY_PRIORITY_BONUS: f32 = 6.0;
+    pub const EXPLORATION_PRIORITY_BONUS: f32 = 3.5;
 }
 
 #[cfg(test)]
@@ -195,16 +206,16 @@ mod tests {
     fn test_action_queue_basic_operations() {
         let civ_id = CivId(1);
         let mut queue = ActionQueue::new(civ_id);
-        
+
         let action = AIAction::BuildUnit {
             unit_type: UnitType::Infantry,
             position: Position { x: 0, y: 0 },
             priority: 5.0,
         };
-        
+
         queue.queue_action(action, 1);
         assert_eq!(queue.get_queue_length(), 1);
-        
+
         let dequeued = queue.dequeue_next_action(1);
         assert!(dequeued.is_some());
         assert_eq!(queue.get_queue_length(), 0);
@@ -214,7 +225,7 @@ mod tests {
     fn test_priority_ordering() {
         let civ_id = CivId(1);
         let mut queue = ActionQueue::new(civ_id);
-        
+
         // Add low priority action first
         let low_priority = AIAction::Trade {
             partner: CivId(2),
@@ -222,14 +233,14 @@ mod tests {
             priority: 1.0,
         };
         queue.queue_action(low_priority, 1);
-        
+
         // Add high priority action second
         let high_priority = AIAction::Defend {
             position: Position { x: 0, y: 0 },
             priority: 8.0,
         };
         queue.queue_action(high_priority, 1);
-        
+
         // High priority should come out first
         let first_action = queue.dequeue_next_action(1).unwrap();
         if let AIAction::Defend { .. } = first_action.action {

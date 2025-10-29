@@ -1,4 +1,4 @@
-use crate::constants::goap::{defaults, goals, planning};
+use crate::constants::goap::{actions, defaults, goals, planning};
 use crate::{AIAction, StrategicGoal};
 use core_sim::{
     BuildingType, CivId, DiplomaticAction, GameResource as Resource, GameState, Position, UnitType,
@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 #[derive(Debug, Clone)]
 pub struct GOAPPlanner {
     actions: Vec<GOAPAction>,
-    _max_planning_depth: usize, // Reserved for future depth limiting
+    _max_planning_depth: usize,
 }
 
 impl GOAPPlanner {
@@ -37,21 +37,17 @@ impl GOAPPlanner {
         let mut state = WorldState::new();
 
         if let Some(civ_data) = game_state.civilizations.get(&civ_id) {
-            // Territory control
             let territory_count = civ_data.territories.len();
             state.set("territory_count", territory_count as f32);
 
-            // Military strength
             state.set(
                 "military_strength",
                 civ_data.civilization.military.total_strength,
             );
 
-            // Economic state
             state.set("gold", civ_data.civilization.economy.gold);
             state.set("income", civ_data.civilization.economy.income);
 
-            // Technology level
             let tech_count = civ_data
                 .civilization
                 .technologies
@@ -61,10 +57,8 @@ impl GOAPPlanner {
                 .count();
             state.set("technology_level", tech_count as f32);
 
-            // City count
             state.set("city_count", civ_data.cities.len() as f32);
 
-            // Has capital
             state.set(
                 "has_capital",
                 if civ_data.civilization.capital.is_some() {
@@ -74,7 +68,6 @@ impl GOAPPlanner {
                 },
             );
 
-            // Trade routes
             state.set(
                 "trade_routes",
                 civ_data.civilization.economy.trade_routes.len() as f32,
@@ -89,17 +82,31 @@ impl GOAPPlanner {
 
         match goal {
             StrategicGoal::ExpandTerritory => {
-                let current_territory = current_state.get("territory_count").unwrap_or(defaults::DEFAULT_STATE_VALUE);
-                goal_state.set("territory_count", current_territory + goals::TERRITORY_EXPANSION_TARGET);
+                let current_territory = current_state
+                    .get("territory_count")
+                    .unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                goal_state.set(
+                    "territory_count",
+                    current_territory + goals::TERRITORY_EXPANSION_TARGET,
+                );
             }
             StrategicGoal::AdvanceTechnology => {
-                let current_tech = current_state.get("technology_level").unwrap_or(defaults::DEFAULT_STATE_VALUE);
-                goal_state.set("technology_level", current_tech + goals::TECHNOLOGY_ADVANCEMENT_TARGET);
+                let current_tech = current_state
+                    .get("technology_level")
+                    .unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                goal_state.set(
+                    "technology_level",
+                    current_tech + goals::TECHNOLOGY_ADVANCEMENT_TARGET,
+                );
             }
             StrategicGoal::DevelopEconomy => {
-                let current_income = current_state.get("income").unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                let current_income = current_state
+                    .get("income")
+                    .unwrap_or(defaults::DEFAULT_STATE_VALUE);
                 goal_state.set("income", current_income * goals::INCOME_MULTIPLIER);
-                let current_trade = current_state.get("trade_routes").unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                let current_trade = current_state
+                    .get("trade_routes")
+                    .unwrap_or(defaults::DEFAULT_STATE_VALUE);
                 goal_state.set("trade_routes", current_trade + goals::TRADE_ROUTES_TARGET);
             }
             StrategicGoal::BuildMilitary => {
@@ -113,6 +120,15 @@ impl GOAPPlanner {
                 let current_military = current_state.get("military_strength").unwrap_or(0.0);
                 goal_state.set("military_strength", current_military * 1.3);
                 goal_state.set("fortifications", 2.0);
+            }
+            StrategicGoal::ExploreTerritory => {
+                let current_explored = current_state
+                    .get("explored_tiles")
+                    .unwrap_or(defaults::DEFAULT_STATE_VALUE);
+                goal_state.set(
+                    "explored_tiles",
+                    current_explored + goals::EXPLORATION_TARGET,
+                );
             }
         }
 
@@ -210,50 +226,80 @@ impl GOAPPlanner {
 
     fn create_goap_actions() -> Vec<GOAPAction> {
         vec![
-            // Expand territory action
             GOAPAction {
                 name: "expand_territory".to_string(),
-                cost: 2.0,
-                preconditions: vec![("has_capital".to_string(), 1.0), ("gold".to_string(), 10.0)],
-                effects: vec![
-                    ("territory_count".to_string(), 1.0), // Adds 1 territory
+                cost: actions::EXPAND_ACTION_COST,
+                preconditions: vec![
+                    (
+                        "has_capital".to_string(),
+                        actions::EXPLORE_CAPITAL_REQUIREMENT,
+                    ),
+                    ("gold".to_string(), actions::EXPAND_GOLD_REQUIREMENT),
                 ],
+                effects: vec![(
+                    "territory_count".to_string(),
+                    actions::EXPAND_TERRITORY_EFFECT,
+                )],
                 action_type: GOAPActionType::Expand,
             },
-            // Research technology action
             GOAPAction {
                 name: "research_technology".to_string(),
-                cost: 3.0,
-                preconditions: vec![("gold".to_string(), 50.0)],
-                effects: vec![("technology_level".to_string(), 1.0)],
+                cost: actions::RESEARCH_ACTION_COST,
+                preconditions: vec![("gold".to_string(), actions::RESEARCH_GOLD_REQUIREMENT)],
+                effects: vec![(
+                    "technology_level".to_string(),
+                    actions::RESEARCH_TECH_LEVEL_EFFECT,
+                )],
                 action_type: GOAPActionType::Research,
             },
-            // Build military unit action
             GOAPAction {
                 name: "build_military_unit".to_string(),
-                cost: 2.5,
-                preconditions: vec![("gold".to_string(), 30.0), ("city_count".to_string(), 1.0)],
-                effects: vec![("military_strength".to_string(), 10.0)],
+                cost: actions::BUILD_MILITARY_ACTION_COST,
+                preconditions: vec![
+                    ("gold".to_string(), actions::BUILD_MILITARY_GOLD_REQUIREMENT),
+                    (
+                        "city_count".to_string(),
+                        actions::BUILD_MILITARY_CITY_REQUIREMENT,
+                    ),
+                ],
+                effects: vec![(
+                    "military_strength".to_string(),
+                    actions::BUILD_MILITARY_STRENGTH_EFFECT,
+                )],
                 action_type: GOAPActionType::BuildMilitary,
             },
-            // Establish trade route action
             GOAPAction {
                 name: "establish_trade".to_string(),
-                cost: 1.5,
-                preconditions: vec![("city_count".to_string(), 1.0)],
+                cost: actions::TRADE_ACTION_COST,
+                preconditions: vec![("city_count".to_string(), actions::TRADE_CITY_REQUIREMENT)],
                 effects: vec![
-                    ("trade_routes".to_string(), 1.0),
-                    ("income".to_string(), 5.0),
+                    ("trade_routes".to_string(), actions::TRADE_ROUTE_EFFECT),
+                    ("income".to_string(), actions::TRADE_INCOME_EFFECT),
                 ],
                 action_type: GOAPActionType::Trade,
             },
-            // Build economic building action
             GOAPAction {
                 name: "build_economic_building".to_string(),
-                cost: 2.0,
-                preconditions: vec![("gold".to_string(), 25.0), ("city_count".to_string(), 1.0)],
-                effects: vec![("income".to_string(), 3.0)],
+                cost: actions::BUILD_ECONOMIC_ACTION_COST,
+                preconditions: vec![
+                    ("gold".to_string(), actions::BUILD_ECONOMIC_GOLD_REQUIREMENT),
+                    (
+                        "city_count".to_string(),
+                        actions::BUILD_ECONOMIC_CITY_REQUIREMENT,
+                    ),
+                ],
+                effects: vec![("income".to_string(), actions::BUILD_ECONOMIC_INCOME_EFFECT)],
                 action_type: GOAPActionType::BuildEconomic,
+            },
+            GOAPAction {
+                name: "explore_territory".to_string(),
+                cost: actions::EXPLORE_ACTION_COST,
+                preconditions: vec![(
+                    "has_capital".to_string(),
+                    actions::EXPLORE_CAPITAL_REQUIREMENT,
+                )],
+                effects: vec![("explored_tiles".to_string(), actions::EXPLORE_TILES_EFFECT)],
+                action_type: GOAPActionType::Explore,
             },
         ]
     }
@@ -323,6 +369,7 @@ pub enum GOAPActionType {
     Trade,
     BuildEconomic,
     Diplomacy,
+    Explore,
 }
 
 impl GOAPAction {
@@ -414,6 +461,17 @@ impl GOAPAction {
                     }
                 }
                 None
+            }
+            GOAPActionType::Explore => {
+                // Explore in a direction from capital
+                let directions = [(5, 0), (-5, 0), (0, 5), (0, -5), (3, 3), (-3, 3)];
+                let idx = (game_state.turn as usize) % directions.len();
+                let (dx, dy) = directions[idx];
+                let target_position = Position::new(capital.x + dx, capital.y + dy);
+                Some(AIAction::Explore {
+                    target_position,
+                    priority: 1.0 - self.cost / 10.0,
+                })
             }
         }
     }

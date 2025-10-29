@@ -1,10 +1,11 @@
+pub mod ai_coordinator;
 pub mod constants;
-pub mod utility_ai;
 pub mod goap;
 pub mod htn_planner;
-pub mod ai_coordinator;
+pub mod utility_ai;
 
-use core_sim::{CivId, CivPersonality, GameState, AIAction};
+use constants::coordinator::{decision, htn};
+use core_sim::{AIAction, CivId, CivPersonality, GameState};
 use std::collections::HashMap;
 
 /// Main AI coordinator that combines different AI approaches
@@ -54,11 +55,11 @@ impl AICoordinator {
         let personality = &civ_data.civilization.personality;
         let mut decisions = Vec::new();
 
-        // Use Utility AI for immediate tactical decisions
-        let utility_actions = self.utility_ai.evaluate_actions(civ_id, civ_data, game_state);
+        let utility_actions = self
+            .utility_ai
+            .evaluate_actions(civ_id, civ_data, game_state);
         decisions.extend(utility_actions);
 
-        // Use GOAP for strategic planning
         let strategic_goals = self.determine_strategic_goals(personality, game_state);
         for goal in strategic_goals {
             if let Some(plan) = self.goap_planner.plan_for_goal(civ_id, &goal, game_state) {
@@ -66,7 +67,6 @@ impl AICoordinator {
             }
         }
 
-        // Use HTN for complex multi-turn strategies
         let htn_tasks = self.determine_htn_tasks(personality, game_state);
         for task in htn_tasks {
             if let Some(plan) = self.htn_planner.decompose_task(civ_id, &task, game_state) {
@@ -74,45 +74,52 @@ impl AICoordinator {
             }
         }
 
-        // Prioritize and filter decisions
         self.prioritize_decisions(&mut decisions, personality);
         decisions
     }
 
-    fn determine_strategic_goals(&self, personality: &CivPersonality, _game_state: &GameState) -> Vec<StrategicGoal> {
+    fn determine_strategic_goals(
+        &self,
+        personality: &CivPersonality,
+        game_state: &GameState,
+    ) -> Vec<StrategicGoal> {
         let mut goals = Vec::new();
 
-        if personality.land_hunger > 0.6 {
-            goals.push(StrategicGoal::ExpandTerritory);
+        if personality.militarism > decision::PERSONALITY_THRESHOLD_MODERATE {
+            goals.push(StrategicGoal::BuildMilitary);
         }
 
-        if personality.tech_focus > 0.6 {
-            goals.push(StrategicGoal::AdvanceTechnology);
-        }
-
-        if personality.industry_focus > 0.6 {
+        if personality.industry_focus > decision::PERSONALITY_THRESHOLD_HIGH {
             goals.push(StrategicGoal::DevelopEconomy);
         }
 
-        if personality.militarism > 0.6 {
-            goals.push(StrategicGoal::BuildMilitary);
+        if personality.exploration_drive > decision::EXPLORATION_PERSONALITY_THRESHOLD
+            && game_state.turn < decision::EARLY_GAME_EXPLORATION_TURN_LIMIT
+        {
+            goals.push(StrategicGoal::ExploreTerritory);
         }
 
         goals
     }
 
-    fn determine_htn_tasks(&self, personality: &CivPersonality, _game_state: &GameState) -> Vec<HTNTask> {
+    fn determine_htn_tasks(
+        &self,
+        personality: &CivPersonality,
+        _game_state: &GameState,
+    ) -> Vec<HTNTask> {
         let mut tasks = Vec::new();
 
-        if personality.interventionism > 0.5 {
+        if personality.interventionism > decision::PERSONALITY_THRESHOLD_MODERATE {
             tasks.push(HTNTask::DiplomaticCampaign);
         }
 
-        if personality.land_hunger > 0.7 && personality.militarism > 0.5 {
+        if personality.land_hunger > htn::LAND_HUNGER_CONQUEST_THRESHOLD
+            && personality.militarism > decision::PERSONALITY_THRESHOLD_MODERATE
+        {
             tasks.push(HTNTask::ConquestCampaign);
         }
 
-        if personality.industry_focus > 0.7 {
+        if personality.industry_focus > htn::INDUSTRY_FOCUS_ECONOMY_THRESHOLD {
             tasks.push(HTNTask::EconomicDevelopment);
         }
 
@@ -123,23 +130,39 @@ impl AICoordinator {
         decisions.sort_by(|a, b| {
             let priority_a = self.calculate_action_priority(a, personality);
             let priority_b = self.calculate_action_priority(b, personality);
-            priority_b.partial_cmp(&priority_a).unwrap_or(std::cmp::Ordering::Equal)
+            priority_b
+                .partial_cmp(&priority_a)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
-        // Limit to top actions to prevent decision paralysis
-        decisions.truncate(5);
+        decisions.truncate(decision::MAX_DECISIONS_PER_TURN);
     }
 
     fn calculate_action_priority(&self, action: &AIAction, personality: &CivPersonality) -> f32 {
         match action {
-            AIAction::Expand { .. } => personality.land_hunger * 1.2,
-            AIAction::Research { .. } => personality.tech_focus * 1.1,
-            AIAction::BuildUnit { .. } => personality.militarism * 1.0,
-            AIAction::BuildBuilding { .. } => personality.industry_focus * 0.9,
-            AIAction::Trade { .. } => personality.industry_focus * 0.8,
-            AIAction::Attack { .. } => personality.militarism * personality.risk_tolerance * 1.3,
-            AIAction::Diplomacy { .. } => (1.0 - personality.isolationism) * 0.7,
-            AIAction::Defend { .. } => 1.5, // Defense is always high priority
+            AIAction::Expand { .. } => personality.land_hunger * decision::PRIORITY_WEIGHT_EXPAND,
+            AIAction::Research { .. } => {
+                personality.tech_focus * decision::PRIORITY_WEIGHT_RESEARCH
+            }
+            AIAction::BuildUnit { .. } => {
+                personality.militarism * decision::PRIORITY_WEIGHT_BUILD_UNIT
+            }
+            AIAction::BuildBuilding { .. } => {
+                personality.industry_focus * decision::PRIORITY_WEIGHT_BUILD_BUILDING
+            }
+            AIAction::Trade { .. } => personality.industry_focus * decision::PRIORITY_WEIGHT_TRADE,
+            AIAction::Attack { .. } => {
+                personality.militarism
+                    * personality.risk_tolerance
+                    * decision::PRIORITY_WEIGHT_ATTACK
+            }
+            AIAction::Diplomacy { .. } => {
+                (1.0 - personality.isolationism) * decision::PRIORITY_WEIGHT_DIPLOMACY
+            }
+            AIAction::Defend { .. } => decision::PRIORITY_BASE_DEFEND,
+            AIAction::Explore { .. } => {
+                personality.exploration_drive * decision::PRIORITY_WEIGHT_EXPLORE
+            }
         }
     }
 
@@ -158,6 +181,7 @@ pub enum StrategicGoal {
     BuildMilitary,
     EstablishDiplomacy,
     DefendTerritory,
+    ExploreTerritory,
 }
 
 /// High-level tasks for HTN planning

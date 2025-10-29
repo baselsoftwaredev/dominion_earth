@@ -1,6 +1,8 @@
-use core_sim::{CivId, CivilizationData, GameState, Position, UnitType, BuildingType, GameResource as Resource};
-use crate::constants::utility::{defaults, economy, expansion, thresholds};
+use crate::constants::utility::{defaults, economy, expansion, exploration, military, thresholds};
 use crate::AIAction;
+use core_sim::{
+    BuildingType, CivId, CivilizationData, GameResource as Resource, GameState, Position, UnitType,
+};
 
 /// Utility-based AI for immediate decision making
 #[derive(Debug)]
@@ -26,9 +28,12 @@ impl UtilityAI {
 
         for utility_function in &self.utility_functions {
             let utility_score = utility_function.evaluate(civ_id, civ_data, game_state);
-            
-            if utility_score > thresholds::ACTION_CONSIDERATION_THRESHOLD { // Threshold for considering an action
-                if let Some(action) = utility_function.create_action(civ_id, civ_data, game_state, utility_score) {
+
+            if utility_score > thresholds::ACTION_CONSIDERATION_THRESHOLD {
+                // Threshold for considering an action
+                if let Some(action) =
+                    utility_function.create_action(civ_id, civ_data, game_state, utility_score)
+                {
                     evaluated_actions.push(action);
                 }
             }
@@ -38,7 +43,9 @@ impl UtilityAI {
         evaluated_actions.sort_by(|a, b| {
             let priority_a = self.get_action_priority(a);
             let priority_b = self.get_action_priority(b);
-            priority_b.partial_cmp(&priority_a).unwrap_or(std::cmp::Ordering::Equal)
+            priority_b
+                .partial_cmp(&priority_a)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         evaluated_actions
@@ -54,6 +61,7 @@ impl UtilityAI {
             AIAction::Attack { priority, .. } => *priority,
             AIAction::Diplomacy { priority, .. } => *priority,
             AIAction::Defend { priority, .. } => *priority,
+            AIAction::Explore { priority, .. } => *priority,
         }
     }
 
@@ -64,19 +72,27 @@ impl UtilityAI {
                 Box::new(|_civ_id, civ_data, _game_state| {
                     let personality = &civ_data.civilization.personality;
                     let land_hunger = personality.land_hunger;
-                    
-                    // TODO: Replace with actual world_map integration
-                    // Check if there are available adjacent territories
-                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y));
-                    let available_tiles = expansion::AVAILABLE_TILES_STUB; // Stub value
-                    
-                    land_hunger * (available_tiles as f32 / expansion::MAX_EXPANSION_FACTOR).min(thresholds::MAX_UTILITY_SCORE)
+
+                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(
+                        defaults::DEFAULT_CAPITAL_X,
+                        defaults::DEFAULT_CAPITAL_Y,
+                    ));
+                    let available_tiles = expansion::AVAILABLE_TILES_STUB;
+
+                    land_hunger
+                        * (available_tiles as f32 / expansion::MAX_EXPANSION_FACTOR)
+                            .min(thresholds::MAX_UTILITY_SCORE)
                 }),
                 Box::new(|_civ_id, civ_data, _game_state, utility| {
-                    // TODO: Replace with actual world_map integration
-                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y));
-                    let available_positions = vec![Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y + defaults::DEFAULT_EXPANSION_Y_OFFSET)]; // Stub value
-                    
+                    let _capital = civ_data.civilization.capital.unwrap_or(Position::new(
+                        defaults::DEFAULT_CAPITAL_X,
+                        defaults::DEFAULT_CAPITAL_Y,
+                    ));
+                    let available_positions = vec![Position::new(
+                        defaults::DEFAULT_CAPITAL_X,
+                        defaults::DEFAULT_CAPITAL_Y + defaults::DEFAULT_EXPANSION_Y_OFFSET,
+                    )];
+
                     if let Some(&target) = available_positions.first() {
                         Some(AIAction::Expand {
                             target_position: target,
@@ -87,22 +103,27 @@ impl UtilityAI {
                     }
                 }),
             ),
-            
             UtilityFunction::new(
                 "research_technology",
                 Box::new(|_civ_id, civ_data, _game_state| {
                     let personality = &civ_data.civilization.personality;
                     let tech_focus = personality.tech_focus;
                     let economy = &civ_data.civilization.economy;
-                    
-                    // Higher utility if we have research capacity
-                    let research_capacity = (economy.gold / economy::GOLD_TO_RESEARCH_DIVISOR).min(thresholds::MAX_UTILITY_SCORE);
+
+                    let research_capacity = (economy.gold / economy::GOLD_TO_RESEARCH_DIVISOR)
+                        .min(thresholds::MAX_UTILITY_SCORE);
                     tech_focus * research_capacity
                 }),
                 Box::new(|_civ_id, civ_data, _game_state, utility| {
                     let technologies = &civ_data.civilization.technologies;
-                    let available_techs = ["Agriculture", "Bronze Working", "Writing", "Mathematics", "Iron Working"];
-                    
+                    let available_techs = [
+                        "Agriculture",
+                        "Bronze Working",
+                        "Writing",
+                        "Mathematics",
+                        "Iron Working",
+                    ];
+
                     for tech in &available_techs {
                         if !technologies.known.get(*tech).unwrap_or(&false) {
                             return Some(AIAction::Research {
@@ -114,23 +135,27 @@ impl UtilityAI {
                     None
                 }),
             ),
-            
             UtilityFunction::new(
                 "build_military",
                 Box::new(|_civ_id, civ_data, game_state| {
                     let personality = &civ_data.civilization.personality;
                     let militarism = personality.militarism;
                     let military = &civ_data.civilization.military;
-                    
-                    // Calculate threat level from nearby civilizations
-                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(defaults::DEFAULT_CAPITAL_X, defaults::DEFAULT_CAPITAL_Y));
-                    let nearby_threat = game_state.civilizations.values()
+
+                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(
+                        defaults::DEFAULT_CAPITAL_X,
+                        defaults::DEFAULT_CAPITAL_Y,
+                    ));
+                    let nearby_threat = game_state
+                        .civilizations
+                        .values()
                         .filter(|other_civ| other_civ.civilization.id != civ_data.civilization.id)
                         .map(|other_civ| {
                             if let Some(other_capital) = other_civ.civilization.capital {
                                 let distance = capital.distance_to(&other_capital);
                                 if distance < expansion::PROXIMITY_THRESHOLD {
-                                    other_civ.civilization.military.total_strength / (distance + 1.0)
+                                    other_civ.civilization.military.total_strength
+                                        / (distance + 1.0)
                                 } else {
                                     thresholds::MIN_UTILITY_SCORE
                                 }
@@ -139,20 +164,28 @@ impl UtilityAI {
                             }
                         })
                         .sum::<f32>();
-                    
-                    let threat_factor = (nearby_threat / (military.total_strength + 1.0)).min(2.0);
-                    militarism * (0.5 + threat_factor * 0.5)
+
+                    let threat_factor = (nearby_threat
+                        / (military.total_strength + military::THREAT_FACTOR_DEFENSE_OFFSET))
+                        .min(military::THREAT_FACTOR_MAX);
+                    militarism
+                        * (military::BASE_MILITARISM_WEIGHT
+                            + threat_factor * military::BASE_MILITARISM_WEIGHT)
                 }),
                 Box::new(|_civ_id, civ_data, _game_state, utility| {
-                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
-                    
-                    // Choose unit type based on what we need
-                    let unit_type = if civ_data.civilization.military.units.len() < 2 {
+                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(
+                        defaults::DEFAULT_CAPITAL_X,
+                        defaults::DEFAULT_CAPITAL_Y,
+                    ));
+
+                    let unit_type = if civ_data.civilization.military.units.len()
+                        < military::INITIAL_UNIT_COUNT_THRESHOLD
+                    {
                         UnitType::Infantry
                     } else {
                         UnitType::Archer
                     };
-                    
+
                     Some(AIAction::BuildUnit {
                         unit_type,
                         position: capital,
@@ -160,35 +193,39 @@ impl UtilityAI {
                     })
                 }),
             ),
-            
             UtilityFunction::new(
                 "develop_economy",
                 Box::new(|_civ_id, civ_data, _game_state| {
                     let personality = &civ_data.civilization.personality;
                     let industry_focus = personality.industry_focus;
                     let economy = &civ_data.civilization.economy;
-                    
-                    // Higher utility if income is low relative to expenses
-                    let economic_pressure = if economy.income > 0.0 {
-                        (economy.expenses / economy.income).min(2.0)
+
+                    let economic_pressure = if economy.income > thresholds::MIN_UTILITY_SCORE {
+                        (economy.expenses / economy.income).min(military::ECONOMIC_PRESSURE_MAX)
                     } else {
-                        2.0
+                        military::ECONOMIC_PRESSURE_MAX
                     };
-                    
-                    industry_focus * (0.3 + economic_pressure * 0.7)
+
+                    industry_focus
+                        * (military::ECONOMIC_PRESSURE_BASE_WEIGHT
+                            + economic_pressure * military::ECONOMIC_PRESSURE_VARIABLE_WEIGHT)
                 }),
                 Box::new(|_civ_id, civ_data, _game_state, utility| {
-                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
-                    
-                    // Choose building type based on current needs
+                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(
+                        defaults::DEFAULT_CAPITAL_X,
+                        defaults::DEFAULT_CAPITAL_Y,
+                    ));
+
                     let building_type = if civ_data.cities.iter().any(|city| {
-                        city.buildings.iter().any(|b| matches!(b.building_type, BuildingType::Market))
+                        city.buildings
+                            .iter()
+                            .any(|b| matches!(b.building_type, BuildingType::Market))
                     }) {
                         BuildingType::Workshop
                     } else {
                         BuildingType::Market
                     };
-                    
+
                     Some(AIAction::BuildBuilding {
                         building_type,
                         position: capital,
@@ -196,56 +233,133 @@ impl UtilityAI {
                     })
                 }),
             ),
-            
             UtilityFunction::new(
                 "establish_trade",
                 Box::new(|civ_id, civ_data, game_state| {
                     let personality = &civ_data.civilization.personality;
                     let industry_focus = personality.industry_focus;
                     let current_trade_routes = civ_data.civilization.economy.trade_routes.len();
-                    
-                    // Lower utility if we already have many trade routes
-                    let trade_saturation = (current_trade_routes as f32 / 5.0).min(1.0);
-                    
-                    // Check for potential trade partners
-                    let potential_partners = game_state.civilizations.values()
+
+                    let trade_saturation = (current_trade_routes as f32
+                        / military::TRADE_ROUTE_SATURATION_DIVISOR)
+                        .min(thresholds::MAX_UTILITY_SCORE);
+
+                    let potential_partners = game_state
+                        .civilizations
+                        .values()
                         .filter(|other_civ| other_civ.civilization.id != civ_id)
                         .count();
-                    
-                    if potential_partners > 0 {
-                        industry_focus * (1.0 - trade_saturation) * 0.8
+
+                    if potential_partners > military::MINIMUM_POTENTIAL_PARTNERS {
+                        industry_focus
+                            * (thresholds::MAX_UTILITY_SCORE - trade_saturation)
+                            * military::TRADE_UTILITY_MULTIPLIER
                     } else {
-                        0.0
+                        thresholds::MIN_UTILITY_SCORE
                     }
                 }),
                 Box::new(|civ_id, civ_data, game_state, utility| {
-                    // Find the best trade partner
-                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(50, 25));
-                    
+                    let capital = civ_data.civilization.capital.unwrap_or(Position::new(
+                        defaults::DEFAULT_CAPITAL_X,
+                        defaults::DEFAULT_CAPITAL_Y,
+                    ));
+
                     let mut best_partner = None;
                     let mut best_distance = f32::INFINITY;
-                    
+
                     for other_civ in game_state.civilizations.values() {
                         if other_civ.civilization.id != civ_id {
                             if let Some(other_capital) = other_civ.civilization.capital {
                                 let distance = capital.distance_to(&other_capital);
-                                if distance < best_distance && distance < 30.0 {
+                                if distance < best_distance
+                                    && distance < military::MAX_TRADE_DISTANCE
+                                {
                                     best_distance = distance;
                                     best_partner = Some(other_civ.civilization.id);
                                 }
                             }
                         }
                     }
-                    
+
                     if let Some(partner) = best_partner {
                         Some(AIAction::Trade {
                             partner,
-                            resource: Resource::Gold, // Simplified for now
+                            resource: Resource::Gold,
                             priority: utility,
                         })
                     } else {
                         None
                     }
+                }),
+            ),
+            UtilityFunction::new(
+                "explore_territory",
+                Box::new(|_civ_id, civ_data, _game_state| {
+                    let personality = &civ_data.civilization.personality;
+                    let exploration_drive = personality.exploration_drive;
+
+                    let turn_factor = if _game_state.turn < exploration::EARLY_GAME_TURN_THRESHOLD {
+                        exploration::EARLY_GAME_EXPLORATION_MULTIPLIER
+                    } else if _game_state.turn < exploration::MID_GAME_TURN_THRESHOLD {
+                        exploration::MID_GAME_EXPLORATION_MULTIPLIER
+                    } else {
+                        exploration::LATE_GAME_EXPLORATION_MULTIPLIER
+                    };
+
+                    let territory_factor =
+                        if civ_data.territories.len() < exploration::FEW_TERRITORIES_THRESHOLD {
+                            exploration::FEW_TERRITORIES_MULTIPLIER
+                        } else if civ_data.territories.len()
+                            < exploration::MODERATE_TERRITORIES_THRESHOLD
+                        {
+                            exploration::MODERATE_TERRITORIES_MULTIPLIER
+                        } else {
+                            exploration::MANY_TERRITORIES_MULTIPLIER
+                        };
+
+                    exploration_drive * turn_factor * territory_factor
+                }),
+                Box::new(|_civ_id, civ_data, _game_state, utility| {
+                    let exploration_base = if let Some(capital) = civ_data.civilization.capital {
+                        capital
+                    } else if let Some((pos, _)) = civ_data.territories.first() {
+                        *pos
+                    } else {
+                        return None;
+                    };
+
+                    let directions = [
+                        (exploration::EXPLORATION_DISTANCE_NEAR, 0),
+                        (-exploration::EXPLORATION_DISTANCE_NEAR, 0),
+                        (0, exploration::EXPLORATION_DISTANCE_NEAR),
+                        (0, -exploration::EXPLORATION_DISTANCE_NEAR),
+                        (
+                            exploration::EXPLORATION_DISTANCE_DIAGONAL,
+                            exploration::EXPLORATION_DISTANCE_DIAGONAL,
+                        ),
+                        (
+                            -exploration::EXPLORATION_DISTANCE_DIAGONAL,
+                            exploration::EXPLORATION_DISTANCE_DIAGONAL,
+                        ),
+                        (
+                            exploration::EXPLORATION_DISTANCE_DIAGONAL,
+                            -exploration::EXPLORATION_DISTANCE_DIAGONAL,
+                        ),
+                        (
+                            -exploration::EXPLORATION_DISTANCE_DIAGONAL,
+                            -exploration::EXPLORATION_DISTANCE_DIAGONAL,
+                        ),
+                    ];
+
+                    let direction_idx = (_game_state.turn as usize) % directions.len();
+                    let (dx, dy) = directions[direction_idx];
+
+                    let target = Position::new(exploration_base.x + dx, exploration_base.y + dy);
+
+                    Some(AIAction::Explore {
+                        target_position: target,
+                        priority: utility,
+                    })
                 }),
             ),
         ]
@@ -262,7 +376,8 @@ impl Default for UtilityAI {
 pub struct UtilityFunction {
     pub name: String,
     pub evaluator: Box<dyn Fn(CivId, &CivilizationData, &GameState) -> f32 + Send + Sync>,
-    pub action_creator: Box<dyn Fn(CivId, &CivilizationData, &GameState, f32) -> Option<AIAction> + Send + Sync>,
+    pub action_creator:
+        Box<dyn Fn(CivId, &CivilizationData, &GameState, f32) -> Option<AIAction> + Send + Sync>,
 }
 
 impl std::fmt::Debug for UtilityFunction {
@@ -277,7 +392,9 @@ impl UtilityFunction {
     pub fn new(
         name: &str,
         evaluator: Box<dyn Fn(CivId, &CivilizationData, &GameState) -> f32 + Send + Sync>,
-        action_creator: Box<dyn Fn(CivId, &CivilizationData, &GameState, f32) -> Option<AIAction> + Send + Sync>,
+        action_creator: Box<
+            dyn Fn(CivId, &CivilizationData, &GameState, f32) -> Option<AIAction> + Send + Sync,
+        >,
     ) -> Self {
         Self {
             name: name.to_string(),
@@ -286,7 +403,12 @@ impl UtilityFunction {
         }
     }
 
-    pub fn evaluate(&self, civ_id: CivId, civ_data: &CivilizationData, game_state: &GameState) -> f32 {
+    pub fn evaluate(
+        &self,
+        civ_id: CivId,
+        civ_data: &CivilizationData,
+        game_state: &GameState,
+    ) -> f32 {
         (self.evaluator)(civ_id, civ_data, game_state)
     }
 

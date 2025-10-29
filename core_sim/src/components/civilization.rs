@@ -45,14 +45,15 @@ pub struct Civilization {
 #[reflect(Component)]
 #[require(Save)]
 pub struct CivPersonality {
-    pub land_hunger: f32,     // 0.0 - 1.0, desire to expand territory
-    pub industry_focus: f32,  // 0.0 - 1.0, focus on economic development
-    pub tech_focus: f32,      // 0.0 - 1.0, investment in research
-    pub interventionism: f32, // 0.0 - 1.0, willingness to interfere abroad
-    pub risk_tolerance: f32,  // 0.0 - 1.0, willingness to take risks
-    pub honor_treaties: f32,  // 0.0 - 1.0, diplomatic reliability
-    pub militarism: f32,      // 0.0 - 1.0, focus on military strength
-    pub isolationism: f32,    // 0.0 - 1.0, preference for isolation
+    pub land_hunger: f32,       // 0.0 - 1.0, desire to expand territory
+    pub industry_focus: f32,    // 0.0 - 1.0, focus on economic development
+    pub tech_focus: f32,        // 0.0 - 1.0, investment in research
+    pub interventionism: f32,   // 0.0 - 1.0, willingness to interfere abroad
+    pub risk_tolerance: f32,    // 0.0 - 1.0, willingness to take risks
+    pub honor_treaties: f32,    // 0.0 - 1.0, diplomatic reliability
+    pub militarism: f32,        // 0.0 - 1.0, focus on military strength
+    pub isolationism: f32,      // 0.0 - 1.0, preference for isolation
+    pub exploration_drive: f32, // 0.0 - 1.0, desire to explore unknown territories
 }
 
 impl Default for CivPersonality {
@@ -66,6 +67,7 @@ impl Default for CivPersonality {
             honor_treaties: 0.5,
             militarism: 0.5,
             isolationism: 0.5,
+            exploration_drive: 0.5,
         }
     }
 }

@@ -114,6 +114,9 @@ impl AICoordinatorSystem {
                 self.execute_diplomacy(civ_id, *target, action, game_state)
             }
             AIAction::Defend { position, .. } => self.execute_defend(civ_id, *position, game_state),
+            AIAction::Explore {
+                target_position, ..
+            } => self.execute_explore(civ_id, *target_position, game_state),
         }
     }
 
@@ -332,6 +335,34 @@ impl AICoordinatorSystem {
             ExecutionResult::Success {
                 civ_id,
                 action_description: format!("Defensive positions at {:?}", position),
+            }
+        } else {
+            ExecutionResult::Failed {
+                civ_id,
+                reason: "Civilization not found".to_string(),
+            }
+        }
+    }
+
+    fn execute_explore(
+        &self,
+        civ_id: CivId,
+        target_position: core_sim::Position,
+        game_state: &mut GameState,
+    ) -> ExecutionResult {
+        if let Some(civ_data) = game_state.civilizations.get(&civ_id) {
+            let has_units = !civ_data.civilization.military.units.is_empty();
+
+            if has_units {
+                ExecutionResult::Success {
+                    civ_id,
+                    action_description: format!("Exploring towards {:?}", target_position),
+                }
+            } else {
+                ExecutionResult::Failed {
+                    civ_id,
+                    reason: "No units available for exploration".to_string(),
+                }
             }
         } else {
             ExecutionResult::Failed {

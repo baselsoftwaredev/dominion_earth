@@ -74,6 +74,10 @@ pub enum AIAction {
         position: Position,
         priority: f32,
     },
+    Explore {
+        target_position: Position,
+        priority: f32,
+    },
 }
 
 /// Data structure for AI serialization that contains full civilization state

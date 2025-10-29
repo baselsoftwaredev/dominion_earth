@@ -15,6 +15,7 @@
                 honor_treaties: 0.8,
                 militarism: 0.5,
                 isolationism: 0.3,
+                exploration_drive: 0.7,
             ),
             starting_technologies: ["Agriculture", "Writing"],
             starting_units: [
@@ -42,6 +43,7 @@
                 honor_treaties: 0.6,
                 militarism: 0.6,
                 isolationism: 0.2,
+                exploration_drive: 0.8,
             ),
             starting_technologies: ["Mathematics", "Writing"],
             starting_units: [
@@ -69,6 +71,7 @@
                 honor_treaties: 0.7,
                 militarism: 0.9,
                 isolationism: 0.1,
+                exploration_drive: 0.6,
             ),
             starting_technologies: ["Bronze Working", "Iron Working"],
             starting_units: [
@@ -96,6 +99,7 @@
                 honor_treaties: 0.8,
                 militarism: 0.6,
                 isolationism: 0.4,
+                exploration_drive: 0.5,
             ),
             starting_technologies: ["Agriculture", "Writing", "Mathematics"],
             starting_units: [
@@ -124,6 +128,7 @@
                 honor_treaties: 0.5,
                 militarism: 0.8,
                 isolationism: 0.2,
+                exploration_drive: 0.9,
             ),
             starting_technologies: ["Bronze Working", "Horse Riding"],
             starting_units: [
