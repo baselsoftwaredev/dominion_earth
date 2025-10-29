@@ -21,12 +21,83 @@ pub struct ProductionUpdated {
     pub capital_entity: Entity,
 }
 
+fn is_player_controlled_civilization(
+    civ_id: CivId,
+    player_civs: &Query<&Civilization, With<PlayerControlled>>,
+) -> bool {
+    player_civs.iter().any(|civ| civ.id == civ_id)
+}
+
+fn transition_to_next_civilization_turn(
+    turn_phase: &mut TurnPhase,
+    next_civ: CivId,
+    player_civs: &Query<&Civilization, With<PlayerControlled>>,
+) {
+    let is_player = is_player_controlled_civilization(next_civ, player_civs);
+
+    if is_player {
+        tracing::info!("Starting player turn (Civ {})", next_civ.0);
+        *turn_phase = TurnPhase::CivilizationTurn {
+            current_civ: next_civ,
+        };
+    } else {
+        tracing::info!(
+            "Next up: AI civilization {} (waiting for user to press Next Turn)",
+            next_civ.0
+        );
+        *turn_phase = TurnPhase::WaitingForNextTurn { next_civ };
+    }
+}
+
+fn start_civilization_turn(
+    turn_phase: &mut TurnPhase,
+    ai_turn_events: &mut MessageWriter<ProcessAITurn>,
+    civ_id: CivId,
+    player_civs: &Query<&Civilization, With<PlayerControlled>>,
+) {
+    let is_player = is_player_controlled_civilization(civ_id, player_civs);
+
+    if is_player {
+        tracing::info!("Starting player turn (Civ {})", civ_id.0);
+        *turn_phase = TurnPhase::CivilizationTurn {
+            current_civ: civ_id,
+        };
+    } else {
+        tracing::info!("Starting AI turn for civilization {}", civ_id.0);
+        *turn_phase = TurnPhase::CivilizationTurn {
+            current_civ: civ_id,
+        };
+        ai_turn_events.write(ProcessAITurn { civ_id });
+    }
+}
+
+fn start_new_turn_with_first_civilization(
+    turn_phase: &mut TurnPhase,
+    start_player_events: &mut MessageWriter<StartPlayerTurn>,
+    first_civ: CivId,
+    player_civs: &Query<&Civilization, With<PlayerControlled>>,
+) {
+    let is_player = is_player_controlled_civilization(first_civ, player_civs);
+
+    if is_player {
+        *turn_phase = TurnPhase::CivilizationTurn {
+            current_civ: first_civ,
+        };
+        start_player_events.write(StartPlayerTurn);
+    } else {
+        *turn_phase = TurnPhase::WaitingForNextTurn {
+            next_civ: first_civ,
+        };
+    }
+}
+
 pub fn handle_turn_advance_requests(
     mut turn_requests: MessageReader<RequestTurnAdvance>,
     mut turn_phase: ResMut<TurnPhase>,
     mut turn_order: ResMut<TurnOrder>,
     mut ai_turn_events: MessageWriter<ProcessAITurn>,
     civilizations: Query<&Civilization>,
+    player_civs: Query<&Civilization, With<PlayerControlled>>,
 ) {
     for _request in turn_requests.read() {
         tracing::info!("Turn advancement requested");
@@ -46,38 +117,21 @@ pub fn handle_turn_advance_requests(
                     *turn_phase = TurnPhase::TurnTransition;
                 } else {
                     if let Some(next_civ) = turn_order.current_civ() {
-                        let is_player = turn_order.is_player_civ(next_civ);
-
-                        if is_player {
-                            tracing::info!("Starting player turn (Civ {})", next_civ.0);
-                            *turn_phase = TurnPhase::CivilizationTurn {
-                                current_civ: next_civ,
-                            };
-                        } else {
-                            tracing::info!(
-                                "Next up: AI civilization {} (waiting for user to press Next Turn)",
-                                next_civ.0
-                            );
-                            *turn_phase = TurnPhase::WaitingForNextTurn { next_civ };
-                        }
+                        transition_to_next_civilization_turn(
+                            turn_phase.as_mut(),
+                            next_civ,
+                            &player_civs,
+                        );
                     }
                 }
             }
             TurnPhase::WaitingForNextTurn { next_civ } => {
-                let is_player = turn_order.is_player_civ(next_civ);
-
-                if is_player {
-                    tracing::info!("Starting player turn (Civ {})", next_civ.0);
-                    *turn_phase = TurnPhase::CivilizationTurn {
-                        current_civ: next_civ,
-                    };
-                } else {
-                    tracing::info!("Starting AI turn for civilization {}", next_civ.0);
-                    *turn_phase = TurnPhase::CivilizationTurn {
-                        current_civ: next_civ,
-                    };
-                    ai_turn_events.write(ProcessAITurn { civ_id: next_civ });
-                }
+                start_civilization_turn(
+                    turn_phase.as_mut(),
+                    &mut ai_turn_events,
+                    next_civ,
+                    &player_civs,
+                );
             }
             TurnPhase::TurnTransition => {
                 tracing::debug!("Ignoring turn advance request during turn transition");
@@ -115,6 +169,7 @@ pub fn handle_ai_turn_completion(
     mut ai_complete_events: MessageReader<AITurnComplete>,
     mut turn_phase: ResMut<TurnPhase>,
     mut turn_order: ResMut<TurnOrder>,
+    player_civs: Query<&Civilization, With<PlayerControlled>>,
 ) {
     for ai_event in ai_complete_events.read() {
         tracing::info!("AI civilization {} completed their turn", ai_event.civ_id.0);
@@ -128,20 +183,7 @@ pub fn handle_ai_turn_completion(
             *turn_phase = TurnPhase::TurnTransition;
         } else {
             if let Some(next_civ) = turn_order.current_civ() {
-                let is_player = turn_order.is_player_civ(next_civ);
-
-                if is_player {
-                    tracing::info!("Next up: Player turn (Civ {})", next_civ.0);
-                    *turn_phase = TurnPhase::CivilizationTurn {
-                        current_civ: next_civ,
-                    };
-                } else {
-                    tracing::info!(
-                        "Next up: AI civilization {} (waiting for user to press Next Turn)",
-                        next_civ.0
-                    );
-                    *turn_phase = TurnPhase::WaitingForNextTurn { next_civ };
-                }
+                transition_to_next_civilization_turn(turn_phase.as_mut(), next_civ, &player_civs);
             }
         }
     }
@@ -261,6 +303,7 @@ pub fn handle_turn_transition_complete(
     mut production_events: MessageWriter<ProductionUpdated>,
     mut start_player_events: MessageWriter<StartPlayerTurn>,
     mut turn_order: ResMut<TurnOrder>,
+    player_civs: Query<&Civilization, With<PlayerControlled>>,
 ) {
     if !matches!(*turn_phase, TurnPhase::TurnTransition) {
         return;
@@ -277,6 +320,7 @@ pub fn handle_turn_transition_complete(
         &world_map,
         next_turn_number,
         &mut production_events,
+        &player_civs,
     );
 
     advance_current_turn(&mut current_turn);
@@ -291,13 +335,13 @@ pub fn handle_turn_transition_complete(
             current_turn.0,
             first_civ.0
         );
-        *turn_phase = TurnPhase::CivilizationTurn {
-            current_civ: first_civ,
-        };
 
-        if turn_order.is_player_civ(first_civ) {
-            start_player_events.write(StartPlayerTurn);
-        }
+        start_new_turn_with_first_civilization(
+            turn_phase.as_mut(),
+            &mut start_player_events,
+            first_civ,
+            &player_civs,
+        );
     }
 }
 
@@ -326,6 +370,7 @@ fn process_all_city_production_for_turn(
     world_map: &WorldMap,
     turn_number: u32,
     production_events: &mut MessageWriter<ProductionUpdated>,
+    player_civs: &Query<&Civilization, With<PlayerControlled>>,
 ) {
     for (entity, mut production_queue, mut city, capital, position) in production_query.iter_mut() {
         let had_production_before =
@@ -341,6 +386,7 @@ fn process_all_city_production_for_turn(
                 &mut city,
                 world_map,
                 turn_number,
+                player_civs,
             );
         }
 
@@ -355,29 +401,6 @@ fn process_all_city_production_for_turn(
     }
 }
 
-fn process_production_for_turn(
-    production_query: &mut Query<(&mut ProductionQueue, &mut City, &Capital, &Position)>,
-    commands: &mut Commands,
-    unit_id_counter: &mut Local<u32>,
-    world_map: &WorldMap,
-    turn_number: u32,
-) {
-    for (mut production_queue, mut city, capital, position) in production_query.iter_mut() {
-        if let Some(completed_item) = production_queue.add_production(city.production) {
-            spawn_completed_production_item(
-                commands,
-                &completed_item,
-                &capital.owner,
-                position,
-                unit_id_counter,
-                &mut city,
-                world_map,
-                turn_number,
-            );
-        }
-    }
-}
-
 fn spawn_completed_production_item(
     commands: &mut Commands,
     item: &ProductionItem,
@@ -387,10 +410,18 @@ fn spawn_completed_production_item(
     city: &mut City,
     _world_map: &WorldMap,
     _current_turn: u32,
+    player_civs: &Query<&Civilization, With<PlayerControlled>>,
 ) {
     match item {
         ProductionItem::Unit(unit_type) => {
-            spawn_military_unit_at_position(commands, unit_type, owner, position, unit_id_counter);
+            spawn_military_unit_at_position(
+                commands,
+                unit_type,
+                owner,
+                position,
+                unit_id_counter,
+                player_civs,
+            );
         }
         ProductionItem::Building(building_type) => {
             add_building_to_city(city, building_type);
@@ -404,23 +435,20 @@ fn spawn_military_unit_at_position(
     owner: &crate::components::CivId,
     position: &Position,
     unit_id_counter: &mut Local<u32>,
+    player_civs: &Query<&Civilization, With<PlayerControlled>>,
 ) {
     let unit = crate::MilitaryUnit::new(**unit_id_counter, *owner, *unit_type, *position);
     **unit_id_counter += 1;
 
     let mut entity_commands = commands.spawn((unit, *position));
 
-    if is_player_controlled_civilization(owner) {
+    if is_player_controlled_civilization(*owner, player_civs) {
         entity_commands.insert(crate::PlayerControlled);
     }
 }
 
 fn add_building_to_city(city: &mut City, building_type: &crate::components::city::BuildingType) {
     city.add_building(building_type.clone());
-}
-
-fn is_player_controlled_civilization(owner: &crate::components::CivId) -> bool {
-    owner.0 == PLAYER_CIVILIZATION_ID
 }
 
 pub fn auto_advance_turn_system(

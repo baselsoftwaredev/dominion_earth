@@ -155,43 +155,76 @@ pub fn update_next_turn_button_text(
     turn_phase: Res<core_sim::TurnPhase>,
     turn_order: Res<core_sim::TurnOrder>,
     civilizations: Query<&core_sim::Civilization>,
+    player_civs: Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
 ) {
     if !turn_phase.is_changed() && !turn_order.is_changed() {
         return;
     }
 
     for mut text in button_text_query.iter_mut() {
-        let new_text = match turn_phase.as_ref() {
-            core_sim::TurnPhase::CivilizationTurn { current_civ } => {
-                if let Some(civ) = civilizations.iter().find(|c| c.id == *current_civ) {
-                    let is_player = turn_order.is_player_civ(*current_civ);
-
-                    if is_player {
-                        "End Turn".to_string()
-                    } else {
-                        format!("{}'s Turn (Processing...)", civ.name)
-                    }
-                } else {
-                    "Next Turn".to_string()
-                }
-            }
-            core_sim::TurnPhase::WaitingForNextTurn { next_civ } => {
-                if let Some(civ) = civilizations.iter().find(|c| c.id == *next_civ) {
-                    let is_player = turn_order.is_player_civ(*next_civ);
-
-                    if is_player {
-                        "Start Your Turn".to_string()
-                    } else {
-                        format!("Start {}'s Turn", civ.name)
-                    }
-                } else {
-                    "Next Turn".to_string()
-                }
-            }
-            core_sim::TurnPhase::TurnTransition => "Processing...".to_string(),
-        };
+        let new_text =
+            determine_next_turn_button_text(turn_phase.as_ref(), &civilizations, &player_civs);
 
         info!("UI: Updating Next Turn button text to: '{}'", new_text);
         **text = new_text;
     }
+}
+
+fn determine_next_turn_button_text(
+    turn_phase: &core_sim::TurnPhase,
+    civilizations: &Query<&core_sim::Civilization>,
+    player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
+) -> String {
+    match turn_phase {
+        core_sim::TurnPhase::CivilizationTurn { current_civ } => {
+            determine_text_for_civilization_turn(*current_civ, civilizations, player_civs)
+        }
+        core_sim::TurnPhase::WaitingForNextTurn { next_civ } => {
+            determine_text_for_waiting_turn(*next_civ, civilizations, player_civs)
+        }
+        core_sim::TurnPhase::TurnTransition => BUTTON_TEXT_PROCESSING.to_string(),
+    }
+}
+
+fn determine_text_for_civilization_turn(
+    current_civ: core_sim::CivId,
+    civilizations: &Query<&core_sim::Civilization>,
+    player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
+) -> String {
+    if let Some(civ) = civilizations.iter().find(|c| c.id == current_civ) {
+        let is_player = is_player_controlled_civilization(current_civ, player_civs);
+
+        if is_player {
+            BUTTON_TEXT_END_TURN.to_string()
+        } else {
+            format!("{}'s Turn (Processing...)", civ.name)
+        }
+    } else {
+        BUTTON_TEXT_NEXT_TURN.to_string()
+    }
+}
+
+fn determine_text_for_waiting_turn(
+    next_civ: core_sim::CivId,
+    civilizations: &Query<&core_sim::Civilization>,
+    player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
+) -> String {
+    if let Some(civ) = civilizations.iter().find(|c| c.id == next_civ) {
+        let is_player = is_player_controlled_civilization(next_civ, player_civs);
+
+        if is_player {
+            BUTTON_TEXT_START_YOUR_TURN.to_string()
+        } else {
+            format!("Start {}'s Turn", civ.name)
+        }
+    } else {
+        BUTTON_TEXT_NEXT_TURN.to_string()
+    }
+}
+
+fn is_player_controlled_civilization(
+    civ_id: core_sim::CivId,
+    player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
+) -> bool {
+    player_civs.iter().any(|c| c.id == civ_id)
 }

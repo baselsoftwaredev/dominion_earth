@@ -152,6 +152,7 @@ pub fn initialize_turn_order(
     mut turn_order: ResMut<core_sim::TurnOrder>,
     mut turn_phase: ResMut<core_sim::TurnPhase>,
     civilizations: Query<&core_sim::Civilization>,
+    player_civs: Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
     mut initialized: Local<bool>,
     debug_logging: Res<DebugLogging>,
 ) {
@@ -184,12 +185,11 @@ pub fn initialize_turn_order(
     turn_order.current_index = 0;
 
     if let Some(first_civ) = turn_order.current_civ() {
-        *turn_phase = core_sim::TurnPhase::CivilizationTurn {
-            current_civ: first_civ,
-        };
-        DebugUtils::log_info(
+        initialize_starting_turn_phase(
+            turn_phase.as_mut(),
+            first_civ,
+            &player_civs,
             &debug_logging,
-            &format!("Starting with civilization {}", first_civ.0),
         );
     }
 
@@ -200,6 +200,36 @@ pub fn initialize_turn_order(
         civ_ids.len(),
         civ_ids
     );
+}
+
+fn initialize_starting_turn_phase(
+    turn_phase: &mut core_sim::TurnPhase,
+    first_civ: core_sim::CivId,
+    player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
+    debug_logging: &Res<DebugLogging>,
+) {
+    let is_player = player_civs.iter().any(|civ| civ.id == first_civ);
+
+    if is_player {
+        *turn_phase = core_sim::TurnPhase::CivilizationTurn {
+            current_civ: first_civ,
+        };
+        DebugUtils::log_info(
+            debug_logging,
+            &format!("Starting with player civilization {}", first_civ.0),
+        );
+    } else {
+        *turn_phase = core_sim::TurnPhase::WaitingForNextTurn {
+            next_civ: first_civ,
+        };
+        DebugUtils::log_info(
+            debug_logging,
+            &format!(
+                "Starting with AI civilization {} (waiting for user to press Next Turn)",
+                first_civ.0
+            ),
+        );
+    }
 }
 
 /// Main game update system - optimized to only update when necessary

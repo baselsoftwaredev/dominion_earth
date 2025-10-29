@@ -45,3 +45,9 @@ pub const SEPARATOR_MARGIN: Val = Val::Px(10.0);
 pub const PRODUCTION_MENU_MAX_HEIGHT: Val = Val::Px(500.0);
 pub const NEXT_TURN_BUTTON_HEIGHT: Val = Val::Px(50.0);
 pub const GAME_PANEL_MIN_HEIGHT: Val = Val::Px(200.0);
+
+// Button text constants
+pub const BUTTON_TEXT_END_TURN: &str = "End Turn";
+pub const BUTTON_TEXT_START_YOUR_TURN: &str = "Start Your Turn";
+pub const BUTTON_TEXT_NEXT_TURN: &str = "Next Turn";
+pub const BUTTON_TEXT_PROCESSING: &str = "Processing...";
