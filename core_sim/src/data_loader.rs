@@ -95,7 +95,6 @@ pub struct WorldGenerationData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameRulesData {
     pub max_turns: u32,
-    pub turn_time_limit_seconds: f32,
     pub starting_gold: f32,
     pub research_cost_base: f32,
     pub unit_cost_base: f32,

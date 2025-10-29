@@ -12,6 +12,7 @@ use core_sim::{
 use moonshine_save::prelude::*;
 
 use crate::screens::LoadingState;
+use crate::settings::GameSettings;
 
 #[derive(Resource, Reflect, Clone)]
 #[reflect(Resource)]
@@ -84,6 +85,7 @@ impl Plugin for SaveLoadPlugin {
                     refresh_fog_of_war_after_load,
                     respawn_ui_after_load,
                     restore_music_volume_after_load,
+                    sync_game_config_to_settings_after_load,
                     clear_loading_flag,
                 ),
             );
@@ -320,6 +322,27 @@ fn restore_music_volume_after_load(
     if saved_volume.is_changed() && !saved_volume.is_added() {
         global_volume.volume = Volume::Linear(saved_volume.volume);
         info!("Restored music volume to: {}", saved_volume.volume);
+    }
+}
+
+fn sync_game_config_to_settings_after_load(
+    game_config: Option<Res<GameConfig>>,
+    mut game_settings: ResMut<GameSettings>,
+    save_state: Res<SaveLoadState>,
+) {
+    // When a game is being loaded, update GameSettings to match the loaded GameConfig
+    // This ensures the settings menu reflects the loaded game's configuration
+    if save_state.is_loading_from_save {
+        if let Some(game_config) = game_config {
+            if game_config.is_changed() && !game_config.is_added() {
+                game_settings.seed = Some(game_config.random_seed);
+                game_settings.ai_only = game_config.ai_only;
+                info!(
+                    "Synced game settings from loaded save - seed: {}, ai_only: {}",
+                    game_config.random_seed, game_config.ai_only
+                );
+            }
+        }
     }
 }
 

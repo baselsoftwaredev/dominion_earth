@@ -155,7 +155,6 @@
     ),
     game_rules: (
         max_turns: 500,
-        turn_time_limit_seconds: 30.0,
         starting_gold: 100.0,
         research_cost_base: 50.0,
         unit_cost_base: 30.0,

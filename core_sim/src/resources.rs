@@ -258,9 +258,9 @@ impl Default for ActiveCivTurn {
 
 /// Game configuration
 #[derive(Resource, Debug, Clone, Serialize, Deserialize, Reflect)]
+#[reflect(Resource)]
 pub struct GameConfig {
     pub max_turns: u32,
-    pub turn_time_limit: Option<f32>,
     pub ai_difficulty: AIDifficulty,
     pub world_size: WorldSize,
     pub random_seed: u64,
@@ -294,7 +294,6 @@ impl Default for GameConfig {
 
         Self {
             max_turns: game_flow::DEFAULT_MAX_TURNS,
-            turn_time_limit: None,
             ai_difficulty: AIDifficulty::Normal,
             world_size: WorldSize::Medium,
             random_seed,
