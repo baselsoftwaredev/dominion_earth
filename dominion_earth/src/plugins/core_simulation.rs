@@ -12,6 +12,7 @@ impl Plugin for CoreSimulationPlugin {
             .add_message::<core_sim::AllAITurnsComplete>()
             .add_message::<core_sim::StartPlayerTurn>()
             .init_resource::<core_sim::TurnPhase>()
+            .init_resource::<core_sim::TurnOrder>()
             .init_resource::<core_sim::FogOfWarMaps>()
             .add_systems(
                 OnEnter(Screen::Gameplay),
@@ -23,7 +24,9 @@ impl Plugin for CoreSimulationPlugin {
             .add_systems(
                 Update,
                 (
-                    game::initialize_active_civ_turn,
+                    game::initialize_active_civ_turn
+                        .run_if(resource_exists::<core_sim::resources::ActiveCivTurn>),
+                    game::initialize_turn_order.run_if(resource_exists::<core_sim::TurnOrder>),
                     core_sim::spawn_action_queues_for_new_civilizations,
                     crate::ai_decision_systems::generate_ai_decisions_on_ai_turn,
                     core_sim::process_civilization_action_queues,
@@ -37,13 +40,12 @@ impl Plugin for CoreSimulationPlugin {
                     core_sim::handle_turn_advance_requests,
                     core_sim::handle_ai_turn_processing,
                     core_sim::handle_ai_turn_completion,
-                    core_sim::handle_all_ai_turns_complete,
+                    core_sim::handle_turn_transition_complete,
                     core_sim::auto_advance_turn_system,
                 )
                     .chain()
                     .run_if(in_state(Screen::Gameplay)),
             )
-            // Fog of war updates independently every frame (not chained)
             .add_systems(
                 Update,
                 core_sim::update_fog_of_war.run_if(in_state(Screen::Gameplay)),

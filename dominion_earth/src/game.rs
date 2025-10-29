@@ -129,33 +129,77 @@ pub fn initialize_fog_of_war(
     }
 }
 
-/// Initialize the ActiveCivTurn resource with all spawned civilizations
 pub fn initialize_active_civ_turn(
     mut active_civ_turn: ResMut<core_sim::resources::ActiveCivTurn>,
     civilizations: Query<&core_sim::Civilization>,
     mut initialized: Local<bool>,
 ) {
-    // Only run once when civilizations exist
     if *initialized || civilizations.is_empty() {
         return;
     }
 
-    // Collect all civilization IDs
     let mut civ_ids: Vec<core_sim::CivId> = civilizations.iter().map(|civ| civ.id).collect();
 
-    // Sort by ID for consistent turn order
     civ_ids.sort_by_key(|id| id.0);
 
     active_civ_turn.civs_per_turn = civ_ids.clone();
     active_civ_turn.current_civ_index = 0;
 
+    *initialized = true;
+}
+
+pub fn initialize_turn_order(
+    mut turn_order: ResMut<core_sim::TurnOrder>,
+    mut turn_phase: ResMut<core_sim::TurnPhase>,
+    civilizations: Query<&core_sim::Civilization>,
+    mut initialized: Local<bool>,
+    debug_logging: Res<DebugLogging>,
+) {
+    if *initialized || civilizations.is_empty() {
+        return;
+    }
+
+    let mut civ_ids: Vec<core_sim::CivId> = civilizations.iter().map(|civ| civ.id).collect();
+
+    civ_ids.sort_by_key(|id| id.0);
+
+    DebugUtils::log_info(
+        &debug_logging,
+        &format!(
+            "Initializing turn order with {} civilizations",
+            civ_ids.len()
+        ),
+    );
+
+    for civ_id in &civ_ids {
+        if let Some(civ) = civilizations.iter().find(|c| c.id == *civ_id) {
+            DebugUtils::log_info(
+                &debug_logging,
+                &format!("  - Civ {}: {}", civ_id.0, civ.name),
+            );
+        }
+    }
+
+    turn_order.civilizations = civ_ids.clone();
+    turn_order.current_index = 0;
+
+    if let Some(first_civ) = turn_order.current_civ() {
+        *turn_phase = core_sim::TurnPhase::CivilizationTurn {
+            current_civ: first_civ,
+        };
+        DebugUtils::log_info(
+            &debug_logging,
+            &format!("Starting with civilization {}", first_civ.0),
+        );
+    }
+
+    *initialized = true;
+
     info!(
-        "🎵 Initialized ActiveCivTurn with {} civilizations: {:?}",
+        "🎵 Initialized TurnOrder with {} civilizations: {:?}",
         civ_ids.len(),
         civ_ids
     );
-
-    *initialized = true;
 }
 
 /// Main game update system - optimized to only update when necessary

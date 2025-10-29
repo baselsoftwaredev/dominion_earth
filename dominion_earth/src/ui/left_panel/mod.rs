@@ -24,6 +24,9 @@ pub struct GamePanel;
 #[derive(Component)]
 pub struct NextTurnButton;
 
+#[derive(Component)]
+pub struct NextTurnButtonText;
+
 /// Spawns the main left panel with all sections
 pub fn spawn_left_panel(mut commands: Commands) {
     let production_panel = production_section::spawn_production_menu_panel(&mut commands);
@@ -103,6 +106,7 @@ pub fn spawn_left_panel(mut commands: Commands) {
                         ))
                         .with_children(|button_parent| {
                             button_parent.spawn((
+                                NextTurnButtonText,
                                 Text::new("Next Turn"),
                                 TextFont {
                                     font_size: SUBTITLE_FONT_SIZE,
@@ -143,5 +147,51 @@ pub fn handle_next_turn_button(
                 *border = BorderColor::all(BUTTON_BORDER);
             }
         }
+    }
+}
+
+pub fn update_next_turn_button_text(
+    mut button_text_query: Query<&mut Text, With<NextTurnButtonText>>,
+    turn_phase: Res<core_sim::TurnPhase>,
+    turn_order: Res<core_sim::TurnOrder>,
+    civilizations: Query<&core_sim::Civilization>,
+) {
+    if !turn_phase.is_changed() && !turn_order.is_changed() {
+        return;
+    }
+
+    for mut text in button_text_query.iter_mut() {
+        let new_text = match turn_phase.as_ref() {
+            core_sim::TurnPhase::CivilizationTurn { current_civ } => {
+                if let Some(civ) = civilizations.iter().find(|c| c.id == *current_civ) {
+                    let is_player = turn_order.is_player_civ(*current_civ);
+
+                    if is_player {
+                        "End Turn".to_string()
+                    } else {
+                        format!("{}'s Turn (Processing...)", civ.name)
+                    }
+                } else {
+                    "Next Turn".to_string()
+                }
+            }
+            core_sim::TurnPhase::WaitingForNextTurn { next_civ } => {
+                if let Some(civ) = civilizations.iter().find(|c| c.id == *next_civ) {
+                    let is_player = turn_order.is_player_civ(*next_civ);
+
+                    if is_player {
+                        "Start Your Turn".to_string()
+                    } else {
+                        format!("Start {}'s Turn", civ.name)
+                    }
+                } else {
+                    "Next Turn".to_string()
+                }
+            }
+            core_sim::TurnPhase::TurnTransition => "Processing...".to_string(),
+        };
+
+        info!("UI: Updating Next Turn button text to: '{}'", new_text);
+        **text = new_text;
     }
 }
