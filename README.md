@@ -54,33 +54,37 @@ cargo build --release
 ### Running
 
 ```bash
-# Run with default settings: 2 civilizations total, 1 player-controlled
-cargo run -- --seed 1756118413
-
-# Run with multiple players: 3 total civs, 2 players
-cargo run -- --seed 1756118413 --players 2 --total-civs 3
-
-# Run in AI-only mode - all civilizations controlled by AI
-cargo run -- --seed 1756118413 --ai-only --total-civs 5
-
-# Run with automatic turn advancement
-cargo run -- --seed 1756118413 --auto-advance
+# Run with default settings (loaded from saves/settings.ron if available)
+cargo run
 
 # Run with debug logging
-cargo run -- --seed 1756118413 --debug-logging
-
-# Enable Bevy Remote Protocol for external tool access
-cargo run -- --seed 1756118413 --enable-remote --remote-port 15702
+cargo run -- --debug-logging
 ```
+
+**Note**: Seed and AI-only mode settings are controlled from the main menu settings. Set these in the Settings menu on the main screen before starting a game.
 
 ### Command Line Options
 
-- `--players N`: Number of player-controlled civilizations (default: 1, ignored if --ai-only)
-- `--total-civs N`: Total number of civilizations to spawn (default: 2)
-- `--ai-only`: All civilizations controlled by AI
-- `--auto-advance`: Automatic turn progression
-- `--seed N`: Random seed for reproducible games
 - `--debug-logging`: Enable detailed debug output
+
+### Game Settings
+
+Game settings (volume, random seed, AI-only mode) are saved in `saves/settings.ron` and can be configured from the main menu:
+
+1. Launch the game
+2. Click "Settings" from the main menu
+3. Adjust volume, set random seed, or enable AI-only mode
+4. Click "Save Settings"
+5. Click "Play" to start a game with your configured settings
+
+**Settings Available in Main Menu Only:**
+
+- **Random Seed**: Set a specific seed for reproducible games, or leave as "None" for random generation
+- **AI-Only Mode**: When enabled, all civilizations are controlled by AI (no player control)
+
+**Settings Available Everywhere:**
+
+- **Master Volume**: Adjust game audio volume
 
 ### Controls
 
@@ -90,8 +94,6 @@ cargo run -- --seed 1756118413 --enable-remote --remote-port 15702
 - **Right Click**: Move selected unit to target tile
 - **Space**: Skip turn for selected unit
 - **Next Turn Button**: Advance to next turn (manual mode)
-
-**Note**: The first N civilizations (specified by `--players`) are player-controlled, the rest are AI-controlled. The UI shows which civilizations are players vs AI.
 
 #### Camera Controls
 

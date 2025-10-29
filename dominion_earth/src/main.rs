@@ -26,14 +26,7 @@ use clap::Parser;
 #[command(author, version, about, long_about = None)]
 struct CliArgs {
     #[arg(long)]
-    seed: Option<u64>,
-    #[arg(long)]
     debug_logging: bool,
-    #[arg(
-        long,
-        help = "Start game with AI-only civilizations - no player controlled civilization"
-    )]
-    ai_only: bool,
 }
 
 fn main() {
@@ -41,18 +34,11 @@ fn main() {
 
     let loaded_settings = crate::settings::GameSettings::load();
 
-    let final_seed = args.seed.or(loaded_settings.seed);
-    let final_ai_only = if args.ai_only {
-        true
-    } else {
-        loaded_settings.ai_only
-    };
-
     let config = ResourceConfig {
         auto_advance: false,
-        ai_only: final_ai_only,
+        ai_only: loaded_settings.ai_only,
         total_civs: 3,
-        seed: final_seed,
+        seed: loaded_settings.seed,
         debug_logging: args.debug_logging,
     };
 
