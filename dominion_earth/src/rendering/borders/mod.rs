@@ -28,26 +28,20 @@ pub fn render_civilization_borders(
         return;
     };
 
-    let player_civ_id = if let Ok(player_civ) = player_query.single() {
-        player_civ.id
-    } else {
-        return;
-    };
-
-    let visibility_map = if let Some(map) = fog_of_war.get(player_civ_id) {
-        map
-    } else {
-        return;
-    };
+    // In AI-only mode (no player), show all borders
+    let player_civ_id = player_query.single().ok().map(|civ| civ.id);
+    let visibility_map = player_civ_id.and_then(|id| fog_of_war.get(id));
 
     for (unit, position) in units.iter() {
-        let tile_visibility = visibility_map
-            .get(*position)
-            .unwrap_or(VisibilityState::Unexplored);
-
-        let belongs_to_player = unit.owner == player_civ_id;
-        let should_render =
-            belongs_to_player || matches!(tile_visibility, VisibilityState::Visible);
+        let should_render = if let Some(map) = visibility_map {
+            // Player mode: check visibility
+            let tile_visibility = map.get(*position).unwrap_or(VisibilityState::Unexplored);
+            let belongs_to_player = Some(unit.owner) == player_civ_id;
+            belongs_to_player || matches!(tile_visibility, VisibilityState::Visible)
+        } else {
+            // AI-only mode: show all borders
+            true
+        };
 
         if !should_render {
             continue;
@@ -76,13 +70,15 @@ pub fn render_civilization_borders(
     }
 
     for (capital, position) in capitals.iter() {
-        let tile_visibility = visibility_map
-            .get(*position)
-            .unwrap_or(VisibilityState::Unexplored);
-
-        let belongs_to_player = capital.owner == player_civ_id;
-        let should_render =
-            belongs_to_player || matches!(tile_visibility, VisibilityState::Visible);
+        let should_render = if let Some(map) = visibility_map {
+            // Player mode: check visibility
+            let tile_visibility = map.get(*position).unwrap_or(VisibilityState::Unexplored);
+            let belongs_to_player = Some(capital.owner) == player_civ_id;
+            belongs_to_player || matches!(tile_visibility, VisibilityState::Visible)
+        } else {
+            // AI-only mode: show all borders
+            true
+        };
 
         if !should_render {
             continue;
