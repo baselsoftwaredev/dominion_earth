@@ -13,12 +13,16 @@ const SAVES_DIRECTORY: &str = "saves";
 #[reflect(Resource)]
 pub struct GameSettings {
     pub volume: f32,
+    pub seed: Option<u64>,
+    pub ai_only: bool,
 }
 
 impl Default for GameSettings {
     fn default() -> Self {
         Self {
             volume: crate::constants::audio::DEFAULT_MUSIC_VOLUME,
+            seed: None,
+            ai_only: false,
         }
     }
 }
@@ -93,6 +97,20 @@ fn load_settings_on_startup(mut commands: Commands, debug_logging: Res<DebugLogg
         debug_logging,
         "🔊 Loaded volume setting: {:.0}%",
         settings.volume * crate::constants::settings::PERCENTAGE_MULTIPLIER
+    );
+
+    if let Some(seed_value) = settings.seed {
+        crate::debug_println!(debug_logging, "🎲 Loaded seed setting: {}", seed_value);
+    }
+
+    crate::debug_println!(
+        debug_logging,
+        "🤖 AI-only mode: {}",
+        if settings.ai_only {
+            "enabled"
+        } else {
+            "disabled"
+        }
     );
 
     commands.insert_resource(settings);

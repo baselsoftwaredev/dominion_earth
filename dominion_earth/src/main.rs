@@ -39,11 +39,20 @@ struct CliArgs {
 fn main() {
     let args = CliArgs::parse();
 
+    let loaded_settings = crate::settings::GameSettings::load();
+
+    let final_seed = args.seed.or(loaded_settings.seed);
+    let final_ai_only = if args.ai_only {
+        true
+    } else {
+        loaded_settings.ai_only
+    };
+
     let config = ResourceConfig {
         auto_advance: false,
-        ai_only: args.ai_only,
+        ai_only: final_ai_only,
         total_civs: 3,
-        seed: args.seed,
+        seed: final_seed,
         debug_logging: args.debug_logging,
     };
 

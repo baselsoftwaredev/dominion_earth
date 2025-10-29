@@ -14,7 +14,6 @@ use bevy::prelude::*;
 
 pub fn plugin(app: &mut App) {
     app.add_plugins(interaction::plugin);
-    // Only handle button interactions in the appropriate screens
     app.add_systems(
         Update,
         handle_button_interactions.run_if(
@@ -55,7 +54,7 @@ fn handle_button_interactions(
     mut next_screen: ResMut<NextState<Screen>>,
     mut next_menu: ResMut<NextState<Menu>>,
     mut global_volume: ResMut<GlobalVolume>,
-    settings: Res<crate::settings::GameSettings>,
+    mut settings: ResMut<crate::settings::GameSettings>,
     mut app_exit: MessageWriter<AppExit>,
     screen: Res<State<Screen>>,
     debug_logging: Res<DebugLogging>,
@@ -123,6 +122,28 @@ fn handle_button_interactions(
                     } else {
                         info!("✅ Settings saved successfully");
                     }
+                }
+                widget::ButtonAction::ToggleAiOnly => {
+                    settings.ai_only = !settings.ai_only;
+                    crate::debug_println!(
+                        debug_logging,
+                        "🤖 AI-only mode toggled: {}",
+                        if settings.ai_only {
+                            "enabled"
+                        } else {
+                            "disabled"
+                        }
+                    );
+                }
+                widget::ButtonAction::ClearSeed => {
+                    settings.seed = None;
+                    crate::debug_println!(debug_logging, "🎲 Seed cleared");
+                }
+                widget::ButtonAction::SetRandomSeed => {
+                    use rand::Rng;
+                    let new_seed = rand::thread_rng().gen::<u64>();
+                    settings.seed = Some(new_seed);
+                    crate::debug_println!(debug_logging, "🎲 Random seed set: {}", new_seed);
                 }
             }
         }

@@ -132,5 +132,6 @@ pub mod settings {
 pub mod ui {
     pub mod spacing {
         pub const VOLUME_CONTROLS_GAP: f32 = 20.0;
+        pub const CREDITS_CONTENT_ROW_GAP: f32 = 10.0;
     }
 }

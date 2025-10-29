@@ -116,4 +116,7 @@ pub enum ButtonAction {
     LowerVolume,
     RaiseVolume,
     SaveSettings,
+    ToggleAiOnly,
+    ClearSeed,
+    SetRandomSeed,
 }

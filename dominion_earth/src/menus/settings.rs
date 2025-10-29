@@ -5,7 +5,7 @@ use crate::{
     debug_utils::DebugLogging,
     menus::{ui_visibility, Menu},
     screens::Screen,
-    settings::sync_volume_to_settings,
+    settings::{sync_volume_to_settings, GameSettings},
     theme::prelude::*,
 };
 
@@ -19,10 +19,7 @@ pub fn plugin(app: &mut App) {
     );
     app.add_systems(
         OnExit(Menu::Settings),
-        (
-            cleanup_settings_menu_entities,
-            ui_visibility::show_gameplay_ui_panels,
-        ),
+        ui_visibility::show_gameplay_ui_panels,
     );
     app.add_systems(
         Update,
@@ -32,11 +29,21 @@ pub fn plugin(app: &mut App) {
 
     app.add_systems(
         Update,
-        (update_global_volume_label, sync_volume_to_settings).run_if(in_state(Menu::Settings)),
+        (
+            update_global_volume_label,
+            update_seed_label,
+            update_ai_only_label,
+            sync_volume_to_settings,
+        )
+            .run_if(in_state(Menu::Settings)),
     );
 }
 
-fn spawn_settings_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
+fn spawn_settings_menu(
+    mut commands: Commands,
+    debug_logging: Res<DebugLogging>,
+    settings: Res<GameSettings>,
+) {
     crate::debug_println!(debug_logging, "📋 Spawning settings menu");
 
     commands
@@ -77,6 +84,77 @@ fn spawn_settings_menu(mut commands: Commands, debug_logging: Res<DebugLogging>)
                     parent.spawn(widget::button_small("+", widget::ButtonAction::RaiseVolume));
                 });
 
+            parent
+                .spawn((
+                    Name::new("Seed Container"),
+                    Node {
+                        flex_direction: FlexDirection::Row,
+                        align_items: AlignItems::Center,
+                        column_gap: ui_palette::px(
+                            crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
+                        ),
+                        ..default()
+                    },
+                ))
+                .with_children(|parent| {
+                    parent.spawn(widget::label("Random Seed"));
+                    parent.spawn((
+                        Name::new("Seed Label"),
+                        Text::new(match settings.seed {
+                            Some(seed) => format!("{}", seed),
+                            None => "None".to_string(),
+                        }),
+                        TextFont {
+                            font_size: constants::font_sizes::LABEL_TEXT_SIZE,
+                            ..default()
+                        },
+                        TextColor(ui_palette::TEXT_PRIMARY),
+                        SeedLabel,
+                    ));
+                    parent.spawn(widget::button_small(
+                        "Random",
+                        widget::ButtonAction::SetRandomSeed,
+                    ));
+                    parent.spawn(widget::button_small(
+                        "Clear",
+                        widget::ButtonAction::ClearSeed,
+                    ));
+                });
+
+            parent
+                .spawn((
+                    Name::new("AI Only Container"),
+                    Node {
+                        flex_direction: FlexDirection::Row,
+                        align_items: AlignItems::Center,
+                        column_gap: ui_palette::px(
+                            crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
+                        ),
+                        ..default()
+                    },
+                ))
+                .with_children(|parent| {
+                    parent.spawn(widget::label("AI-Only Mode"));
+                    parent.spawn((
+                        Name::new("AI Only Label"),
+                        Text::new(if settings.ai_only {
+                            "Enabled"
+                        } else {
+                            "Disabled"
+                        }),
+                        TextFont {
+                            font_size: constants::font_sizes::LABEL_TEXT_SIZE,
+                            ..default()
+                        },
+                        TextColor(ui_palette::TEXT_PRIMARY),
+                        AiOnlyLabel,
+                    ));
+                    parent.spawn(widget::button_small(
+                        "Toggle",
+                        widget::ButtonAction::ToggleAiOnly,
+                    ));
+                });
+
             parent.spawn(widget::button(
                 "Save Settings",
                 widget::ButtonAction::SaveSettings,
@@ -90,14 +168,53 @@ fn spawn_settings_menu(mut commands: Commands, debug_logging: Res<DebugLogging>)
 #[reflect(Component)]
 struct GlobalVolumeLabel;
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct SeedLabel;
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct AiOnlyLabel;
+
 fn update_global_volume_label(
     global_volume: Res<GlobalVolume>,
     mut label_query: Query<&mut Text, With<GlobalVolumeLabel>>,
 ) {
-    if let Ok(mut text) = label_query.single_mut() {
-        let percent =
-            crate::constants::settings::PERCENTAGE_MULTIPLIER * global_volume.volume.to_linear();
-        **text = format!("{percent:3.0}%");
+    if global_volume.is_changed() {
+        if let Some(mut text) = label_query.iter_mut().next() {
+            let percent = crate::constants::settings::PERCENTAGE_MULTIPLIER
+                * global_volume.volume.to_linear();
+            **text = format!("{percent:3.0}%");
+        }
+    }
+}
+
+fn update_seed_label(
+    settings: Res<GameSettings>,
+    mut label_query: Query<&mut Text, With<SeedLabel>>,
+) {
+    if settings.is_changed() {
+        if let Some(mut text) = label_query.iter_mut().next() {
+            **text = match settings.seed {
+                Some(seed) => format!("{}", seed),
+                None => "None".to_string(),
+            };
+        }
+    }
+}
+
+fn update_ai_only_label(
+    settings: Res<GameSettings>,
+    mut label_query: Query<&mut Text, With<AiOnlyLabel>>,
+) {
+    if settings.is_changed() {
+        if let Some(mut text) = label_query.iter_mut().next() {
+            **text = if settings.ai_only {
+                "Enabled".to_string()
+            } else {
+                "Disabled".to_string()
+            };
+        }
     }
 }
 
@@ -119,21 +236,4 @@ fn determine_target_menu_from_screen(screen: Screen) -> Menu {
 
 fn input_just_pressed(key: KeyCode) -> impl SystemCondition<()> {
     IntoSystem::into_system(move |input: Res<ButtonInput<KeyCode>>| input.just_pressed(key))
-}
-
-fn cleanup_settings_menu_entities(
-    mut commands: Commands,
-    settings_menu_entities: Query<Entity, With<SettingsMenuRoot>>,
-    debug_logging: Res<DebugLogging>,
-) {
-    let entity_count = settings_menu_entities.iter().count();
-    crate::debug_println!(
-        debug_logging,
-        "🧹 Cleaning up settings menu - found {} entities",
-        entity_count
-    );
-
-    for menu_entity in &settings_menu_entities {
-        commands.entity(menu_entity).despawn();
-    }
 }
