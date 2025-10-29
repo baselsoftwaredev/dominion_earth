@@ -29,10 +29,13 @@ impl Plugin for RenderingPlugin {
                     rendering::tilemap::attach_tile_sprite_components
                         .after(rendering::tilemap::setup_tilemap),
                     // Sprite Spawning Systems - must be in Update to run after tilemap setup
+                    // AND after save/load systems to respect the loading flag
                     rendering::units::spawn_unit_sprites
-                        .after(rendering::tilemap::spawn_world_tiles),
+                        .after(rendering::tilemap::spawn_world_tiles)
+                        .after(crate::plugins::save_load::handle_load_requests),
                     rendering::capitals::spawn_animated_capital_tiles
-                        .after(rendering::tilemap::spawn_world_tiles),
+                        .after(rendering::tilemap::spawn_world_tiles)
+                        .after(crate::plugins::save_load::handle_load_requests),
                 )
                     .run_if(in_state(Screen::Gameplay))
                     .run_if(not_loading_from_save),
@@ -41,7 +44,8 @@ impl Plugin for RenderingPlugin {
             .add_systems(
                 Update,
                 (
-                    rendering::units::recreate_missing_unit_sprites,
+                    rendering::units::recreate_missing_unit_sprites
+                        .after(crate::plugins::save_load::handle_load_requests),
                     rendering::units::update_unit_sprites,
                     rendering::capitals::update_capital_sprites,
                     rendering::capitals::update_animated_capital_sprites,

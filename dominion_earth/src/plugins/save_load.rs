@@ -74,9 +74,13 @@ impl Plugin for SaveLoadPlugin {
                 Update,
                 (
                     handle_save_requests,
-                    handle_load_requests,
-                    cleanup_world_before_load,
-                    trigger_pending_load,
+                    // Load sequence must run in strict order to prevent sprite recreation
+                    (
+                        handle_load_requests,
+                        cleanup_world_before_load,
+                        trigger_pending_load,
+                    )
+                        .chain(),
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
                     respawn_ui_after_load,
@@ -137,12 +141,16 @@ fn sync_current_volume_to_save(
     info!("Saved music volume: {}", saved_volume.volume);
 }
 
-fn handle_load_requests(mut save_state: ResMut<SaveLoadState>) {
+/// Handle load requests and set the loading flag to prevent sprite systems from running
+/// This must be public so rendering systems can order themselves after it
+pub fn handle_load_requests(mut save_state: ResMut<SaveLoadState>) {
     if let Some(load_name) = save_state.load_requested.take() {
         info!("Load requested: {}", load_name);
         // Store the pending load - we'll clean up first, then trigger the load
         save_state.pending_load_name = Some(load_name);
+        // Set loading flag IMMEDIATELY to prevent any sprite systems from running
         save_state.is_loading_from_save = true;
+        info!("🚫 Loading flag set - sprite systems should be blocked");
     }
 }
 
@@ -151,19 +159,46 @@ fn cleanup_world_before_load(
     mut save_state: ResMut<SaveLoadState>,
     sprite_entities: Query<Entity, (With<Sprite>, Without<Position>)>,
     label_entities: Query<Entity, Or<(With<crate::ui::CapitalLabel>, With<crate::ui::UnitLabel>)>>,
+    entities_with_sprite_refs: Query<(
+        Entity,
+        &core_sim::components::rendering::SpriteEntityReference,
+    )>,
 ) {
     if save_state.pending_load_name.is_none() {
         return;
     }
 
-    info!("Cleaning up visual entities before load");
+    info!("🧹 Cleaning up visual entities before load");
 
-    // Despawn all sprites
+    // Despawn sprite entities that are referenced by game entities
+    // AND remove the SpriteEntityReference components
+    let sprite_ref_count = entities_with_sprite_refs.iter().count();
+    for (entity, sprite_ref) in entities_with_sprite_refs.iter() {
+        // Despawn the actual sprite entity (silently to avoid errors if already despawned)
+        commands.entity(sprite_ref.sprite_entity).despawn();
+        // Remove the reference component from the game entity
+        commands
+            .entity(entity)
+            .remove::<core_sim::components::rendering::SpriteEntityReference>();
+    }
+    if sprite_ref_count > 0 {
+        info!(
+            "🧹 Despawned {} referenced sprite entities and removed their reference components",
+            sprite_ref_count
+        );
+    }
+
+    // Despawn any other sprites that aren't referenced (orphaned sprites)
     let sprite_count = sprite_entities.iter().count();
     for sprite_entity in sprite_entities.iter() {
         commands.entity(sprite_entity).despawn();
     }
-    info!("Despawned {} sprite entities", sprite_count);
+    if sprite_count > 0 {
+        info!(
+            "🧹 Despawned {} total sprite entities from query",
+            sprite_count
+        );
+    }
 
     // Despawn all labels
     let label_count = label_entities.iter().count();
@@ -171,7 +206,7 @@ fn cleanup_world_before_load(
         commands.entity(label_entity).despawn();
     }
     if label_count > 0 {
-        info!("Despawned {} label entities", label_count);
+        info!("🧹 Despawned {} label entities", label_count);
     }
 }
 
