@@ -80,6 +80,8 @@ fn despawn_all_game_entities(
     game_entities: Query<Entity, With<core_sim::Position>>,
     tile_entities: Query<Entity, With<core_sim::tile::tile_components::WorldTile>>,
     tilemap_entities: Query<Entity, With<bevy_ecs_tilemap::tiles::TileStorage>>,
+    music_entities: Query<Entity, With<crate::audio::Music>>,
+    sound_entities: Query<Entity, With<crate::audio::SoundEffect>>,
     tilemap_id: Option<ResMut<crate::rendering::common::TilemapIdResource>>,
     debug_logging: Res<DebugLogging>,
 ) {
@@ -89,7 +91,24 @@ fn despawn_all_game_entities(
     );
 
     // Note: Sprites and labels with DespawnOnExit(Screen::Gameplay) will be auto-cleaned by Bevy
-    // We only need to manually cleanup game entities, tiles, and tilemaps
+    // We only need to manually cleanup game entities, tiles, tilemaps, and audio
+
+    // Clean up all audio entities first to prevent crashes
+    let music_count = music_entities.iter().count();
+    if music_count > 0 {
+        crate::debug_println!(debug_logging, "  Despawning {} music entities", music_count);
+        for music_entity in &music_entities {
+            commands.entity(music_entity).despawn();
+        }
+    }
+
+    let sound_count = sound_entities.iter().count();
+    if sound_count > 0 {
+        crate::debug_println!(debug_logging, "  Despawning {} sound entities", sound_count);
+        for sound_entity in &sound_entities {
+            commands.entity(sound_entity).despawn();
+        }
+    }
 
     let tile_count = tile_entities.iter().count();
     if tile_count > 0 {

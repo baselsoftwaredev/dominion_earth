@@ -2,27 +2,28 @@
 
 use bevy::prelude::*;
 
-use crate::{debug_utils::DebugLogging, menus::Menu, screens::Screen, theme::prelude::*};
+use crate::{debug_utils::DebugLogging, menus::Menu, theme::prelude::*};
 
+/// Marker component for entities that belong to the main menu screen
 #[derive(Component)]
-struct MainMenuRoot;
+struct OnMainMenuScreen;
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(OnEnter(Menu::Main), spawn_main_menu);
+    app.add_systems(OnEnter(Menu::Main), setup_main_menu);
 }
 
-fn spawn_main_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
+fn setup_main_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
     crate::debug_println!(debug_logging, "📋 Spawning main menu");
     commands
         .spawn((
             widget::ui_root("Main Menu"),
             GlobalZIndex(constants::z_index::MENU_OVERLAY_Z_INDEX),
             DespawnOnExit(Menu::Main),
-            MainMenuRoot,
+            OnMainMenuScreen,
         ))
         .with_children(|parent| {
             parent.spawn(widget::header("Dominion Earth"));
-            parent.spawn(widget::button("Play", widget::ButtonAction::EnterGameplay));
+            parent.spawn(widget::button("Play", widget::ButtonAction::OpenGameSetup));
             parent.spawn(widget::button(
                 "Settings",
                 widget::ButtonAction::OpenSettings,

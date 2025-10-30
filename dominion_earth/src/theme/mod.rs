@@ -19,6 +19,7 @@ pub fn plugin(app: &mut App) {
         handle_button_interactions.run_if(
             in_state(Screen::Splash)
                 .or(in_state(Screen::MainMenu))
+                .or(in_state(Screen::GameSetup))
                 .or(in_state(Screen::Gameplay)),
         ),
     );
@@ -70,6 +71,31 @@ fn handle_button_interactions(
                 screen.get()
             );
             match action {
+                widget::ButtonAction::OpenGameSetup => {
+                    if **screen != Screen::MainMenu {
+                        crate::debug_println!(
+                            debug_logging,
+                            "⚠️  Ignoring OpenGameSetup button - not in MainMenu!"
+                        );
+                        continue;
+                    }
+                    crate::debug_println!(debug_logging, "🎮 Transitioning to GameSetup screen");
+                    next_screen.set(Screen::GameSetup);
+                }
+                widget::ButtonAction::StartGame => {
+                    if **screen != Screen::GameSetup {
+                        crate::debug_println!(
+                            debug_logging,
+                            "⚠️  Ignoring StartGame button - not in GameSetup!"
+                        );
+                        continue;
+                    }
+                    crate::debug_println!(
+                        debug_logging,
+                        "🎮 Starting game - transitioning to Gameplay screen"
+                    );
+                    next_screen.set(Screen::Gameplay);
+                }
                 widget::ButtonAction::EnterGameplay => {
                     if **screen != Screen::MainMenu {
                         crate::debug_println!(
@@ -101,7 +127,16 @@ fn handle_button_interactions(
                     next_screen.set(Screen::MainMenu);
                 }
                 widget::ButtonAction::GoBack => {
-                    next_menu.set(determine_parent_menu_from_screen(**screen));
+                    // Special handling for GameSetup screen - return to MainMenu
+                    if **screen == Screen::GameSetup {
+                        crate::debug_println!(
+                            debug_logging,
+                            "🎮 Going back from GameSetup to MainMenu"
+                        );
+                        next_screen.set(Screen::MainMenu);
+                    } else {
+                        next_menu.set(determine_parent_menu_from_screen(**screen));
+                    }
                 }
                 widget::ButtonAction::LowerVolume => {
                     apply_volume_adjustment(
@@ -151,10 +186,10 @@ fn handle_button_interactions(
 }
 
 fn determine_parent_menu_from_screen(screen: Screen) -> Menu {
-    if screen == Screen::MainMenu {
-        Menu::Main
-    } else {
-        Menu::Pause
+    match screen {
+        Screen::MainMenu => Menu::Main,
+        Screen::GameSetup => Menu::GameSetup,
+        _ => Menu::Pause,
     }
 }
 

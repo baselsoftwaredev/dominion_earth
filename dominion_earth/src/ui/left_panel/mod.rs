@@ -136,7 +136,8 @@ pub fn handle_next_turn_button(
                 *background = BackgroundColor(BUTTON_PRESSED_BACKGROUND);
                 turn_advance_events.write(RequestTurnAdvance);
                 info!("Player requested turn advancement");
-                crate::audio::play_sound_effect(&mut commands, &asset_server, "sounds/click.ogg");
+                // TODO: Fix audio file corruption before re-enabling
+                // crate::audio::play_sound_effect(&mut commands, &asset_server, "sounds/click.ogg");
             }
             Interaction::Hovered => {
                 *background = BackgroundColor(BUTTON_HOVER_BACKGROUND);

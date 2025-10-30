@@ -1,5 +1,6 @@
 //! The game's main screen states and transitions between them.
 
+mod game_setup;
 mod gameplay;
 mod main_menu;
 mod splash;
@@ -10,7 +11,12 @@ pub fn plugin(app: &mut App) {
     app.init_state::<Screen>();
     app.init_state::<LoadingState>();
 
-    app.add_plugins((splash::plugin, main_menu::plugin, gameplay::plugin));
+    app.add_plugins((
+        splash::plugin,
+        main_menu::plugin,
+        game_setup::plugin,
+        gameplay::plugin,
+    ));
 
     // Add debug logging for screen transitions
     app.add_systems(Update, log_screen_transitions);
@@ -35,6 +41,7 @@ pub enum Screen {
     #[default]
     Splash,
     MainMenu,
+    GameSetup,
     Gameplay,
 }
 

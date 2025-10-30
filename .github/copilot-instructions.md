@@ -17,10 +17,8 @@ If you don't understad my requirements, ask questions!
 
 ## Essential Commands
 
-**Always use debug seed for consistency: `--seed 1756118413`**
-
 ```bash
-cargo run -- --seed 1756118413 --debug-logging        # With debug output
+cargo run -- --debug-logging        # With debug output
 ```
 
 ## Data-Driven Design

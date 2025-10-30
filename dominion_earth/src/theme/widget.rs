@@ -106,6 +106,8 @@ pub struct ButtonText(pub String);
 #[derive(Component, Clone, Copy, Debug)]
 pub enum ButtonAction {
     EnterGameplay,
+    OpenGameSetup,
+    StartGame,
     OpenSettings,
     OpenCredits,
     ExitApp,
