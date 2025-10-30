@@ -29,28 +29,17 @@ pub fn plugin(app: &mut App) {
 
     app.add_systems(
         Update,
-        (
-            update_global_volume_label,
-            update_seed_label,
-            update_ai_only_label,
-            sync_volume_to_settings,
-        )
-            .run_if(in_state(Menu::Settings)),
+        (update_global_volume_label, sync_volume_to_settings).run_if(in_state(Menu::Settings)),
     );
 }
 
 fn spawn_settings_menu(
     mut commands: Commands,
     debug_logging: Res<DebugLogging>,
-    settings: Res<GameSettings>,
-    current_screen: Res<State<Screen>>,
     global_volume: Res<GlobalVolume>,
 ) {
     crate::debug_println!(debug_logging, "📋 Spawning settings menu");
 
-    let is_main_menu = **current_screen == Screen::MainMenu;
-
-    // Calculate current volume percentage for initial display
     let current_volume_percent =
         crate::constants::settings::PERCENTAGE_MULTIPLIER * global_volume.volume.to_linear();
 
@@ -92,80 +81,6 @@ fn spawn_settings_menu(
                     parent.spawn(widget::button_small("+", widget::ButtonAction::RaiseVolume));
                 });
 
-            // Only show seed and AI-only controls in main menu
-            if is_main_menu {
-                parent
-                    .spawn((
-                        Name::new("Seed Container"),
-                        Node {
-                            flex_direction: FlexDirection::Row,
-                            align_items: AlignItems::Center,
-                            column_gap: ui_palette::px(
-                                crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
-                            ),
-                            ..default()
-                        },
-                    ))
-                    .with_children(|parent| {
-                        parent.spawn(widget::label("Random Seed"));
-                        parent.spawn((
-                            Name::new("Seed Label"),
-                            Text::new(match settings.seed {
-                                Some(seed) => format!("{}", seed),
-                                None => "None".to_string(),
-                            }),
-                            TextFont {
-                                font_size: constants::font_sizes::LABEL_TEXT_SIZE,
-                                ..default()
-                            },
-                            TextColor(ui_palette::TEXT_PRIMARY),
-                            SeedLabel,
-                        ));
-                        parent.spawn(widget::button_small(
-                            "Random",
-                            widget::ButtonAction::SetRandomSeed,
-                        ));
-                        parent.spawn(widget::button_small(
-                            "Clear",
-                            widget::ButtonAction::ClearSeed,
-                        ));
-                    });
-
-                parent
-                    .spawn((
-                        Name::new("AI Only Container"),
-                        Node {
-                            flex_direction: FlexDirection::Row,
-                            align_items: AlignItems::Center,
-                            column_gap: ui_palette::px(
-                                crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
-                            ),
-                            ..default()
-                        },
-                    ))
-                    .with_children(|parent| {
-                        parent.spawn(widget::label("AI-Only Mode"));
-                        parent.spawn((
-                            Name::new("AI Only Label"),
-                            Text::new(if settings.ai_only {
-                                "Enabled"
-                            } else {
-                                "Disabled"
-                            }),
-                            TextFont {
-                                font_size: constants::font_sizes::LABEL_TEXT_SIZE,
-                                ..default()
-                            },
-                            TextColor(ui_palette::TEXT_PRIMARY),
-                            AiOnlyLabel,
-                        ));
-                        parent.spawn(widget::button_small(
-                            "Toggle",
-                            widget::ButtonAction::ToggleAiOnly,
-                        ));
-                    });
-            }
-
             parent.spawn(widget::button(
                 "Save Settings",
                 widget::ButtonAction::SaveSettings,
@@ -179,14 +94,6 @@ fn spawn_settings_menu(
 #[reflect(Component)]
 struct GlobalVolumeLabel;
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-struct SeedLabel;
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-struct AiOnlyLabel;
-
 fn update_global_volume_label(
     global_volume: Res<GlobalVolume>,
     mut label_query: Query<&mut Text, With<GlobalVolumeLabel>>,
@@ -196,35 +103,6 @@ fn update_global_volume_label(
             let percent = crate::constants::settings::PERCENTAGE_MULTIPLIER
                 * global_volume.volume.to_linear();
             **text = format!("{percent:3.0}%");
-        }
-    }
-}
-
-fn update_seed_label(
-    settings: Res<GameSettings>,
-    mut label_query: Query<&mut Text, With<SeedLabel>>,
-) {
-    if settings.is_changed() {
-        if let Some(mut text) = label_query.iter_mut().next() {
-            **text = match settings.seed {
-                Some(seed) => format!("{}", seed),
-                None => "None".to_string(),
-            };
-        }
-    }
-}
-
-fn update_ai_only_label(
-    settings: Res<GameSettings>,
-    mut label_query: Query<&mut Text, With<AiOnlyLabel>>,
-) {
-    if settings.is_changed() {
-        if let Some(mut text) = label_query.iter_mut().next() {
-            **text = if settings.ai_only {
-                "Enabled".to_string()
-            } else {
-                "Disabled".to_string()
-            };
         }
     }
 }
