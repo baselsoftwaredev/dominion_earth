@@ -62,6 +62,47 @@ impl GameState {
     }
 }
 
+/// Sync GameSettings to GameConfig before entering gameplay
+/// This ensures that any settings changes (especially seed) are applied to the new game
+pub fn sync_settings_to_game_config(
+    game_settings: Res<crate::settings::GameSettings>,
+    mut game_config: ResMut<GameConfig>,
+    mut game_state: ResMut<GameState>,
+    debug_logging: Res<DebugLogging>,
+) {
+    // Update seed from settings
+    if let Some(seed) = game_settings.seed {
+        if game_config.random_seed != seed {
+            game_config.random_seed = seed;
+            crate::debug_println!(
+                debug_logging,
+                "🎲 Updated game seed from settings: {}",
+                seed
+            );
+        }
+    } else {
+        // Generate random seed if none is set
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let random_seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_else(|_| std::time::Duration::from_secs(42))
+            .as_secs();
+        game_config.random_seed = random_seed;
+        crate::debug_println!(debug_logging, "🎲 Generated random seed: {}", random_seed);
+    }
+
+    // Update AI-only mode from settings
+    if game_config.ai_only != game_settings.ai_only || game_state.ai_only != game_settings.ai_only {
+        game_config.ai_only = game_settings.ai_only;
+        game_state.ai_only = game_settings.ai_only;
+        crate::debug_println!(
+            debug_logging,
+            "🤖 Updated AI-only mode from settings: {}",
+            game_settings.ai_only
+        );
+    }
+}
+
 /// Setup the initial game world
 pub fn setup_game(
     mut commands: Commands,

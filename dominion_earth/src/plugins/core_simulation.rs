@@ -17,7 +17,8 @@ impl Plugin for CoreSimulationPlugin {
             .add_systems(
                 OnEnter(Screen::Gameplay),
                 (
-                    game::setup_game,
+                    game::sync_settings_to_game_config,
+                    game::setup_game.after(game::sync_settings_to_game_config),
                     game::initialize_fog_of_war.after(game::setup_game),
                 ),
             )
