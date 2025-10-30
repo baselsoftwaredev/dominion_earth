@@ -80,10 +80,12 @@ pub struct SettingsPersistencePlugin;
 
 impl Plugin for SettingsPersistencePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<GameSettings>().add_systems(
-            Startup,
-            (load_settings_on_startup, apply_settings_on_startup).chain(),
-        );
+        app.register_type::<GameSettings>()
+            .add_systems(
+                Startup,
+                (load_settings_on_startup, apply_settings_on_startup).chain(),
+            )
+            .add_systems(Update, sync_volume_to_settings);
     }
 }
 

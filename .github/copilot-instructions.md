@@ -10,6 +10,10 @@ If you don't understad my requirements, ask questions!
 - **ai_planner/**: Multi-layered AI system (Utility AI + GOAP + HTN planning)
 - **dominion_earth/**: Bevy frontend with 2D rendering and UI
 - **assets/data/**: Game content defined in RON files
+- **core_sim** is pure ECS - no graphics dependencies
+- Components in modular structure: `core_sim/src/components/`
+- Systems follow turn-based patterns: AI planning → execution → world update
+- Use `bevy_ecs::Resource` for global state
 
 ## Essential Commands
 
@@ -23,10 +27,9 @@ cargo run -- --seed 1756118413 --debug-logging        # With debug output
 
 Game content lives in `dominion_earth/assets/data/*.ron` - modify RON files rather than hardcoding in Rust.
 
-## Core Principles
+## Cargo
 
-- **core_sim** is pure ECS - no graphics dependencies
-- Components in modular structure: `core_sim/src/components/`
-- Systems follow turn-based patterns: AI planning → execution → world update
-- Use `bevy_ecs::Resource` for global state
+Don't install new dependencies without approval.
+
+
 

@@ -8,7 +8,7 @@ resolver = "2"
 
 
 [workspace.dependencies]
-bevy = { version = "0.17", features = ["bevy_remote", "png"] }
+bevy = { version = "0.17", features = ["bevy_remote", "png", "symphonia-all"] }
 bevy_ecs = "0.17"
 bevy_brp_extras = "0.2.0"
 serde = { version = "1.0", features = ["derive"] }
