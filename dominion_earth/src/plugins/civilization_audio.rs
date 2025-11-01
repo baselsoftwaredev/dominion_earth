@@ -145,18 +145,18 @@ fn detect_turn_change_and_play_music(
             }
 
             // TODO: fix this. crashes the game 
-            // // Try to play music with error handling
-            // if let Err(e) = try_play_music(
-            //     &mut commands,
-            //     &asset_server,
-            //     &civ.music_theme,
-            //     &civ.name,
-            //     &mut current_track,
-            //     &mut audio_error_state,
-            // ) {
-            //     warn!("🎵 Failed to play music for {}: {}", civ.name, e);
-            //     audio_error_state.record_failure();
-            // }
+            // Try to play music with error handling
+            if let Err(e) = try_play_music(
+                &mut commands,
+                &asset_server,
+                &civ.music_theme,
+                &civ.name,
+                &mut current_track,
+                &mut audio_error_state,
+            ) {
+                warn!("🎵 Failed to play music for {}: {}", civ.name, e);
+                audio_error_state.record_failure();
+            }
 
             current_track.current_civ_id = Some(civ.id);
             break;
