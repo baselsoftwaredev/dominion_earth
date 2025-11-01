@@ -16,11 +16,14 @@ pub fn plugin(app: &mut App) {
         );
 }
 
-fn setup_game_setup_menu(
-    mut commands: Commands,
-    settings: Res<GameSettings>,
-) {
+fn setup_game_setup_menu(mut commands: Commands, mut settings: ResMut<GameSettings>) {
     crate::debug_println!("🎮 Spawning game setup menu");
+
+    // Always generate a random seed when loading the game setup menu
+    use rand::Rng;
+    let new_seed = rand::thread_rng().gen::<u64>();
+    settings.seed = Some(new_seed);
+    crate::debug_println!("🎲 Random seed auto-generated: {}", new_seed);
 
     commands
         .spawn((
@@ -240,12 +243,12 @@ fn setup_game_setup_menu(
                             },
                         ))
                         .with_children(|parent| {
+                            parent.spawn(widget::button("Back", widget::ButtonAction::GoBack));
+
                             parent.spawn(widget::button(
                                 "Start Game",
                                 widget::ButtonAction::StartGame,
                             ));
-
-                            parent.spawn(widget::button("Back", widget::ButtonAction::GoBack));
                         });
                 });
         });
