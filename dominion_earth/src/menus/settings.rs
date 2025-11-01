@@ -53,38 +53,72 @@ fn spawn_settings_menu(
         .with_children(|parent| {
             parent.spawn(widget::header("Settings"));
 
+            // Settings grid container
             parent
                 .spawn((
-                    Name::new("Volume Container"),
+                    Name::new("Settings Grid"),
                     Node {
-                        flex_direction: FlexDirection::Row,
-                        align_items: AlignItems::Center,
-                        column_gap: ui_palette::px(
-                            crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
-                        ),
+                        flex_direction: FlexDirection::Column,
+                        row_gap: ui_palette::px(40.0),
+                        width: ui_palette::percent(80.0),
+                        padding: UiRect::horizontal(ui_palette::px(40.0)),
                         ..default()
                     },
                 ))
                 .with_children(|parent| {
-                    parent.spawn(widget::label("Master Volume"));
-                    parent.spawn(widget::button_small("-", widget::ButtonAction::LowerVolume));
-                    parent.spawn((
-                        Name::new("Volume Label"),
-                        Text::new(format!("{current_volume_percent:3.0}%")),
-                        TextFont {
-                            font_size: constants::font_sizes::LABEL_TEXT_SIZE,
-                            ..default()
-                        },
-                        TextColor(ui_palette::TEXT_PRIMARY),
-                        GlobalVolumeLabel,
-                    ));
-                    parent.spawn(widget::button_small("+", widget::ButtonAction::RaiseVolume));
+                    // Volume setting row
+                    parent
+                        .spawn((
+                            Name::new("Volume Row"),
+                            Node {
+                                flex_direction: FlexDirection::Row,
+                                align_items: AlignItems::Center,
+                                column_gap: ui_palette::px(20.0),
+                                width: ui_palette::percent(100.0),
+                                ..default()
+                            },
+                        ))
+                        .with_children(|parent| {
+                            // Label column
+                            parent.spawn(widget::label("Master Volume"));
+
+                            // Controls column
+                            parent
+                                .spawn((
+                                    Name::new("Volume Controls"),
+                                    Node {
+                                        flex_direction: FlexDirection::Row,
+                                        align_items: AlignItems::Center,
+                                        column_gap: ui_palette::px(
+                                            crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
+                                        ),
+                                        ..default()
+                                    },
+                                ))
+                                .with_children(|parent| {
+                                    parent.spawn(widget::button_small(
+                                        "-",
+                                        widget::ButtonAction::LowerVolume,
+                                    ));
+                                    parent.spawn((
+                                        Name::new("Volume Label"),
+                                        Text::new(format!("{current_volume_percent:3.0}%")),
+                                        TextFont {
+                                            font_size: constants::font_sizes::LABEL_TEXT_SIZE,
+                                            ..default()
+                                        },
+                                        TextColor(ui_palette::TEXT_PRIMARY),
+                                        GlobalVolumeLabel,
+                                    ));
+                                    parent.spawn(widget::button_small(
+                                        "+",
+                                        widget::ButtonAction::RaiseVolume,
+                                    ));
+                                });
+                        });
                 });
 
-            parent.spawn(widget::button(
-                "Save Settings",
-                widget::ButtonAction::SaveSettings,
-            ));
+            parent.spawn(widget::button("Save", widget::ButtonAction::SaveSettings));
 
             parent.spawn(widget::button("Back", widget::ButtonAction::GoBack));
         });
