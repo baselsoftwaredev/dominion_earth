@@ -1,5 +1,4 @@
 use crate::constants::rendering::camera as camera_constants;
-use crate::debug_utils::DebugLogging;
 use crate::screens::Screen;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
@@ -47,7 +46,6 @@ fn center_camera_on_player_capital(
         &TilemapType,
         &TilemapAnchor,
     )>,
-    debug_logging: Res<DebugLogging>,
 ) {
     if camera_centered.centered {
         return;
@@ -79,7 +77,6 @@ fn center_camera_on_player_capital(
     camera_centered.centered = true;
 
     crate::debug_println!(
-        debug_logging,
         "Camera centered on player capital at tile ({}, {}) -> world ({}, {})",
         capital_position.x,
         capital_position.y,

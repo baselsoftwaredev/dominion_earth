@@ -3,7 +3,7 @@
 //! This module contains systems responsible for generating and processing
 //! AI decisions during the game's AI turn phases.
 
-use crate::{debug_utils::DebugLogging, game::GameState};
+use crate::{ game::GameState};
 use ai_planner::ai_coordinator::AICoordinatorSystem;
 use bevy::prelude::*;
 use core_sim::{
@@ -18,7 +18,6 @@ pub fn generate_ai_decisions_on_ai_turn(
     mut action_queues: Query<(&mut ActionQueue, &CivId)>,
     civs: Query<&Civilization, Without<PlayerControlled>>,
     current_turn: Res<CurrentTurn>,
-    debug_logging: Res<DebugLogging>,
 ) {
     // Only generate AI decisions when we receive a ProcessAITurn event
     for _ai_turn_event in ai_turn_events.read() {
@@ -29,7 +28,7 @@ pub fn generate_ai_decisions_on_ai_turn(
             ._ai_coordinator
             .generate_turn_decisions(&ai_game_state);
 
-        log_ai_decision_generation(&debug_logging, &ai_decisions, &current_turn, &civs);
+        log_ai_decision_generation(&ai_decisions, &current_turn, &civs);
         populate_action_queues(ai_decisions, action_queues, current_turn);
 
         break; // Only process the first event to avoid duplicates
@@ -69,7 +68,6 @@ fn create_ai_game_state(
 
 /// Log AI decision generation results
 fn log_ai_decision_generation(
-    debug_logging: &DebugLogging,
     ai_decisions: &std::collections::HashMap<CivId, Vec<AIAction>>,
     current_turn: &CurrentTurn,
     civs: &Query<&Civilization, Without<PlayerControlled>>,
@@ -77,7 +75,6 @@ fn log_ai_decision_generation(
     use crate::debug_utils::DebugUtils;
 
     DebugUtils::log_info(
-        debug_logging,
         &format!(
             "Generated {} AI decisions for AI turn {} (civs found: {})",
             ai_decisions.len(),

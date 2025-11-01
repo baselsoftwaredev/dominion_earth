@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 
-use crate::debug_utils::DebugLogging;
 
 /// Hide all gameplay UI panels.
 /// Called when entering a menu during gameplay to provide clean menu presentation.
@@ -57,9 +56,8 @@ pub fn hide_gameplay_ui_panels(
             Without<crate::ui::capital_labels::CapitalLabel>,
         ),
     >,
-    debug_logging: Res<DebugLogging>,
 ) {
-    crate::debug_println!(debug_logging, "🙈 Hiding gameplay UI panels");
+    crate::debug_println!("🙈 Hiding gameplay UI panels");
 
     // Hide native top panel
     for mut panel_visibility in &mut top_panel {
@@ -140,9 +138,8 @@ pub fn show_gameplay_ui_panels(
             Without<crate::ui::capital_labels::CapitalLabel>,
         ),
     >,
-    debug_logging: Res<DebugLogging>,
 ) {
-    crate::debug_println!(debug_logging, "👁️  Showing gameplay UI panels");
+    crate::debug_println!("👁️  Showing gameplay UI panels");
 
     // Show native top panel
     for mut panel_visibility in &mut top_panel {

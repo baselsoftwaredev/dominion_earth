@@ -1,9 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{
-    debug_utils::DebugLogging, entity_utils, menus::Menu, screens::Screen,
-    theme::widget::ButtonAction,
-};
+use crate::{entity_utils, menus::Menu, screens::Screen, theme::widget::ButtonAction};
 
 pub fn plugin(app: &mut App) {
     // Force cleanup any menu UI when entering gameplay
@@ -52,18 +49,13 @@ fn cleanup_all_menu_entities(
     menu_query: Query<Entity, (With<Node>, With<GlobalZIndex>)>,
     z_index_query: Query<&GlobalZIndex>,
     children_query: Query<&Children>,
-    debug_logging: Res<DebugLogging>,
 ) {
-    crate::debug_println!(debug_logging, "🧹 Cleaning up menu UI on entering Gameplay");
+    crate::debug_println!("🧹 Cleaning up menu UI on entering Gameplay");
     let mut despawned = std::collections::HashSet::new();
     for entity in &menu_query {
         if let Ok(z_index) = z_index_query.get(entity) {
             if z_index.0 >= crate::theme::constants::z_index::MENU_OVERLAY_Z_INDEX {
-                crate::debug_println!(
-                    debug_logging,
-                    "  Despawning menu entity with z-index {}",
-                    z_index.0
-                );
+                crate::debug_println!("  Despawning menu entity with z-index {}", z_index.0);
                 entity_utils::recursively_despawn_entity_with_children(
                     &mut commands,
                     entity,
@@ -83,12 +75,8 @@ fn despawn_all_game_entities(
     music_entities: Query<Entity, With<crate::audio::Music>>,
     sound_entities: Query<Entity, With<crate::audio::SoundEffect>>,
     tilemap_id: Option<ResMut<crate::rendering::common::TilemapIdResource>>,
-    debug_logging: Res<DebugLogging>,
 ) {
-    crate::debug_println!(
-        debug_logging,
-        "🧹 Cleaning up game world - exiting Gameplay screen"
-    );
+    crate::debug_println!("🧹 Cleaning up game world - exiting Gameplay screen");
 
     // Note: Sprites and labels with DespawnOnExit(Screen::Gameplay) will be auto-cleaned by Bevy
     // We only need to manually cleanup game entities, tiles, tilemaps, and audio
@@ -96,7 +84,7 @@ fn despawn_all_game_entities(
     // Clean up all audio entities first to prevent crashes
     let music_count = music_entities.iter().count();
     if music_count > 0 {
-        crate::debug_println!(debug_logging, "  Despawning {} music entities", music_count);
+        crate::debug_println!("  Despawning {} music entities", music_count);
         for music_entity in &music_entities {
             commands.entity(music_entity).despawn();
         }
@@ -104,7 +92,7 @@ fn despawn_all_game_entities(
 
     let sound_count = sound_entities.iter().count();
     if sound_count > 0 {
-        crate::debug_println!(debug_logging, "  Despawning {} sound entities", sound_count);
+        crate::debug_println!("  Despawning {} sound entities", sound_count);
         for sound_entity in &sound_entities {
             commands.entity(sound_entity).despawn();
         }
@@ -112,7 +100,7 @@ fn despawn_all_game_entities(
 
     let tile_count = tile_entities.iter().count();
     if tile_count > 0 {
-        crate::debug_println!(debug_logging, "  Despawning {} tile entities", tile_count);
+        crate::debug_println!("  Despawning {} tile entities", tile_count);
         for tile_entity in &tile_entities {
             commands.entity(tile_entity).despawn();
         }
@@ -120,11 +108,7 @@ fn despawn_all_game_entities(
 
     let tilemap_count = tilemap_entities.iter().count();
     if tilemap_count > 0 {
-        crate::debug_println!(
-            debug_logging,
-            "  Despawning {} tilemap entities",
-            tilemap_count
-        );
+        crate::debug_println!("  Despawning {} tilemap entities", tilemap_count);
         for tilemap_entity in &tilemap_entities {
             commands.entity(tilemap_entity).despawn();
         }
@@ -132,16 +116,16 @@ fn despawn_all_game_entities(
 
     if tilemap_id.is_some() {
         commands.remove_resource::<crate::rendering::common::TilemapIdResource>();
-        crate::debug_println!(debug_logging, "  Removed TilemapIdResource");
+        crate::debug_println!("  Removed TilemapIdResource");
     }
 
     let entity_count = game_entities.iter().count();
-    crate::debug_println!(debug_logging, "  Despawning {} game entities", entity_count);
+    crate::debug_println!("  Despawning {} game entities", entity_count);
     for entity in &game_entities {
         commands.entity(entity).despawn();
     }
 
-    crate::debug_println!(debug_logging, "✅ Game world cleanup complete");
+    crate::debug_println!("✅ Game world cleanup complete");
 }
 
 fn reset_all_game_resources(
@@ -155,9 +139,8 @@ fn reset_all_game_resources(
     mut player_actions: ResMut<core_sim::PlayerActionsComplete>,
     mut selected_capital: ResMut<crate::production_input::SelectedCapital>,
     game_config: Res<core_sim::resources::GameConfig>,
-    debug_logging: Res<DebugLogging>,
 ) {
-    crate::debug_println!(debug_logging, "  Resetting game resources");
+    crate::debug_println!("  Resetting game resources");
     *world_map = core_sim::WorldMap::default();
     *current_turn = core_sim::resources::CurrentTurn::default();
     *active_civ_turn = core_sim::resources::ActiveCivTurn::default();
@@ -173,5 +156,5 @@ fn reset_all_game_resources(
         game_state.total_civilizations,
     );
 
-    crate::debug_println!(debug_logging, "✅ Game world cleanup complete");
+    crate::debug_println!("✅ Game world cleanup complete");
 }

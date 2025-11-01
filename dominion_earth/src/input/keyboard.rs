@@ -1,5 +1,5 @@
 use crate::constants::input::camera;
-use crate::debug_utils::{DebugLogging, DebugUtils};
+use crate::debug_utils::DebugUtils;
 use crate::game::GameState;
 use crate::plugins::save_load::{load_game, save_game, SaveLoadState};
 use bevy::prelude::*;
@@ -10,16 +10,15 @@ pub fn handle_input(
     mut save_load_state: ResMut<SaveLoadState>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
     time: Res<Time>,
-    debug_logging: Res<DebugLogging>,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyP) {
         game_state.paused = !game_state.paused;
-        DebugUtils::log_game_state_change(&debug_logging, "paused", game_state.paused);
+        DebugUtils::log_game_state_change("paused", game_state.paused);
     }
 
     if keyboard_input.just_pressed(KeyCode::KeyA) {
         game_state.auto_advance = !game_state.auto_advance;
-        DebugUtils::log_game_state_change(&debug_logging, "auto-advance", game_state.auto_advance);
+        DebugUtils::log_game_state_change("auto-advance", game_state.auto_advance);
     }
 
     // Save/Load hotkeys

@@ -1,5 +1,4 @@
 use crate::{
-    debug_utils::DebugLogging,
     game::GameState,
     production_input::SelectedCapital,
     ui::resources::{LastLoggedTile, SelectedTile, TerrainCounts},
@@ -48,7 +47,6 @@ pub struct GamePanelData {
     pub selected_tile: Option<(i32, i32)>,
     pub selected_unit: Option<Entity>,
     pub last_logged_tile: Option<(i32, i32)>,
-    pub debug_logging: bool,
     pub capitals: Vec<(Capital, Position)>,
     pub units: Vec<(MilitaryUnit, Position)>,
     pub selected_capital: Option<Entity>,

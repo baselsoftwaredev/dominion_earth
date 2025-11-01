@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 use crate::{
-    debug_utils::DebugLogging,
     menus::{ui_visibility, Menu},
     screens::Screen,
     theme::prelude::*,
@@ -23,8 +22,8 @@ pub fn plugin(app: &mut App) {
     );
 }
 
-fn spawn_pause_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
-    crate::debug_println!(debug_logging, "📋 Spawning pause menu");
+fn spawn_pause_menu(mut commands: Commands) {
+    crate::debug_println!("📋 Spawning pause menu");
 
     commands
         .spawn((

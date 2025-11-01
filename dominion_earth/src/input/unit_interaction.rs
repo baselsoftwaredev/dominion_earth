@@ -1,6 +1,6 @@
 use super::constants;
 use super::coordinates::convert_cursor_position_to_tile_coordinates;
-use crate::debug_utils::{DebugLogging, DebugUtils};
+use crate::debug_utils::DebugUtils;
 use crate::game::GameState;
 use crate::production_input::SelectedCapital;
 use crate::ui::utilities::{is_cursor_over_ui_panel, UiPanelBounds};
@@ -20,7 +20,6 @@ pub fn handle_player_unit_interaction(
     pending_movements_query: Query<Entity, With<core_sim::PlayerMovementOrder>>,
     player_civs: Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
     world_map: Res<core_sim::resources::WorldMap>,
-    debug_logging: Res<DebugLogging>,
     game_state: Res<GameState>,
     capitals_query: Query<(Entity, &core_sim::Capital, &core_sim::Position)>,
     player_civilizations_query: Query<Entity, With<core_sim::PlayerControlled>>,
@@ -58,7 +57,6 @@ pub fn handle_player_unit_interaction(
             &selected_unit,
             &world_map,
             player_civ_id,
-            &debug_logging,
             &player_sound_theme,
             &asset_server,
             &player_civs,
@@ -84,7 +82,6 @@ pub fn handle_player_unit_interaction(
             &mut selected_unit,
             &mut selected_capital,
             player_civ_id,
-            &debug_logging,
             &capitals_query,
             &player_civilizations_query,
         );
@@ -95,7 +92,6 @@ pub fn handle_player_unit_interaction(
         &mut units_query,
         &selected_unit,
         player_civ_id,
-        &debug_logging,
     );
 }
 
@@ -108,7 +104,6 @@ fn handle_unit_movement_command(
     selected_unit: &ResMut<core_sim::SelectedUnit>,
     world_map: &Res<core_sim::resources::WorldMap>,
     player_civ_id: CivId,
-    debug_logging: &Res<DebugLogging>,
     sound_theme: &str,
     asset_server: &Res<AssetServer>,
     player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
@@ -131,13 +126,10 @@ fn handle_unit_movement_command(
                 if let Ok((entity, unit, current_pos)) = units_query.get_mut(selected_entity) {
                     if unit.owner == player_civ_id && unit.can_move() {
                         if pending_movements_query.get(entity).is_ok() {
-                            DebugUtils::log_info(
-                                debug_logging,
-                                &format!(
-                                    "Unit {} already has a pending movement order - ignoring new order",
-                                    unit.id
-                                ),
-                            );
+                            DebugUtils::log_info(&format!(
+                                "Unit {} already has a pending movement order - ignoring new order",
+                                unit.id
+                            ));
                             return;
                         }
 
@@ -152,33 +144,26 @@ fn handle_unit_movement_command(
                                         .entity(entity)
                                         .insert(core_sim::PlayerMovementOrder { target_position });
 
-                                    DebugUtils::log_info(
-                                        debug_logging,
-                                        &format!(
-                                            "Ordered unit {} to move to ({}, {}) - Cost: {} - Available: {}",
-                                            unit.id, target_position.x, target_position.y, movement_cost, unit.movement_remaining
-                                        ),
-                                    );
+                                    DebugUtils::log_info(&format!(
+                                        "Ordered unit {} to move to ({}, {}) - Cost: {} - Available: {}",
+                                        unit.id, target_position.x, target_position.y, movement_cost, unit.movement_remaining
+                                    ));
                                 } else {
-                                    DebugUtils::log_info(
-                                        debug_logging,
-                                        &format!(
-                                            "Unit {} cannot move - insufficient movement points. Required: {}, Available: {}",
-                                            unit.id, movement_cost, unit.movement_remaining
-                                        ),
-                                    );
+                                    DebugUtils::log_info(&format!(
+                                        "Unit {} cannot move - insufficient movement points. Required: {}, Available: {}",
+                                        unit.id, movement_cost, unit.movement_remaining
+                                    ));
                                 }
                             }
                             Err(reason) => {
-                                DebugUtils::log_info(
-                                    debug_logging,
-                                    &format!("Invalid movement target: {}", reason),
-                                );
+                                DebugUtils::log_info(&format!(
+                                    "Invalid movement target: {}",
+                                    reason
+                                ));
                             }
                         }
                     } else {
                         DebugUtils::log_info(
-                            debug_logging,
                             "Selected unit cannot move this turn or is not player-controlled",
                         );
                     }
@@ -186,7 +171,7 @@ fn handle_unit_movement_command(
             }
         }
         Err(error_msg) => {
-            DebugUtils::log_info(debug_logging, error_msg);
+            DebugUtils::log_info(error_msg);
         }
     }
 }
@@ -199,7 +184,6 @@ fn handle_unit_selection(
     selected_unit: &mut ResMut<core_sim::SelectedUnit>,
     selected_capital: &mut ResMut<SelectedCapital>,
     player_civ_id: CivId,
-    debug_logging: &Res<DebugLogging>,
     capitals_query: &Query<(Entity, &core_sim::Capital, &core_sim::Position)>,
     player_civilizations_query: &Query<Entity, With<core_sim::PlayerControlled>>,
 ) {
@@ -235,7 +219,6 @@ fn handle_unit_selection(
                     selected_capital.show_production_menu = true;
 
                     DebugUtils::log_info(
-                        debug_logging,
                         "Unit interaction: Capital at position, keeping production menu visible",
                     );
                 }
@@ -262,13 +245,10 @@ fn handle_unit_selection(
                         selected_capital.civ_entity = None;
                     }
 
-                    DebugUtils::log_info(
-                        debug_logging,
-                        &format!(
-                            "Selected unit {} at ({}, {})",
-                            unit.id, position.x, position.y
-                        ),
-                    );
+                    DebugUtils::log_info(&format!(
+                        "Selected unit {} at ({}, {})",
+                        unit.id, position.x, position.y
+                    ));
                     break;
                 }
             }
@@ -291,7 +271,7 @@ fn handle_unit_selection(
             }
         }
         Err(error_msg) => {
-            DebugUtils::log_info(debug_logging, error_msg);
+            DebugUtils::log_info(error_msg);
         }
     }
 }
@@ -301,14 +281,13 @@ fn handle_unit_keyboard_actions(
     units_query: &mut Query<(Entity, &mut core_sim::MilitaryUnit, &core_sim::Position)>,
     selected_unit: &ResMut<core_sim::SelectedUnit>,
     player_civ_id: CivId,
-    debug_logging: &Res<DebugLogging>,
 ) {
     if keyboard_input.just_pressed(KeyCode::Space) {
         if let Some(selected_entity) = selected_unit.unit_entity {
             if let Ok((_, mut unit, _)) = units_query.get_mut(selected_entity) {
                 if unit.owner == player_civ_id {
                     unit.movement_remaining = constants::unit_actions::SKIP_TURN_MOVEMENT_REMAINING;
-                    DebugUtils::log_info(debug_logging, &format!("Unit {} skipped turn", unit.id));
+                    DebugUtils::log_info(&format!("Unit {} skipped turn", unit.id));
                 }
             }
         }

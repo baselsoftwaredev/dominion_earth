@@ -4,56 +4,12 @@ use core_sim::{
     Position,
 };
 
-/// Resource to control debug logging globally
-#[cfg(debug_assertions)]
-#[derive(Resource, Clone)]
-pub struct DebugLogging(pub bool);
-
-#[cfg(debug_assertions)]
-impl Default for DebugLogging {
-    fn default() -> Self {
-        Self(false)
-    }
-}
-
-/// Centralized debug printing function - ALL terminal output should go through this
-/// This ensures debug output is controlled by the debug flag
-#[cfg(debug_assertions)]
-pub fn debug_print(debug_logging: &DebugLogging, message: &str) {
-    if debug_logging.0 {
-        println!("{}", message);
-    }
-}
-
-/// Centralized debug printing with formatting - ALL terminal output should go through this
-#[cfg(debug_assertions)]
-pub fn debug_printf(debug_logging: &DebugLogging, format_string: &str, args: std::fmt::Arguments) {
-    if debug_logging.0 {
-        println!("{}", format_args!("{}", format_string));
-        println!("{}", args);
-    }
-}
-
-/// Macro for debug printing with format args - USE THIS INSTEAD OF println!
+/// Macro for debug printing with format args
 #[cfg(debug_assertions)]
 #[macro_export]
 macro_rules! debug_println {
-    ($debug_res:expr, $($arg:tt)*) => {
-        if $debug_res.0 {
-            println!($($arg)*);
-        }
-    };
-}
-
-/// Generic debug logging macro that respects the global debug flag
-/// DEPRECATED: Use debug_println! instead
-#[cfg(debug_assertions)]
-#[macro_export]
-macro_rules! debug_log {
-    ($debug_res:expr, $($arg:tt)*) => {
-        if $debug_res.0 {
-            println!($($arg)*);
-        }
+    ($($arg:tt)*) => {
+        println!($($arg)*);
     };
 }
 
@@ -65,36 +21,33 @@ pub struct DebugUtils;
 impl DebugUtils {
     /// Log all entities from a generic query with custom formatter
     pub fn log_query_entities<T>(
-        debug_logging: &DebugLogging,
         query_name: &str,
         entities: &[T],
         formatter: impl Fn(&T) -> String,
     ) {
         debug_println!(
-            debug_logging,
             "UI DEBUG: Found {} {} in query:",
             entities.len(),
             query_name
         );
         for entity in entities {
-            debug_println!(debug_logging, "  {}", formatter(entity));
+            debug_println!("  {}", formatter(entity));
         }
     }
 
     /// Log basic informational message
-    pub fn log_info(debug_logging: &DebugLogging, message: &str) {
-        debug_println!(debug_logging, "{}", message);
+    pub fn log_info(message: &str) {
+        debug_println!("{}", message);
     }
 
     /// Log tile click events
-    pub fn log_tile_click(debug_logging: &DebugLogging, x: i32, y: i32) {
-        debug_println!(debug_logging, "Tile clicked: ({}, {})", x, y);
+    pub fn log_tile_click(x: i32, y: i32) {
+        debug_println!("Tile clicked: ({}, {})", x, y);
     }
 
     /// Log game state changes
-    pub fn log_game_state_change(debug_logging: &DebugLogging, state: &str, enabled: bool) {
+    pub fn log_game_state_change(state: &str, enabled: bool) {
         debug_println!(
-            debug_logging,
             "Game {}",
             if enabled {
                 format!("{} enabled", state)
@@ -105,28 +58,23 @@ impl DebugUtils {
     }
 
     /// Log simulation speed changes
-    pub fn log_simulation_speed(debug_logging: &DebugLogging, speed: f32) {
-        debug_println!(debug_logging, "Simulation speed: {:.1}x", speed);
+    pub fn log_simulation_speed(speed: f32) {
+        debug_println!("Simulation speed: {:.1}x", speed);
     }
 
     /// Log world generation messages
-    pub fn log_world_generation(debug_logging: &DebugLogging, seed: u64) {
-        debug_println!(debug_logging, "Generating world with random seed: {}", seed);
+    pub fn log_world_generation(seed: u64) {
+        debug_println!("Generating world with random seed: {}", seed);
     }
 
     /// Log civilization spawning
-    pub fn log_civilization_spawn(debug_logging: &DebugLogging, count: usize) {
-        debug_println!(
-            debug_logging,
-            "Spawned {} civilizations on buildable terrain",
-            count
-        );
+    pub fn log_civilization_spawn(count: usize) {
+        debug_println!("Spawned {} civilizations on buildable terrain", count);
     }
 
     /// Log capital spawning details
-    pub fn log_capital_spawn_skip(debug_logging: &DebugLogging, name: &str, x: i32, y: i32) {
+    pub fn log_capital_spawn_skip(name: &str, x: i32, y: i32) {
         debug_println!(
-            debug_logging,
             "DEBUG: Skipping {} capital spawn - position ({}, {}) is not on buildable terrain",
             name,
             x,
@@ -135,14 +83,8 @@ impl DebugUtils {
     }
 
     /// Log successful capital spawning
-    pub fn log_capital_spawn_success(
-        debug_logging: &DebugLogging,
-        name: &str,
-        pos: &Position,
-        sprite_index: usize,
-    ) {
+    pub fn log_capital_spawn_success(name: &str, pos: &Position, sprite_index: usize) {
         debug_println!(
-            debug_logging,
             "DEBUG: Spawning capital for {} at {:?} with sprite index {} (buildable terrain)",
             name,
             pos,
@@ -151,9 +93,8 @@ impl DebugUtils {
     }
 
     /// Log world initialization message
-    pub fn log_world_initialization(debug_logging: &DebugLogging, width: u32, height: u32) {
+    pub fn log_world_initialization(width: u32, height: u32) {
         debug_println!(
-            debug_logging,
             "Game world initialized with {} x {} map (reduced size for performance)",
             width,
             height
@@ -161,19 +102,13 @@ impl DebugUtils {
     }
 
     /// Log neighbor debugging info
-    pub fn log_neighbors_header(debug_logging: &DebugLogging, x: i32, y: i32, terrain: &str) {
-        debug_println!(
-            debug_logging,
-            "=== DEBUG LOGGING: Tile ({}, {}) Neighbors ===",
-            x,
-            y
-        );
-        debug_println!(debug_logging, "DEBUG LOG - Center tile: {}", terrain);
+    pub fn log_neighbors_header(x: i32, y: i32, terrain: &str) {
+        debug_println!("=== DEBUG LOGGING: Tile ({}, {}) Neighbors ===", x, y);
+        debug_println!("DEBUG LOG - Center tile: {}", terrain);
     }
 
     /// Log single neighbor info
     pub fn log_single_neighbor(
-        debug_logging: &DebugLogging,
         direction: &str,
         terrain: Option<&str>,
         x: Option<i32>,
@@ -181,29 +116,22 @@ impl DebugUtils {
     ) {
         match (terrain, x, y) {
             (Some(terrain), Some(x), Some(y)) => {
-                debug_println!(
-                    debug_logging,
-                    "{}: {} at ({}, {})",
-                    direction,
-                    terrain,
-                    x,
-                    y
-                );
+                debug_println!("{}: {} at ({}, {})", direction, terrain, x, y);
             }
             _ => {
-                debug_println!(debug_logging, "{}: OutOfBounds", direction);
+                debug_println!("{}: OutOfBounds", direction);
             }
         }
     }
 
     /// Log neighbors footer
-    pub fn log_neighbors_footer(debug_logging: &DebugLogging) {
-        debug_println!(debug_logging, "===============================");
+    pub fn log_neighbors_footer() {
+        debug_println!("===============================");
     }
 
     /// Log capital entities specifically
-    pub fn log_capitals(debug_logging: &DebugLogging, capitals: &[(&Capital, &Position)]) {
-        Self::log_query_entities(debug_logging, "capitals", capitals, |(capital, pos)| {
+    pub fn log_capitals(capitals: &[(&Capital, &Position)]) {
+        Self::log_query_entities("capitals", capitals, |(capital, pos)| {
             format!(
                 "Capital at ({}, {}) for Civ {}",
                 pos.x, pos.y, capital.owner.0
@@ -212,8 +140,8 @@ impl DebugUtils {
     }
 
     /// Log military unit entities specifically
-    pub fn log_units(debug_logging: &DebugLogging, units: &[(&MilitaryUnit, &Position)]) {
-        Self::log_query_entities(debug_logging, "units", units, |(unit, pos)| {
+    pub fn log_units(units: &[(&MilitaryUnit, &Position)]) {
+        Self::log_query_entities("units", units, |(unit, pos)| {
             format!(
                 "{:?} at ({}, {}) for Civ {}",
                 unit.unit_type, pos.x, pos.y, unit.owner.0
@@ -222,9 +150,8 @@ impl DebugUtils {
     }
 
     /// Log tile information
-    pub fn log_tile_check(debug_logging: &DebugLogging, pos: &Position) {
-        debug_log!(
-            debug_logging,
+    pub fn log_tile_check(pos: &Position) {
+        debug_println!(
             "UI DEBUG: Checking for structures at tile ({}, {})",
             pos.x,
             pos.y
@@ -233,15 +160,10 @@ impl DebugUtils {
 
     /// Log structure matches on a specific tile
     pub fn log_structure_matches(
-        debug_logging: &DebugLogging,
         pos: &Position,
         capitals: &[(&Capital, &Position)],
         units: &[(&MilitaryUnit, &Position)],
     ) {
-        if !debug_logging.0 {
-            return;
-        }
-
         let matching_capitals: Vec<_> = capitals
             .iter()
             .filter(|(_, capital_pos)| capital_pos.x == pos.x && capital_pos.y == pos.y)
@@ -254,38 +176,30 @@ impl DebugUtils {
 
         if !matching_capitals.is_empty() {
             debug_println!(
-                debug_logging,
                 "UI DEBUG: Found {} capital(s) at tile ({}, {}):",
                 matching_capitals.len(),
                 pos.x,
                 pos.y
             );
             for (capital, _) in &matching_capitals {
-                debug_println!(debug_logging, "  🏛️ Capital (Civ {})", capital.owner.0);
+                debug_println!("  🏛️ Capital (Civ {})", capital.owner.0);
             }
         }
 
         if !matching_units.is_empty() {
             debug_println!(
-                debug_logging,
                 "UI DEBUG: Found {} unit(s) at tile ({}, {}):",
                 matching_units.len(),
                 pos.x,
                 pos.y
             );
             for (unit, _) in &matching_units {
-                debug_println!(
-                    debug_logging,
-                    "  ⚔️ {:?} (Civ {})",
-                    unit.unit_type,
-                    unit.owner.0
-                );
+                debug_println!("  ⚔️ {:?} (Civ {})", unit.unit_type, unit.owner.0);
             }
         }
 
         if matching_capitals.is_empty() && matching_units.is_empty() {
             debug_println!(
-                debug_logging,
                 "UI DEBUG: No structures found at tile ({}, {})",
                 pos.x,
                 pos.y
@@ -312,13 +226,13 @@ impl DebugUtils {
 /// Extension trait for easier debugging of common query results
 #[cfg(debug_assertions)]
 pub trait DebugQueryExt {
-    fn debug_count(&self, debug_logging: &DebugLogging, name: &str);
+    fn debug_count(&self, name: &str);
 }
 
 #[cfg(debug_assertions)]
 impl<T> DebugQueryExt for Vec<T> {
-    fn debug_count(&self, debug_logging: &DebugLogging, name: &str) {
-        debug_log!(debug_logging, "DEBUG: {} count: {}", name, self.len());
+    fn debug_count(&self, name: &str) {
+        debug_println!("DEBUG: {} count: {}", name, self.len());
     }
 }
 
@@ -326,16 +240,11 @@ impl<T> DebugQueryExt for Vec<T> {
 impl DebugUtils {
     /// Log terrain comparison between ECS and WorldMap
     pub fn log_terrain_comparison(
-        debug_logging: &DebugLogging,
         pos: &Position,
         ecs_terrain: Option<&TerrainType>,
         worldmap_terrain: Option<&TerrainType>,
         neighbors_info: &[(String, String)],
     ) {
-        if !debug_logging.0 {
-            return;
-        }
-
         println!("=== UI DISPLAY: Tile ({}, {}) Data ===", pos.x, pos.y);
         if let Some(terrain) = ecs_terrain {
             println!("UI DISPLAY - ECS Terrain: {:?}", terrain);

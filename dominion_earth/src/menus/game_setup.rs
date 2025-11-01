@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::{debug_utils::DebugLogging, menus::Menu, settings::GameSettings, theme::prelude::*};
+use crate::{menus::Menu, settings::GameSettings, theme::prelude::*};
 
 /// Marker component for entities that belong to the game setup menu screen
 #[derive(Component)]
@@ -18,10 +18,9 @@ pub fn plugin(app: &mut App) {
 
 fn setup_game_setup_menu(
     mut commands: Commands,
-    debug_logging: Res<DebugLogging>,
     settings: Res<GameSettings>,
 ) {
-    crate::debug_println!(debug_logging, "🎮 Spawning game setup menu");
+    crate::debug_println!("🎮 Spawning game setup menu");
 
     commands
         .spawn((

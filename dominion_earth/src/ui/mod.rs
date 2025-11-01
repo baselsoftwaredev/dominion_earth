@@ -18,7 +18,6 @@ pub use traits::*;
 pub use unit_labels::*;
 pub use utilities::*;
 
-use crate::debug_utils::DebugLogging;
 use crate::game::GameState;
 use crate::production_input::SelectedCapital;
 use bevy::prelude::*;
@@ -40,7 +39,6 @@ pub fn initialize_ui_system(
     selected_tile: Res<SelectedTile>,
     selected_unit: Res<core_sim::SelectedUnit>,
     last_logged_tile: Res<LastLoggedTile>,
-    debug_logging: Res<DebugLogging>,
     capitals: Query<(&Capital, &Position)>,
     units: Query<(&MilitaryUnit, &Position)>,
     selected_capital: Res<SelectedCapital>,
@@ -57,7 +55,6 @@ pub fn initialize_ui_system(
         selected_tile: selected_tile.position.map(|pos| (pos.x, pos.y)),
         selected_unit: selected_unit.unit_entity,
         last_logged_tile: last_logged_tile.position.map(|pos| (pos.x, pos.y)),
-        debug_logging: debug_logging.0,
         capitals: capitals.iter().map(|(c, p)| (c.clone(), *p)).collect(),
         units: units.iter().map(|(u, p)| (u.clone(), *p)).collect(),
         selected_capital: selected_capital.capital_entity,

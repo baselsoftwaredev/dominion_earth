@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::{debug_utils::DebugLogging, menus::Menu, theme::prelude::*};
+use crate::{menus::Menu, theme::prelude::*};
 
 /// Marker component for entities that belong to the main menu screen
 #[derive(Component)]
@@ -12,8 +12,8 @@ pub fn plugin(app: &mut App) {
     app.add_systems(OnEnter(Menu::Main), setup_main_menu);
 }
 
-fn setup_main_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
-    crate::debug_println!(debug_logging, "📋 Spawning main menu");
+fn setup_main_menu(mut commands: Commands) {
+    crate::debug_println!("📋 Spawning main menu");
     commands
         .spawn((
             widget::ui_root("Main Menu"),

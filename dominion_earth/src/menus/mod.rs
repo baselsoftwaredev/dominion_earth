@@ -7,7 +7,6 @@ mod pause;
 mod settings;
 pub mod ui_visibility;
 
-use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 
 pub fn plugin(app: &mut App) {
@@ -25,9 +24,9 @@ pub fn plugin(app: &mut App) {
     app.add_systems(Update, log_menu_transitions);
 }
 
-fn log_menu_transitions(menu: Res<State<Menu>>, debug_logging: Res<DebugLogging>) {
+fn log_menu_transitions(menu: Res<State<Menu>>) {
     if menu.is_changed() {
-        crate::debug_println!(debug_logging, "📜 Menu state changed to: {:?}", menu.get());
+        crate::debug_println!("📜 Menu state changed to: {:?}", menu.get());
     }
 }
 

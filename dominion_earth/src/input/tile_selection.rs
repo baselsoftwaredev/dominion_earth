@@ -1,6 +1,6 @@
 use super::coordinates::convert_cursor_position_to_tile_coordinates;
 use crate::debug_println;
-use crate::debug_utils::{DebugLogging, DebugUtils};
+use crate::debug_utils::DebugUtils;
 use crate::production_input::SelectedCapital;
 use crate::ui::resources::{HoveredTile, SelectedTile};
 use crate::ui::utilities::{is_cursor_over_ui_panel, UiPanelBounds};
@@ -27,54 +27,30 @@ fn display_terrain_neighbor_debug_information_for_tile(
     world_tile: &WorldTile,
     neighbors: &TileNeighbors,
     tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
-    debug_logging: &DebugLogging,
 ) {
     let tile_position = world_tile.grid_pos;
     DebugUtils::log_neighbors_header(
-        debug_logging,
         tile_position.x,
         tile_position.y,
         &format!("{:?}", world_tile.terrain_type),
     );
 
-    display_directional_neighbor_terrain_information(
-        "North",
-        neighbors.north,
-        tile_query,
-        debug_logging,
-    );
-    display_directional_neighbor_terrain_information(
-        "South",
-        neighbors.south,
-        tile_query,
-        debug_logging,
-    );
-    display_directional_neighbor_terrain_information(
-        "East",
-        neighbors.east,
-        tile_query,
-        debug_logging,
-    );
-    display_directional_neighbor_terrain_information(
-        "West",
-        neighbors.west,
-        tile_query,
-        debug_logging,
-    );
+    display_directional_neighbor_terrain_information("North", neighbors.north, tile_query);
+    display_directional_neighbor_terrain_information("South", neighbors.south, tile_query);
+    display_directional_neighbor_terrain_information("East", neighbors.east, tile_query);
+    display_directional_neighbor_terrain_information("West", neighbors.west, tile_query);
 
-    DebugUtils::log_neighbors_footer(debug_logging);
+    DebugUtils::log_neighbors_footer();
 }
 
 fn display_directional_neighbor_terrain_information(
     direction_name: &str,
     neighbor_entity_option: Option<Entity>,
     tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
-    debug_logging: &DebugLogging,
 ) {
     if let Some(neighbor_entity) = neighbor_entity_option {
         if let Ok((_, neighbor_tile, _)) = tile_query.get(neighbor_entity) {
             DebugUtils::log_single_neighbor(
-                debug_logging,
                 direction_name,
                 Some(&format!("{:?}", neighbor_tile.terrain_type)),
                 Some(neighbor_tile.grid_pos.x),
@@ -82,7 +58,7 @@ fn display_directional_neighbor_terrain_information(
             );
         }
     } else {
-        DebugUtils::log_single_neighbor(debug_logging, direction_name, None, None, None);
+        DebugUtils::log_single_neighbor(direction_name, None, None, None);
     }
 }
 
@@ -93,14 +69,12 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
     selected_capital: &mut SelectedCapital,
     selected_unit: &mut core_sim::SelectedUnit,
     commands: &mut Commands,
-    debug_logging: &DebugLogging,
     units_query: &Query<(Entity, &core_sim::MilitaryUnit, &core_sim::Position)>,
 ) -> bool {
     let player_civilization_entities: Vec<Entity> = player_civilizations_query.iter().collect();
 
     let total_capitals_count = capitals_query.iter().count();
     debug_println!(
-        debug_logging,
         "DEBUG TILE SELECTION: Found {} capitals total",
         total_capitals_count
     );
@@ -108,7 +82,6 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
     for (capital_entity, capital, capital_position) in capitals_query.iter() {
         if capital_position.x == clicked_position.x && capital_position.y == clicked_position.y {
             debug_println!(
-                debug_logging,
                 "DEBUG TILE SELECTION: Found capital at clicked position! Capital owner: {}",
                 capital.owner.0
             );
@@ -120,7 +93,6 @@ fn check_and_activate_capital_production_menu_if_player_capital_clicked(
                 )
             {
                 debug_println!(
-                    debug_logging,
                     "DEBUG TILE SELECTION: Player capital clicked - opening production menu"
                 );
                 selected_capital.capital_entity = Some(capital_entity);
@@ -172,7 +144,6 @@ fn process_tile_selection_and_update_ui_state(
     world_map: &core_sim::resources::WorldMap,
     tile_query: &Query<(Entity, &WorldTile, &TileNeighbors)>,
     selected_tile: &mut SelectedTile,
-    debug_logging: &DebugLogging,
     capitals_query: &Query<(Entity, &Capital, &Position)>,
     player_civilizations_query: &Query<Entity, With<PlayerControlled>>,
     selected_capital: &mut SelectedCapital,
@@ -181,10 +152,7 @@ fn process_tile_selection_and_update_ui_state(
     units_query: &Query<(Entity, &core_sim::MilitaryUnit, &core_sim::Position)>,
 ) {
     if world_map.get_tile(clicked_position).is_some() {
-        debug_println!(
-            debug_logging,
-            "DEBUG TILE SELECTION: Tile exists in world map."
-        );
+        debug_println!("DEBUG TILE SELECTION: Tile exists in world map.");
         selected_tile.position = Some(clicked_position);
 
         let capital_was_clicked =
@@ -195,7 +163,6 @@ fn process_tile_selection_and_update_ui_state(
                 selected_capital,
                 selected_unit,
                 commands,
-                debug_logging,
                 units_query,
             );
 
@@ -204,10 +171,7 @@ fn process_tile_selection_and_update_ui_state(
             .any(|(_, _, pos)| pos.x == clicked_position.x && pos.y == clicked_position.y);
 
         if !capital_was_clicked && !unit_at_position {
-            debug_println!(
-                debug_logging,
-                "DEBUG TILE SELECTION: Empty tile clicked - clearing selections"
-            );
+            debug_println!("DEBUG TILE SELECTION: Empty tile clicked - clearing selections");
 
             if let Some(prev_unit_entity) = selected_unit.unit_entity {
                 if let Some(mut entity_commands) = commands.get_entity(prev_unit_entity).ok() {
@@ -226,20 +190,14 @@ fn process_tile_selection_and_update_ui_state(
         if let Some((_, world_tile, tile_neighbors)) =
             locate_tile_entity_at_specified_position(clicked_position, tile_query)
         {
-            if debug_logging.0 {
-                display_terrain_neighbor_debug_information_for_tile(
-                    world_tile,
-                    tile_neighbors,
-                    tile_query,
-                    debug_logging,
-                );
-            }
+            display_terrain_neighbor_debug_information_for_tile(
+                world_tile,
+                tile_neighbors,
+                tile_query,
+            );
         }
     } else {
-        debug_println!(
-            debug_logging,
-            "DEBUG TILE SELECTION: No tile data found at this position."
-        );
+        debug_println!("DEBUG TILE SELECTION: No tile data found at this position.");
         selected_tile.position = None;
     }
 }
@@ -252,7 +210,6 @@ pub fn handle_tile_selection_on_mouse_click(
     mut selected_tile: ResMut<SelectedTile>,
     world_map: Res<core_sim::resources::WorldMap>,
     tile_query: Query<(Entity, &WorldTile, &TileNeighbors)>,
-    debug_logging: Res<DebugLogging>,
     capitals_query: Query<(Entity, &Capital, &Position)>,
     player_civilizations_query: Query<Entity, With<PlayerControlled>>,
     mut selected_capital: ResMut<SelectedCapital>,
@@ -275,7 +232,6 @@ pub fn handle_tile_selection_on_mouse_click(
 
     if is_cursor_over_ui_panel(cursor_screen_position, &ui_bounds) {
         debug_println!(
-            debug_logging,
             "DEBUG TILE SELECTION: Cursor over UI panel (x: {}, y: {}), skipping tile selection",
             cursor_screen_position.x,
             ui_bounds.window_height - cursor_screen_position.y
@@ -301,17 +257,12 @@ pub fn handle_tile_selection_on_mouse_click(
         camera_global_transform,
     ) {
         Ok(tile_world_position) => {
-            DebugUtils::log_tile_click(
-                &debug_logging,
-                tile_world_position.x,
-                tile_world_position.y,
-            );
+            DebugUtils::log_tile_click(tile_world_position.x, tile_world_position.y);
             process_tile_selection_and_update_ui_state(
                 tile_world_position,
                 &world_map,
                 &tile_query,
                 &mut selected_tile,
-                &debug_logging,
                 &capitals_query,
                 &player_civilizations_query,
                 &mut selected_capital,
@@ -321,7 +272,7 @@ pub fn handle_tile_selection_on_mouse_click(
             );
         }
         Err(coordinate_conversion_error_message) => {
-            DebugUtils::log_info(&debug_logging, coordinate_conversion_error_message);
+            DebugUtils::log_info(coordinate_conversion_error_message);
             selected_tile.position = None;
         }
     }

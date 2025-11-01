@@ -1,6 +1,5 @@
 use super::tilemap::spawn_entity_on_tile;
 use crate::constants::rendering::z_layers;
-use crate::debug_utils::DebugLogging;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::{
@@ -40,7 +39,6 @@ pub fn spawn_unit_sprites(
         )>,
     >,
     mut transforms: Query<&mut Transform>,
-    debug_logging: Res<DebugLogging>,
 ) {
     let Some(tile_assets) = tile_assets else {
         return;
@@ -65,7 +63,6 @@ pub fn spawn_unit_sprites(
             unit,
             pos,
             &mut transforms,
-            &debug_logging,
         );
     }
 }
@@ -91,7 +88,6 @@ pub fn recreate_missing_unit_sprites(
         With<MilitaryUnit>,
     >,
     mut transforms: Query<&mut Transform>,
-    debug_logging: Res<DebugLogging>,
 ) {
     let Some(tile_assets) = tile_assets else {
         return;
@@ -129,7 +125,6 @@ pub fn recreate_missing_unit_sprites(
                 unit,
                 pos,
                 &mut transforms,
-                &debug_logging,
             );
         }
     }
@@ -148,7 +143,6 @@ fn spawn_unit_sprite(
     unit: &MilitaryUnit,
     pos: &Position,
     transforms: &mut Query<&mut Transform>,
-    debug_logging: &DebugLogging,
 ) {
     let sprite_index = match unit.unit_type {
         core_sim::components::military::UnitType::Infantry => tile_assets.ancient_infantry_index,
@@ -158,7 +152,6 @@ fn spawn_unit_sprite(
     };
 
     crate::debug_println!(
-        debug_logging,
         "Spawning unit sprite for {:?} at ({}, {}) with sprite index {} facing {:?}",
         unit.unit_type,
         pos.x,
@@ -179,7 +172,6 @@ fn spawn_unit_sprite(
         *pos,
         sprite_index,
         z_layers::UNIT_Z,
-        debug_logging,
     ) {
         let scale_x = match unit.facing {
             FacingDirection::Left => constants::SPRITE_SCALE_FACING_LEFT,
@@ -189,14 +181,12 @@ fn spawn_unit_sprite(
         if let Ok(mut transform) = transforms.get_mut(sprite_entity) {
             transform.scale.x = scale_x;
             crate::debug_println!(
-                debug_logging,
                 "Applied facing {:?} (scale.x = {}) to sprite immediately",
                 unit.facing,
                 scale_x
             );
         } else {
             crate::debug_println!(
-                debug_logging,
                 "Transform not available yet for sprite, will be updated by update_unit_sprites"
             );
         }
@@ -228,7 +218,6 @@ pub fn update_unit_sprites(
             With<core_sim::components::rendering::SpriteEntityReference>,
         ),
     >,
-    debug_logging: Res<DebugLogging>,
 ) {
     let changed_unit_count = query.iter().count();
     if changed_unit_count == 0 {
@@ -254,7 +243,6 @@ pub fn update_unit_sprites(
             apply_unit_facing_to_sprite_scale(&mut transform, unit.facing);
 
             crate::debug_println!(
-                debug_logging,
                 "Updated {:?} sprite position to world coordinates ({}, {}) facing {:?}",
                 unit.unit_type,
                 tile_center.x,
@@ -274,13 +262,11 @@ pub fn apply_facing_to_new_sprites(
         ),
         Added<core_sim::components::rendering::SpriteEntityReference>,
     >,
-    debug_logging: Res<DebugLogging>,
 ) {
     for (unit, sprite_ref) in query.iter() {
         if let Ok(mut transform) = transform_q.get_mut(sprite_ref.sprite_entity) {
             apply_unit_facing_to_sprite_scale(&mut transform, unit.facing);
             crate::debug_println!(
-                debug_logging,
                 "Applied facing {:?} to newly created sprite for {:?}",
                 unit.facing,
                 unit.unit_type

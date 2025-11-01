@@ -9,7 +9,7 @@ pub mod prelude {
     pub use super::{constants, interaction::InteractionPalette, palette as ui_palette, widget};
 }
 
-use crate::{debug_utils::DebugLogging, menus::Menu, screens::Screen};
+use crate::{menus::Menu, screens::Screen};
 use bevy::prelude::*;
 
 pub fn plugin(app: &mut App) {
@@ -58,14 +58,12 @@ fn handle_button_interactions(
     mut settings: ResMut<crate::settings::GameSettings>,
     mut app_exit: MessageWriter<AppExit>,
     screen: Res<State<Screen>>,
-    debug_logging: Res<DebugLogging>,
 ) {
     use bevy::audio::{GlobalVolume, Volume};
 
     for (interaction, action) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
             crate::debug_println!(
-                debug_logging,
                 "🎮 Button pressed: {:?} (current screen: {:?})",
                 action,
                 screen.get()
@@ -74,24 +72,21 @@ fn handle_button_interactions(
                 widget::ButtonAction::OpenGameSetup => {
                     if **screen != Screen::MainMenu {
                         crate::debug_println!(
-                            debug_logging,
                             "⚠️  Ignoring OpenGameSetup button - not in MainMenu!"
                         );
                         continue;
                     }
-                    crate::debug_println!(debug_logging, "🎮 Transitioning to GameSetup screen");
+                    crate::debug_println!("🎮 Transitioning to GameSetup screen");
                     next_screen.set(Screen::GameSetup);
                 }
                 widget::ButtonAction::StartGame => {
                     if **screen != Screen::GameSetup {
                         crate::debug_println!(
-                            debug_logging,
                             "⚠️  Ignoring StartGame button - not in GameSetup!"
                         );
                         continue;
                     }
                     crate::debug_println!(
-                        debug_logging,
                         "🎮 Starting game - transitioning to Gameplay screen"
                     );
                     next_screen.set(Screen::Gameplay);
@@ -99,12 +94,11 @@ fn handle_button_interactions(
                 widget::ButtonAction::EnterGameplay => {
                     if **screen != Screen::MainMenu {
                         crate::debug_println!(
-                            debug_logging,
                             "⚠️  Ignoring EnterGameplay button - not in MainMenu!"
                         );
                         continue;
                     }
-                    crate::debug_println!(debug_logging, "🎮 Transitioning to Gameplay screen");
+                    crate::debug_println!("🎮 Transitioning to Gameplay screen");
                     next_screen.set(Screen::Gameplay);
                 }
                 widget::ButtonAction::OpenSettings => {
@@ -130,7 +124,6 @@ fn handle_button_interactions(
                     // Special handling for GameSetup screen - return to MainMenu
                     if **screen == Screen::GameSetup {
                         crate::debug_println!(
-                            debug_logging,
                             "🎮 Going back from GameSetup to MainMenu"
                         );
                         next_screen.set(Screen::MainMenu);
@@ -151,7 +144,7 @@ fn handle_button_interactions(
                     );
                 }
                 widget::ButtonAction::SaveSettings => {
-                    crate::debug_println!(debug_logging, "💾 Saving settings to file...");
+                    crate::debug_println!("💾 Saving settings to file...");
                     if let Err(e) = settings.save() {
                         error!("❌ Failed to save settings: {}", e);
                     } else {
@@ -161,7 +154,6 @@ fn handle_button_interactions(
                 widget::ButtonAction::ToggleAiOnly => {
                     settings.ai_only = !settings.ai_only;
                     crate::debug_println!(
-                        debug_logging,
                         "🤖 AI-only mode toggled: {}",
                         if settings.ai_only {
                             "enabled"
@@ -172,13 +164,13 @@ fn handle_button_interactions(
                 }
                 widget::ButtonAction::ClearSeed => {
                     settings.seed = None;
-                    crate::debug_println!(debug_logging, "🎲 Seed cleared");
+                    crate::debug_println!("🎲 Seed cleared");
                 }
                 widget::ButtonAction::SetRandomSeed => {
                     use rand::Rng;
                     let new_seed = rand::thread_rng().gen::<u64>();
                     settings.seed = Some(new_seed);
-                    crate::debug_println!(debug_logging, "🎲 Random seed set: {}", new_seed);
+                    crate::debug_println!("🎲 Random seed set: {}", new_seed);
                 }
             }
         }

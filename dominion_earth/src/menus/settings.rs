@@ -2,7 +2,6 @@ use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
 
 use crate::{
-    debug_utils::DebugLogging,
     menus::{ui_visibility, Menu},
     screens::Screen,
     settings::{sync_volume_to_settings, GameSettings},
@@ -35,10 +34,9 @@ pub fn plugin(app: &mut App) {
 
 fn spawn_settings_menu(
     mut commands: Commands,
-    debug_logging: Res<DebugLogging>,
     global_volume: Res<GlobalVolume>,
 ) {
-    crate::debug_println!(debug_logging, "📋 Spawning settings menu");
+    crate::debug_println!("📋 Spawning settings menu");
 
     let current_volume_percent =
         crate::constants::settings::PERCENTAGE_MULTIPLIER * global_volume.volume.to_linear();

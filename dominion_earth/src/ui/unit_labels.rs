@@ -1,5 +1,4 @@
 use crate::debug_println;
-use crate::debug_utils::DebugLogging;
 use crate::screens::{LoadingState, Screen};
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
@@ -46,7 +45,6 @@ pub fn spawn_unit_labels(
         &TilemapType,
         &TilemapAnchor,
     )>,
-    debug_logging: Res<DebugLogging>,
 ) {
     let Ok((map_size, tile_size, grid_size, map_type, anchor)) = tilemap_query.single() else {
         return;
@@ -71,7 +69,6 @@ pub fn spawn_unit_labels(
         );
 
         debug_println!(
-            debug_logging,
             "Spawned Text2d unit label for {} ({}) at world position ({:.1}, {:.1})",
             unit.unit_type.name(),
             civilization_name,
@@ -106,7 +103,6 @@ pub fn spawn_unit_labels(
         );
 
         debug_println!(
-            debug_logging,
             "Spawned missing Text2d unit label for {} ({}) at world position ({:.1}, {:.1})",
             unit.unit_type.name(),
             civilization_name,

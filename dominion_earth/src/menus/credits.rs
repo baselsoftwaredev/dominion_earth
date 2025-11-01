@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::{debug_utils::DebugLogging, menus::Menu, theme::prelude::*};
+use crate::{menus::Menu, theme::prelude::*};
 
 #[derive(Component)]
 struct CreditsMenuRoot;
@@ -15,8 +15,8 @@ pub fn plugin(app: &mut App) {
     );
 }
 
-fn spawn_credits_menu(mut commands: Commands, debug_logging: Res<DebugLogging>) {
-    crate::debug_println!(debug_logging, "📋 Spawning credits menu");
+fn spawn_credits_menu(mut commands: Commands) {
+    crate::debug_println!("📋 Spawning credits menu");
     commands
         .spawn((
             widget::ui_root("Credits Menu"),

@@ -4,7 +4,6 @@ use bevy_ecs_tilemap::tiles::AnimatedTile;
 use core_sim::tile::tile_assets::TileAssets;
 use core_sim::components::{city::Capital, position::Position};
 use crate::constants::rendering::{animation, z_layers};
-use crate::debug_utils::DebugLogging;
 use crate::screens::{LoadingState, Screen};
 use super::tilemap::spawn_entity_on_tile;
 
@@ -35,7 +34,6 @@ pub fn spawn_animated_capital_sprite(
     position: Position,
     sprite_index: u32,
     z_offset: f32,
-    debug_logging: &DebugLogging,
 ) -> Option<Entity> {
     let tile_pos = TilePos {
         x: position.x as u32,
@@ -70,7 +68,7 @@ pub fn spawn_animated_capital_sprite(
                 ))
                 .id();
 
-            crate::debug_println!(debug_logging, 
+            crate::debug_println!( 
                 "DEBUG: Spawned animated capital sprite at ({}, {}) with animation range {}-{}, speed {}", 
                 position.x, position.y, animation::ANCIENT_CAPITAL_START_FRAME, animation::ANCIENT_CAPITAL_END_FRAME, animation::ANCIENT_CAPITAL_ANIMATION_SPEED
             );
@@ -92,7 +90,7 @@ pub fn spawn_animated_capital_sprite(
                 ))
                 .id();
 
-            crate::debug_println!(debug_logging, 
+            crate::debug_println!(
                 "DEBUG: Spawned static capital sprite at ({}, {}) with index {}", 
                 position.x, position.y, sprite_index
             );
@@ -102,7 +100,7 @@ pub fn spawn_animated_capital_sprite(
 
         Some(sprite_entity)
     } else {
-        crate::debug_println!(debug_logging, "Warning: Could not find tile at position {:?}", position);
+        crate::debug_println!("Warning: Could not find tile at position {:?}", position);
         None
     }
 }
@@ -126,7 +124,6 @@ pub fn spawn_animated_capital_tiles(
             Without<core_sim::components::rendering::SpriteEntityReference>,
         )>,
     >,
-    debug_logging: Res<DebugLogging>,
 ) {
     // Wait for TileAssets to be loaded
     let Some(tile_assets) = tile_assets else {
@@ -140,7 +137,6 @@ pub fn spawn_animated_capital_tiles(
 
     for (capital_entity, capital, pos) in capitals.iter() {
         crate::debug_println!(
-            debug_logging,
             "DEBUG: spawn_animated_capital_tiles processing capital at ({}, {}) with sprite index {}",
             pos.x,
             pos.y,
@@ -159,7 +155,6 @@ pub fn spawn_animated_capital_tiles(
             *pos,
             capital.sprite_index,
             z_layers::CAPITAL_Z,
-            &debug_logging,
         ) {
             commands
                 .entity(capital_entity)
@@ -181,7 +176,6 @@ pub fn spawn_capital_sprites(
     )>,
     world_tile_q: Query<&core_sim::tile::tile_components::WorldTile>,
     capitals: Query<(Entity, &Capital, &Position), Added<Capital>>,
-    debug_logging: Res<DebugLogging>,
 ) {
     // Wait for TileAssets to be loaded
     let Some(tile_assets) = tile_assets else {
@@ -195,7 +189,6 @@ pub fn spawn_capital_sprites(
 
     for (_capital_entity, capital, pos) in capitals.iter() {
         crate::debug_println!(
-            debug_logging,
             "DEBUG: spawn_capital_sprites processing capital at ({}, {}) with sprite index {}",
             pos.x,
             pos.y,
@@ -210,7 +203,6 @@ pub fn spawn_capital_sprites(
         if let Some(tile_entity) = tile_storage.get(&tile_pos) {
             if let Ok(world_tile) = world_tile_q.get(tile_entity) {
                 crate::debug_println!(
-                    debug_logging,
                     "DEBUG: Spawning capital on {:?} tile at ({}, {})",
                     world_tile.terrain_type,
                     pos.x,
@@ -231,7 +223,6 @@ pub fn spawn_capital_sprites(
             *pos,
             capital.sprite_index as usize,
             z_layers::CAPITAL_Z,
-            &debug_logging,
         );
     }
 }
@@ -248,7 +239,6 @@ pub fn update_capital_sprites(
         &TilemapAnchor,
     )>,
     capitals: Query<(&Capital, &Position), bevy::ecs::query::Changed<Capital>>,
-    debug_logging: Res<DebugLogging>,
 ) {
     // Wait for TileAssets to be loaded
     let Some(tile_assets) = tile_assets else {
@@ -273,7 +263,6 @@ pub fn update_capital_sprites(
             *pos,
             capital.sprite_index as usize,
             z_layers::CAPITAL_Z,
-            &debug_logging,
         );
     }
 }
@@ -281,7 +270,6 @@ pub fn update_capital_sprites(
 pub fn update_animated_capital_sprites(
     time: Res<Time>,
     mut animated_query: Query<(&mut Sprite, &mut SpriteAnimationTimer)>,
-    debug_logging: Res<DebugLogging>,
 ) {
     for (mut sprite, mut animation_timer) in animated_query.iter_mut() {
         animation_timer.timer += time.delta_secs();

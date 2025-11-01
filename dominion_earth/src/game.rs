@@ -2,7 +2,7 @@
 
 use crate::civilization_spawning::spawn_initial_civilizations;
 use crate::constants::game::{map, timing};
-use crate::debug_utils::{DebugLogging, DebugUtils};
+use crate::debug_utils::DebugUtils;
 use ai_planner::ai_coordinator::AICoordinatorSystem;
 use bevy::prelude::*;
 use core_sim::{
@@ -68,17 +68,12 @@ pub fn sync_settings_to_game_config(
     game_settings: Res<crate::settings::GameSettings>,
     mut game_config: ResMut<GameConfig>,
     mut game_state: ResMut<GameState>,
-    debug_logging: Res<DebugLogging>,
 ) {
     // Update seed from settings
     if let Some(seed) = game_settings.seed {
         if game_config.random_seed != seed {
             game_config.random_seed = seed;
-            crate::debug_println!(
-                debug_logging,
-                "🎲 Updated game seed from settings: {}",
-                seed
-            );
+            crate::debug_println!("🎲 Updated game seed from settings: {}", seed);
         }
     } else {
         // Generate random seed if none is set
@@ -88,7 +83,7 @@ pub fn sync_settings_to_game_config(
             .unwrap_or_else(|_| std::time::Duration::from_secs(42))
             .as_secs();
         game_config.random_seed = random_seed;
-        crate::debug_println!(debug_logging, "🎲 Generated random seed: {}", random_seed);
+        crate::debug_println!("🎲 Generated random seed: {}", random_seed);
     }
 
     // Update AI-only mode from settings
@@ -96,7 +91,6 @@ pub fn sync_settings_to_game_config(
         game_config.ai_only = game_settings.ai_only;
         game_state.ai_only = game_settings.ai_only;
         crate::debug_println!(
-            debug_logging,
             "🤖 Updated AI-only mode from settings: {}",
             game_settings.ai_only
         );
@@ -110,7 +104,6 @@ pub fn setup_game(
     mut rng: ResMut<GameRng>,
     game_config: Res<GameConfig>,
     game_state: Res<GameState>,
-    debug_logging: Res<DebugLogging>,
     save_load_state: Res<crate::plugins::save_load::SaveLoadState>,
 ) {
     // Skip setup if we're loading from a save file
@@ -121,7 +114,7 @@ pub fn setup_game(
 
     // Initialize the random number generator with configured seed
     rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
-    DebugUtils::log_world_generation(&debug_logging, game_config.random_seed);
+    DebugUtils::log_world_generation(game_config.random_seed);
 
     // Generate the world map
     *world_map =
@@ -142,13 +135,12 @@ pub fn setup_game(
         &mut commands,
         &mut world_map,
         &mut rng.0,
-        &debug_logging,
         game_state.ai_only,
         game_state.total_civilizations,
     );
 
     println!("Finished spawning civilizations");
-    DebugUtils::log_world_initialization(&debug_logging, world_map.width, world_map.height);
+    DebugUtils::log_world_initialization(world_map.width, world_map.height);
 }
 
 /// Initialize fog of war for all civilizations after they're spawned
@@ -195,7 +187,6 @@ pub fn initialize_turn_order(
     civilizations: Query<&core_sim::Civilization>,
     player_civs: Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
     mut initialized: Local<bool>,
-    debug_logging: Res<DebugLogging>,
 ) {
     if *initialized || civilizations.is_empty() {
         return;
@@ -205,20 +196,14 @@ pub fn initialize_turn_order(
 
     civ_ids.sort_by_key(|id| id.0);
 
-    DebugUtils::log_info(
-        &debug_logging,
-        &format!(
-            "Initializing turn order with {} civilizations",
-            civ_ids.len()
-        ),
-    );
+    DebugUtils::log_info(&format!(
+        "Initializing turn order with {} civilizations",
+        civ_ids.len()
+    ));
 
     for civ_id in &civ_ids {
         if let Some(civ) = civilizations.iter().find(|c| c.id == *civ_id) {
-            DebugUtils::log_info(
-                &debug_logging,
-                &format!("  - Civ {}: {}", civ_id.0, civ.name),
-            );
+            DebugUtils::log_info(&format!("  - Civ {}: {}", civ_id.0, civ.name));
         }
     }
 
@@ -226,12 +211,7 @@ pub fn initialize_turn_order(
     turn_order.current_index = 0;
 
     if let Some(first_civ) = turn_order.current_civ() {
-        initialize_starting_turn_phase(
-            turn_phase.as_mut(),
-            first_civ,
-            &player_civs,
-            &debug_logging,
-        );
+        initialize_starting_turn_phase(turn_phase.as_mut(), first_civ, &player_civs);
     }
 
     *initialized = true;
@@ -247,7 +227,6 @@ fn initialize_starting_turn_phase(
     turn_phase: &mut core_sim::TurnPhase,
     first_civ: core_sim::CivId,
     player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
-    debug_logging: &Res<DebugLogging>,
 ) {
     let is_player = player_civs.iter().any(|civ| civ.id == first_civ);
 
@@ -255,21 +234,18 @@ fn initialize_starting_turn_phase(
         *turn_phase = core_sim::TurnPhase::CivilizationTurn {
             current_civ: first_civ,
         };
-        DebugUtils::log_info(
-            debug_logging,
-            &format!("Starting with player civilization {}", first_civ.0),
-        );
+        DebugUtils::log_info(&format!(
+            "Starting with player civilization {}",
+            first_civ.0
+        ));
     } else {
         *turn_phase = core_sim::TurnPhase::WaitingForNextTurn {
             next_civ: first_civ,
         };
-        DebugUtils::log_info(
-            debug_logging,
-            &format!(
-                "Starting with AI civilization {} (waiting for user to press Next Turn)",
-                first_civ.0
-            ),
-        );
+        DebugUtils::log_info(&format!(
+            "Starting with AI civilization {} (waiting for user to press Next Turn)",
+            first_civ.0
+        ));
     }
 }
 

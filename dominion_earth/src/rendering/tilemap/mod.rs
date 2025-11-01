@@ -1,7 +1,6 @@
 use super::common::TilemapIdResource;
 use super::fog_of_war::TileSprite;
 use crate::constants::rendering::tile_size;
-use crate::debug_utils::DebugLogging;
 use crate::screens::{LoadingState, Screen};
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
@@ -97,7 +96,6 @@ pub fn spawn_entity_on_tile(
     position: core_sim::Position,
     sprite_index: usize,
     z_offset: f32,
-    debug_logging: &DebugLogging,
 ) -> Option<Entity> {
     let tile_pos = TilePos {
         x: position.x as u32,
@@ -124,7 +122,7 @@ pub fn spawn_entity_on_tile(
             ))
             .id();
 
-        crate::debug_println!(debug_logging,
+        crate::debug_println!(
             "DEBUG: Spawned entity at position ({}, {}) with sprite index {} at world pos ({}, {}, {})",
             position.x, position.y, sprite_index, world_pos.x, world_pos.y, world_pos.z
         );
@@ -132,7 +130,6 @@ pub fn spawn_entity_on_tile(
         Some(sprite_entity)
     } else {
         crate::debug_println!(
-            debug_logging,
             "Warning: Could not find tile at position {:?}",
             position
         );

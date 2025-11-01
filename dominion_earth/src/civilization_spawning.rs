@@ -1,4 +1,4 @@
-use crate::debug_utils::{DebugLogging, DebugUtils};
+use crate::debug_utils::DebugUtils;
 use bevy::prelude::*;
 use core_sim::{
     resources::{GameRng, WorldMap},
@@ -11,13 +11,12 @@ pub fn spawn_initial_civilizations(
     commands: &mut Commands,
     world_map: &mut WorldMap,
     rng: &mut rand_pcg::Pcg64,
-    debug_logging: &DebugLogging,
     ai_only: bool,
     total_civilizations: u32,
 ) {
     use rand::seq::SliceRandom;
 
-    let civilization_data = load_civilization_data(debug_logging);
+    let civilization_data = load_civilization_data();
     if civilization_data.is_none() {
         return;
     }
@@ -36,18 +35,15 @@ pub fn spawn_initial_civilizations(
             civ_index,
             &random_positions,
             ai_only,
-            debug_logging,
         ) {
             spawned_count += 1;
         }
     }
 
-    DebugUtils::log_civilization_spawn(debug_logging, spawned_count);
+    DebugUtils::log_civilization_spawn(spawned_count);
 }
 
-fn load_civilization_data(
-    debug_logging: &DebugLogging,
-) -> Option<core_sim::CivilizationDataCollection> {
+fn load_civilization_data() -> Option<core_sim::CivilizationDataCollection> {
     match CivilizationDataLoader::load_from_ron("dominion_earth/assets/data/civilizations.ron") {
         Ok(data) => {
             println!(
@@ -58,10 +54,7 @@ fn load_civilization_data(
         }
         Err(e) => {
             println!("Failed to load civilization data: {}", e);
-            DebugUtils::log_info(
-                debug_logging,
-                &format!("Failed to load civilization data: {}", e),
-            );
+            DebugUtils::log_info(&format!("Failed to load civilization data: {}", e));
             None
         }
     }
@@ -104,32 +97,24 @@ fn spawn_civilization(
     civ_index: usize,
     random_positions: &std::collections::HashMap<String, Position>,
     ai_only: bool,
-    debug_logging: &DebugLogging,
 ) -> bool {
     let position = match random_positions.get(&civ_def.name) {
         Some(&pos) => pos,
         None => {
-            DebugUtils::log_capital_spawn_skip(debug_logging, &civ_def.name, 0, 0);
+            DebugUtils::log_capital_spawn_skip(&civ_def.name, 0, 0);
             return false;
         }
     };
 
     if !is_buildable_position(world_map, position) {
-        DebugUtils::log_capital_spawn_skip(debug_logging, &civ_def.name, position.x, position.y);
+        DebugUtils::log_capital_spawn_skip(&civ_def.name, position.x, position.y);
         return false;
     }
 
     let civ_id = CivId(civ_index as u32);
     let is_player = !ai_only && civ_index == 0;
 
-    spawn_civilization_entity(
-        commands,
-        civ_def,
-        civ_id,
-        position,
-        is_player,
-        debug_logging,
-    );
+    spawn_civilization_entity(commands, civ_def, civ_id, position, is_player);
     spawn_capital_city(commands, civ_def, civ_id, position, is_player);
     spawn_starting_unit(commands, civ_id, position, civ_index, is_player);
     claim_starting_territory(world_map, civ_id, position, &civ_def.capital_name);
@@ -156,7 +141,6 @@ fn spawn_civilization_entity(
     civ_id: CivId,
     position: Position,
     is_player: bool,
-    debug_logging: &DebugLogging,
 ) {
     let color = [civ_def.color.0, civ_def.color.1, civ_def.color.2];
     let personality = CivPersonality::from(civ_def.personality.clone());
@@ -178,15 +162,15 @@ fn spawn_civilization_entity(
 
     if is_player {
         civ_entity_commands.insert(PlayerControlled);
-        DebugUtils::log_info(
-            debug_logging,
-            &format!("Marking {} as player-controlled civilization", civ_def.name),
-        );
+        DebugUtils::log_info(&format!(
+            "Marking {} as player-controlled civilization",
+            civ_def.name
+        ));
     } else {
-        DebugUtils::log_info(
-            debug_logging,
-            &format!("Marking {} as AI-controlled civilization", civ_def.name),
-        );
+        DebugUtils::log_info(&format!(
+            "Marking {} as AI-controlled civilization",
+            civ_def.name
+        ));
     }
 }
 

@@ -1,4 +1,3 @@
-use crate::debug_utils::DebugLogging;
 use crate::ui;
 use crate::{game, production_input};
 use bevy::prelude::*;
@@ -80,7 +79,6 @@ impl Plugin for ResourcesPluginWithConfig {
                 self.config.auto_advance,
                 self.config.ai_only,
                 self.config.total_civs,
-            ))
-            .insert_resource(DebugLogging(self.config.debug_logging));
+            ));
     }
 }

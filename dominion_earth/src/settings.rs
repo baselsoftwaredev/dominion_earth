@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-use crate::debug_utils::DebugLogging;
-
 const SETTINGS_FILENAME: &str = "settings.ron";
 const SAVES_DIRECTORY: &str = "saves";
 
@@ -90,23 +88,21 @@ impl Plugin for SettingsPersistencePlugin {
 }
 
 /// Load settings on startup
-fn load_settings_on_startup(mut commands: Commands, debug_logging: Res<DebugLogging>) {
-    crate::debug_println!(debug_logging, "🔧 Loading game settings...");
+fn load_settings_on_startup(mut commands: Commands) {
+    crate::debug_println!("🔧 Loading game settings...");
 
     let settings = GameSettings::load();
 
     crate::debug_println!(
-        debug_logging,
         "🔊 Loaded volume setting: {:.0}%",
         settings.volume * crate::constants::settings::PERCENTAGE_MULTIPLIER
     );
 
     if let Some(seed_value) = settings.seed {
-        crate::debug_println!(debug_logging, "🎲 Loaded seed setting: {}", seed_value);
+        crate::debug_println!("🎲 Loaded seed setting: {}", seed_value);
     }
 
     crate::debug_println!(
-        debug_logging,
         "🤖 AI-only mode: {}",
         if settings.ai_only {
             "enabled"

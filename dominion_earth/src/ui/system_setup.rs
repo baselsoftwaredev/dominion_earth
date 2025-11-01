@@ -1,4 +1,3 @@
-use crate::debug_utils::DebugLogging;
 use crate::entity_utils;
 use crate::ui::traits::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
@@ -146,7 +145,6 @@ fn handle_ui_scroll(
     mut mouse_wheel_events: MessageReader<MouseWheel>,
     mut scrollable_query: Query<(&mut ScrollPosition, &Node, &ComputedNode)>,
     window_query: Query<&Window>,
-    debug_logging: Res<DebugLogging>,
 ) {
     let Ok(window) = window_query.single() else {
         return;
@@ -168,7 +166,6 @@ fn handle_ui_scroll(
 
     for scroll_event in mouse_wheel_events.read() {
         crate::debug_println!(
-            debug_logging,
             "Mouse wheel over left panel: y={}, unit={:?}",
             scroll_event.y,
             scroll_event.unit
@@ -191,7 +188,6 @@ fn handle_ui_scroll(
             let maximum_scroll_offset = (content_size.y - node_size.y).max(0.0);
 
             crate::debug_println!(
-                debug_logging,
                 "Scrolling left panel: content_size={:?}, node_size={:?}, max_offset={}, old_y={}, delta={}",
                 content_size,
                 node_size,
@@ -203,7 +199,7 @@ fn handle_ui_scroll(
             scroll_position.y =
                 (scroll_position.y - scroll_delta_in_pixels).clamp(0.0, maximum_scroll_offset);
 
-            crate::debug_println!(debug_logging, "New scroll position: {}", scroll_position.y);
+            crate::debug_println!("New scroll position: {}", scroll_position.y);
 
             break;
         }
