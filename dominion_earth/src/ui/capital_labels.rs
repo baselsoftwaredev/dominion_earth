@@ -16,12 +16,24 @@ pub struct CapitalLabel {
     pub capital_position: Position,
 }
 
+/// Component to mark label container (parent) entities
+#[derive(Component)]
+pub struct CapitalLabelContainer;
+
+/// Component to store label colors
+#[derive(Component, Clone, Copy, Debug)]
+pub struct LabelColors {
+    pub background: Color,
+    pub icon: Color,
+    pub text: Color,
+}
+
 pub mod constants {
     pub const CAPITAL_LABEL_FONT_SIZE: f32 = 16.0;
     pub const CAPITAL_LABEL_Z_INDEX: f32 = 100.0;
     pub const CAPITAL_LABEL_NORTH_OFFSET_TILES: f32 = 1.0;
     pub const CAPITAL_LABEL_VERTICAL_OFFSET_PIXELS: f32 = -40.0;
-    pub const CAPITAL_LABEL_BACKGROUND_ALPHA: f32 = 0.7;
+    pub const CAPITAL_LABEL_BACKGROUND_ALPHA: f32 = 0.85;
     pub const LABEL_TEXT_COLOR_RED: f32 = 1.0;
     pub const LABEL_TEXT_COLOR_GREEN: f32 = 1.0;
     pub const LABEL_TEXT_COLOR_BLUE: f32 = 1.0;
@@ -29,6 +41,29 @@ pub mod constants {
     pub const UNKNOWN_CIVILIZATION_COLOR_GREEN: f32 = 0.5;
     pub const UNKNOWN_CIVILIZATION_COLOR_BLUE: f32 = 0.5;
     pub const NORTH_TILE_OFFSET_Y: i32 = 1;
+    pub const BACKGROUND_DARKNESS_FACTOR: f32 = 0.5;
+
+    // Box and layout constants
+    pub const LABEL_BOX_WIDTH: f32 = 130.0;
+    pub const LABEL_BOX_HEIGHT: f32 = 90.0;
+    pub const ICON_SIZE: f32 = 45.0;
+    pub const ICON_PADDING: f32 = 5.0;
+    pub const TEXT_PADDING: f32 = 5.0;
+    pub const BOX_Z_INDEX: f32 = 100.0;
+    pub const ICON_Z_INDEX: f32 = 101.0;
+    pub const TEXT_Z_INDEX: f32 = 102.0;
+    pub const POPULATION_Z_INDEX: f32 = 103.0;
+
+    // Population indicator constants
+    pub const POPULATION_CIRCLE_SIZE: f32 = 20.0;
+    pub const POPULATION_CIRCLE_COLOR_R: f32 = 0.0;
+    pub const POPULATION_CIRCLE_COLOR_G: f32 = 1.0;
+    pub const POPULATION_CIRCLE_COLOR_B: f32 = 0.0;
+    pub const POPULATION_TEXT_COLOR_R: f32 = 1.0;
+    pub const POPULATION_TEXT_COLOR_G: f32 = 1.0;
+    pub const POPULATION_TEXT_COLOR_B: f32 = 1.0;
+    pub const POPULATION_FONT_SIZE: f32 = 10.0;
+    pub const POPULATION_INDICATOR_OFFSET_Y: f32 = 35.0; // Bottom of label
 }
 /// System to spawn capital labels using Text2d (world-space text that scales with camera)
 pub fn spawn_capital_labels(
@@ -64,13 +99,15 @@ pub fn spawn_capital_labels(
             &city.name,
             &civilization_name,
             civilization_color,
+            city.population,
             north_tile_world_position,
         );
 
         debug_println!(
-            "Spawned Text2d capital label for {} ({}) at world position ({:.1}, {:.1})",
+            "Spawned Text2d capital label for {} ({}) with population {} at world position ({:.1}, {:.1})",
             city.name,
             civilization_name,
+            city.population,
             north_tile_world_position.x,
             north_tile_world_position.y
         );
@@ -98,13 +135,15 @@ pub fn spawn_capital_labels(
             &city.name,
             &civilization_name,
             civilization_color,
+            city.population,
             north_tile_world_position,
         );
 
         debug_println!(
-            "Spawned missing Text2d capital label for {} ({}) at world position ({:.1}, {:.1})",
+            "Spawned missing Text2d capital label for {} ({}) with population {} at world position ({:.1}, {:.1})",
             city.name,
             civilization_name,
+            city.population,
             north_tile_world_position.x,
             north_tile_world_position.y
         );
@@ -114,7 +153,7 @@ pub fn spawn_capital_labels(
 /// System to update capital label positions when capitals move or are destroyed
 pub fn update_capital_labels(
     mut commands: Commands,
-    mut label_query: Query<(Entity, &mut Transform, &CapitalLabel)>,
+    mut label_query: Query<(Entity, &mut Transform, &CapitalLabel), With<CapitalLabelContainer>>,
     capitals_query: Query<&Position, With<Capital>>,
     tilemap_query: Query<(
         &TilemapSize,
@@ -140,8 +179,7 @@ pub fn update_capital_labels(
                     anchor,
                 );
 
-                label_transform.translation =
-                    new_world_position.extend(constants::CAPITAL_LABEL_Z_INDEX);
+                label_transform.translation = new_world_position.extend(constants::BOX_Z_INDEX);
             }
         } else {
             commands.entity(label_entity).despawn();
@@ -189,7 +227,7 @@ fn calculate_north_tile_world_position(
     world_pos
 }
 
-/// Helper function to spawn a Text2d capital label in world space
+/// Helper function to spawn a Text2d capital label in world space with box and icon
 fn spawn_capital_label_text2d(
     commands: &mut Commands,
     capital_entity: Entity,
@@ -197,37 +235,138 @@ fn spawn_capital_label_text2d(
     city_name: &str,
     civilization_name: &str,
     civilization_color: [f32; 3],
+    population: u32,
     world_position: Vec2,
 ) {
-    let label_text = format!("{}\n({})", city_name, civilization_name);
-
-    let background_color = create_label_background_color(civilization_color);
+    let label_colors = create_label_colors(civilization_color);
     let text_color = create_label_text_color();
 
-    commands.spawn((
-        Text2d::new(label_text),
-        TextFont {
-            font_size: constants::CAPITAL_LABEL_FONT_SIZE,
-            ..default()
-        },
-        TextColor(text_color),
-        TextBackgroundColor(background_color),
-        TextLayout::new_with_justify(Justify::Center),
-        Transform::from_translation(world_position.extend(constants::CAPITAL_LABEL_Z_INDEX)),
-        CapitalLabel {
-            capital_entity,
-            capital_position,
-        },
-        DespawnOnExit(Screen::Gameplay), // Auto-despawn when leaving Gameplay
-        DespawnOnEnter(LoadingState::Loading), // Auto-despawn when loading starts
-    ));
+    // Spawn the container (parent)
+    let container = commands
+        .spawn((
+            Transform::from_translation(world_position.extend(constants::BOX_Z_INDEX)),
+            GlobalTransform::default(),
+            CapitalLabelContainer,
+            label_colors,
+            DespawnOnExit(Screen::Gameplay),
+            DespawnOnEnter(LoadingState::Loading),
+        ))
+        .id();
+
+    // Spawn background box
+    commands.entity(container).with_children(|parent| {
+        parent.spawn((
+            Sprite {
+                color: label_colors.background,
+                custom_size: Some(Vec2::new(
+                    constants::LABEL_BOX_WIDTH,
+                    constants::LABEL_BOX_HEIGHT,
+                )),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            GlobalTransform::default(),
+        ));
+    });
+
+    // Spawn icon placeholder (left side)
+    commands.entity(container).with_children(|parent| {
+        let icon_x = -(constants::LABEL_BOX_WIDTH / 2.0)
+            + constants::ICON_SIZE / 2.0
+            + constants::ICON_PADDING;
+        parent.spawn((
+            Sprite {
+                color: label_colors.icon,
+                custom_size: Some(Vec2::new(constants::ICON_SIZE, constants::ICON_SIZE)),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(icon_x, 0.0, constants::ICON_Z_INDEX)),
+            GlobalTransform::default(),
+        ));
+    });
+
+    // Spawn text (right side)
+    let label_text = format!("{}\n{}", city_name, civilization_name);
+    let text_x = constants::ICON_SIZE + constants::ICON_PADDING + constants::TEXT_PADDING;
+
+    commands.entity(container).with_children(|parent| {
+        parent.spawn((
+            Text2d::new(label_text),
+            TextFont {
+                font_size: constants::CAPITAL_LABEL_FONT_SIZE,
+                ..default()
+            },
+            TextColor(text_color),
+            TextLayout::new_with_justify(Justify::Left),
+            Transform::from_translation(Vec3::new(
+                text_x - constants::LABEL_BOX_WIDTH / 2.0,
+                0.0,
+                constants::TEXT_Z_INDEX,
+            )),
+            GlobalTransform::default(),
+        ));
+    });
+
+    // Spawn population indicator (green circle at bottom)
+    commands.entity(container).with_children(|parent| {
+        let population_circle_color = Color::srgb(
+            constants::POPULATION_CIRCLE_COLOR_R,
+            constants::POPULATION_CIRCLE_COLOR_G,
+            constants::POPULATION_CIRCLE_COLOR_B,
+        );
+
+        // Green circle background
+        parent.spawn((
+            Sprite {
+                color: population_circle_color,
+                custom_size: Some(Vec2::new(
+                    constants::POPULATION_CIRCLE_SIZE,
+                    constants::POPULATION_CIRCLE_SIZE,
+                )),
+                ..default()
+            },
+            Transform::from_translation(Vec3::new(
+                0.0,
+                -constants::POPULATION_INDICATOR_OFFSET_Y,
+                constants::POPULATION_Z_INDEX,
+            )),
+            GlobalTransform::default(),
+        ));
+
+        // Population text inside circle
+        parent.spawn((
+            Text2d::new(format!("{}", population / 1000)), // Display in thousands (e.g., "5" for 5000)
+            TextFont {
+                font_size: constants::POPULATION_FONT_SIZE,
+                ..default()
+            },
+            TextColor(Color::srgb(
+                constants::POPULATION_TEXT_COLOR_R,
+                constants::POPULATION_TEXT_COLOR_G,
+                constants::POPULATION_TEXT_COLOR_B,
+            )),
+            TextLayout::new_with_justify(Justify::Center),
+            Transform::from_translation(Vec3::new(
+                0.0,
+                -constants::POPULATION_INDICATOR_OFFSET_Y,
+                constants::POPULATION_Z_INDEX + 1.0,
+            )),
+            GlobalTransform::default(),
+        ));
+    });
+
+    // Attach the label component to the container
+    commands.entity(container).insert((CapitalLabel {
+        capital_entity,
+        capital_position,
+    },));
 }
 
 fn create_label_background_color(civilization_color: [f32; 3]) -> Color {
     Color::srgba(
-        civilization_color[0],
-        civilization_color[1],
-        civilization_color[2],
+        civilization_color[0] * constants::BACKGROUND_DARKNESS_FACTOR,
+        civilization_color[1] * constants::BACKGROUND_DARKNESS_FACTOR,
+        civilization_color[2] * constants::BACKGROUND_DARKNESS_FACTOR,
         constants::CAPITAL_LABEL_BACKGROUND_ALPHA,
     )
 }
@@ -238,4 +377,26 @@ fn create_label_text_color() -> Color {
         constants::LABEL_TEXT_COLOR_GREEN,
         constants::LABEL_TEXT_COLOR_BLUE,
     )
+}
+
+fn create_label_colors(civilization_color: [f32; 3]) -> LabelColors {
+    LabelColors {
+        background: Color::srgba(
+            civilization_color[0] * constants::BACKGROUND_DARKNESS_FACTOR,
+            civilization_color[1] * constants::BACKGROUND_DARKNESS_FACTOR,
+            civilization_color[2] * constants::BACKGROUND_DARKNESS_FACTOR,
+            constants::CAPITAL_LABEL_BACKGROUND_ALPHA,
+        ),
+        icon: Color::srgba(
+            civilization_color[0],
+            civilization_color[1],
+            civilization_color[2],
+            1.0,
+        ),
+        text: Color::srgb(
+            constants::LABEL_TEXT_COLOR_RED,
+            constants::LABEL_TEXT_COLOR_GREEN,
+            constants::LABEL_TEXT_COLOR_BLUE,
+        ),
+    }
 }
