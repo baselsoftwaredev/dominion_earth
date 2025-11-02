@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub mod chunking;
+pub mod chunking_systems;
 pub mod components;
 pub mod constants;
 pub mod data_loader;
@@ -12,6 +14,10 @@ pub mod systems;
 pub mod world_gen;
 
 pub mod tile;
+
+// Re-export chunking types
+pub use chunking::{ChunkComponent, ChunkConfig, ChunkData, ChunkId, ChunkManager, ChunkTile};
+pub use chunking_systems::{get_loaded_chunks, is_position_in_loaded_chunk, update_chunks_system};
 
 // Import specific components to avoid ambiguous glob reexports
 pub use components::{

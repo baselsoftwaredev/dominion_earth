@@ -2,9 +2,9 @@ use crate::rendering;
 use crate::screens::Screen;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::TilemapPlugin;
+use core_sim::ChunkManager;
 
-/// Run condition to prevent sprite systems from running during load
-fn not_loading_from_save(
+fn should_render_sprites_not_loading_from_save(
     save_state: Option<Res<crate::plugins::save_load::SaveLoadState>>,
 ) -> bool {
     save_state.map_or(true, |state| !state.is_loading_from_save)
@@ -15,12 +15,9 @@ pub struct RenderingPlugin;
 
 impl Plugin for RenderingPlugin {
     fn build(&self, app: &mut App) {
-        app
-            // External rendering plugin
+        app.insert_resource(ChunkManager::default())
             .add_plugins(TilemapPlugin)
-            // Load tile assets - runs repeatedly in Update until assets are loaded and resource is inserted
             .add_systems(Update, core_sim::tile::tile_assets::load_tile_assets)
-            // Tilemap and Asset Setup Systems - run when TileAssets becomes available
             .add_systems(
                 Update,
                 (
@@ -28,8 +25,8 @@ impl Plugin for RenderingPlugin {
                     rendering::tilemap::spawn_world_tiles.after(rendering::tilemap::setup_tilemap),
                     rendering::tilemap::attach_tile_sprite_components
                         .after(rendering::tilemap::setup_tilemap),
-                    // Sprite Spawning Systems - must be in Update to run after tilemap setup
-                    // AND after save/load systems to respect the loading flag
+                    rendering::chunks::update_chunk_manager_from_camera
+                        .after(rendering::tilemap::setup_tilemap),
                     rendering::units::spawn_unit_sprites
                         .after(rendering::tilemap::spawn_world_tiles)
                         .after(crate::plugins::save_load::handle_load_requests),
@@ -38,12 +35,12 @@ impl Plugin for RenderingPlugin {
                         .after(crate::plugins::save_load::handle_load_requests),
                 )
                     .run_if(in_state(Screen::Gameplay))
-                    .run_if(not_loading_from_save),
+                    .run_if(should_render_sprites_not_loading_from_save),
             )
-            // Runtime Rendering Update Systems
             .add_systems(
                 Update,
                 (
+                    rendering::chunks::debug_chunk_info,
                     rendering::units::recreate_missing_unit_sprites
                         .after(crate::plugins::save_load::handle_load_requests),
                     rendering::units::apply_facing_to_new_sprites,
@@ -51,14 +48,13 @@ impl Plugin for RenderingPlugin {
                     rendering::capitals::update_capital_sprites,
                     rendering::capitals::update_animated_capital_sprites,
                     rendering::borders::render_civilization_borders,
-                    // Fog of War rendering
                     rendering::fog_of_war::apply_fog_of_war_to_tiles,
                     rendering::fog_of_war::hide_entities_in_fog,
                     rendering::fog_of_war::hide_capital_labels_in_fog,
                     rendering::fog_of_war::hide_unit_labels_in_fog,
                 )
                     .run_if(in_state(Screen::Gameplay))
-                    .run_if(not_loading_from_save),
+                    .run_if(should_render_sprites_not_loading_from_save),
             );
     }
 }

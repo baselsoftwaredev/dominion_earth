@@ -67,19 +67,17 @@ eprintln!("Error occurred");
 
 // GOOD: Use debug logging system
 use crate::debug_println;
-debug_println!(debug_logging, "Unit moved to position {}", position);
+debug_println!("Unit moved to position {}", position);
 
 // Or use specific debug utility functions
-DebugUtils::log_unit_movement(&debug_logging, unit_id, position);
+DebugUtils::log_unit_movement(unit_id, position);
 ```
 
 Debug logging rules:
 
 - Import `use crate::debug_println;` macro for formatted debug output
-- All debug output must respect the `--debug-logging` flag
 - System messages (like "Using custom random seed") can use direct println! as they're important config info
 - Create specific debug logging functions in `debug_utils.rs` for common patterns
-- Debug output only appears when `--debug-logging` flag is used
 
 ### Prefer many small functions over large complex ones
 
