@@ -36,7 +36,7 @@ pub mod sprite_indices {
     pub const PLAINS: usize = 0;
     pub const HILLS: usize = 0; // TODO: Set actual index
     pub const MOUNTAINS: usize = 0; // TODO: Set actual index
-    pub const FOREST: usize = 0; // TODO: Set actual index
+    pub const FOREST: usize = 18; // TODO: Set actual index
     pub const DESERT: usize = 0; // TODO: Set actual index
     pub const RIVER: usize = 0; // TODO: Set actual index
 
@@ -86,11 +86,33 @@ pub mod map_generation {
     /// Range for satellite islands around major islands
     pub const SATELLITE_ISLANDS_MIN: u32 = 2;
     pub const SATELLITE_ISLANDS_MAX: u32 = 4;
-}
 
-// ============================================================================
-// MOVEMENT AND TERRAIN STATS
-// ============================================================================
+    /// Forest generation constants
+    /// Overall density of forest coverage (0.0 to 1.0)
+    pub const FOREST_DENSITY: f32 = 0.3;
+
+    /// Base chance for a new forest patch to start (0.0 to 1.0)
+    pub const FOREST_BASE_CHANCE: f32 = 0.2;
+
+    /// Chance for forest to grow near existing forests (clustering effect)
+    pub const FOREST_CLUSTER_CHANCE: f32 = 0.6;
+
+    /// Island generation distance range for satellite placement
+    pub const SATELLITE_MINIMUM_DISTANCE: f32 = 15.0;
+    pub const SATELLITE_MAXIMUM_DISTANCE: f32 = 25.0;
+
+    /// Island radius ranges
+    pub const SATELLITE_ISLAND_RADIUS_MIN: u32 = 4;
+    pub const SATELLITE_ISLAND_RADIUS_MAX: u32 = 8;
+    pub const SMALL_ISLAND_RADIUS_MIN: u32 = 2;
+    pub const SMALL_ISLAND_RADIUS_MAX: u32 = 5;
+
+    /// Island generation noise for natural-looking coastlines
+    pub const ISLAND_EDGE_NOISE_AMPLITUDE: f32 = 0.7;
+    pub const ISLAND_EDGE_NOISE_OFFSET: f32 = 0.35;
+} // ============================================================================
+  // MOVEMENT AND TERRAIN STATS
+  // ============================================================================
 
 /// Movement and terrain configuration
 pub mod terrain_stats {
@@ -100,11 +122,17 @@ pub mod terrain_stats {
     /// Movement cost for ocean terrain
     pub const OCEAN_MOVEMENT_COST: f32 = 3.0;
 
+    /// Movement cost for forest terrain
+    pub const FOREST_MOVEMENT_COST: f32 = 2.0;
+
     /// Base defense bonus for most terrain
     pub const BASE_DEFENSE_BONUS: f32 = 0.0;
 
     /// Ocean defense bonus
     pub const OCEAN_DEFENSE_BONUS: f32 = 0.0;
+
+    /// Forest defense bonus
+    pub const FOREST_DEFENSE_BONUS: f32 = 0.25;
 }
 
 /// Movement validation constants
@@ -271,4 +299,24 @@ pub mod unit_stats {
     pub const CORRUPTION_THRESHOLD: f32 = 0.7;
     pub const SUPPLY_MODIFIER_MINIMUM: f32 = 0.5;
     pub const EXPERIENCE_BONUS_MULTIPLIER: f32 = 0.05;
+}
+
+/// Resource generation probabilities
+pub mod resource_generation {
+    /// Percentage of land tiles that receive resources
+    pub const RESOURCE_DENSITY: f32 = 0.15;
+
+    /// Probability that mountain terrain contains iron vs stone
+    pub const MOUNTAIN_IRON_PROBABILITY: f32 = 0.5;
+
+    /// Plains wheat vs horses probability
+    pub const PLAINS_WHEAT_PROBABILITY: f32 = 0.7;
+
+    /// Desert gold vs spices probability
+    pub const DESERT_GOLD_PROBABILITY: f32 = 0.3;
+
+    /// Hill terrain resource distribution probabilities
+    pub const HILL_RESOURCE_IRON_NUMERATOR: u32 = 1;
+    pub const HILL_RESOURCE_GOLD_NUMERATOR: u32 = 1;
+    pub const HILL_RESOURCE_DENOMINATOR: u32 = 3;
 }
