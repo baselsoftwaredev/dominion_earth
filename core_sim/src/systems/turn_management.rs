@@ -117,11 +117,25 @@ pub fn handle_turn_advance_requests(
                     *turn_phase = TurnPhase::TurnTransition;
                 } else {
                     if let Some(next_civ) = turn_order.current_civ() {
-                        transition_to_next_civilization_turn(
-                            turn_phase.as_mut(),
-                            next_civ,
-                            &player_civs,
-                        );
+                        let is_player = is_player_controlled_civilization(next_civ, &player_civs);
+
+                        if is_player {
+                            // Wait for player to start their turn
+                            tracing::info!("Starting player turn (Civ {})", next_civ.0);
+                            *turn_phase = TurnPhase::CivilizationTurn {
+                                current_civ: next_civ,
+                            };
+                        } else {
+                            // Automatically start next AI turn
+                            tracing::info!(
+                                "Automatically starting AI turn for civilization {}",
+                                next_civ.0
+                            );
+                            *turn_phase = TurnPhase::CivilizationTurn {
+                                current_civ: next_civ,
+                            };
+                            ai_turn_events.write(ProcessAITurn { civ_id: next_civ });
+                        }
                     }
                 }
             }
@@ -169,6 +183,7 @@ pub fn handle_ai_turn_completion(
     mut ai_complete_events: MessageReader<AITurnComplete>,
     mut turn_phase: ResMut<TurnPhase>,
     mut turn_order: ResMut<TurnOrder>,
+    mut ai_turn_events: MessageWriter<ProcessAITurn>,
     player_civs: Query<&Civilization, With<PlayerControlled>>,
 ) {
     for ai_event in ai_complete_events.read() {
@@ -183,7 +198,25 @@ pub fn handle_ai_turn_completion(
             *turn_phase = TurnPhase::TurnTransition;
         } else {
             if let Some(next_civ) = turn_order.current_civ() {
-                transition_to_next_civilization_turn(turn_phase.as_mut(), next_civ, &player_civs);
+                let is_player = is_player_controlled_civilization(next_civ, &player_civs);
+
+                if is_player {
+                    // Wait for player to start their turn
+                    tracing::info!("Starting player turn (Civ {})", next_civ.0);
+                    *turn_phase = TurnPhase::CivilizationTurn {
+                        current_civ: next_civ,
+                    };
+                } else {
+                    // Automatically start next AI turn
+                    tracing::info!(
+                        "Automatically starting next AI turn for civilization {}",
+                        next_civ.0
+                    );
+                    *turn_phase = TurnPhase::CivilizationTurn {
+                        current_civ: next_civ,
+                    };
+                    ai_turn_events.write(ProcessAITurn { civ_id: next_civ });
+                }
             }
         }
     }
