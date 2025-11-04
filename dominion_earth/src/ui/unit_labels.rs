@@ -235,6 +235,9 @@ fn spawn_unit_label_text2d(
         .spawn((
             Transform::from_translation(world_position.extend(constants::BOX_Z_INDEX)),
             GlobalTransform::default(),
+            Visibility::default(),
+            InheritedVisibility::default(),
+            ViewVisibility::default(),
             UnitLabelContainer,
             label_colors,
             DespawnOnExit(Screen::Gameplay),

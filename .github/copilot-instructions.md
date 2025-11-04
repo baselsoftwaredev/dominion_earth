@@ -17,6 +17,7 @@ If you don't understad my requirements, ask questions!
 
 ## Essential Commands
 
+Always use these commands for building and running the game. Don't use the `--release` flag unless instructed.
 ```bash
 cargo run -- --debug-logging        # With debug output
 ```
