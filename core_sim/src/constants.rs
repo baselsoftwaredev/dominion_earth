@@ -320,3 +320,9 @@ pub mod resource_generation {
     pub const HILL_RESOURCE_GOLD_NUMERATOR: u32 = 1;
     pub const HILL_RESOURCE_DENOMINATOR: u32 = 3;
 }
+
+pub mod events {
+    pub const RESOURCE_EQUALITY_TOLERANCE: f32 = 0.01;
+    pub const DEFAULT_FOOD_RESOURCE_VALUE: f32 = 0.0;
+    pub const DEFAULT_PRODUCTION_RESOURCE_VALUE: f32 = 0.0;
+}

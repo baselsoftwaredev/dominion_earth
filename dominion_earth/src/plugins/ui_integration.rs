@@ -9,5 +9,15 @@ impl Plugin for UiIntegrationPlugin {
     fn build(&self, app: &mut App) {
         // The UI setup is scoped to only display during gameplay
         ui::BevyUiSystem::setup_plugins_for_screen(app, Screen::Gameplay);
+
+        // Add event popup systems
+        app.add_systems(
+            Update,
+            (
+                ui::event_popup::spawn_event_popup,
+                ui::event_popup::despawn_completed_event_popups,
+            )
+                .run_if(in_state(Screen::Gameplay)),
+        );
     }
 }

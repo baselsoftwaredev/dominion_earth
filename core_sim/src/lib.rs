@@ -6,6 +6,7 @@ pub mod components;
 pub mod constants;
 pub mod data_loader;
 pub mod debug_utils;
+pub mod event_loader;
 pub mod influence_map;
 pub mod pathfinding;
 pub mod resource_loading;
@@ -63,6 +64,7 @@ pub use components::{
 
 pub use data_loader::{CivilizationDataCollection, CivilizationDataLoader, CivilizationDefinition};
 pub use debug_utils::CoreDebugUtils;
+pub use event_loader::EventDataLoader;
 
 // Import specific systems to avoid ambiguous glob reexports
 pub use systems::{

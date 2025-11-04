@@ -1,5 +1,6 @@
 pub mod capital_labels;
 pub mod constants;
+pub mod event_popup;
 pub mod left_panel;
 pub mod resources;
 pub mod right_panel;
@@ -9,6 +10,7 @@ pub mod traits;
 pub mod unit_labels;
 pub mod utilities;
 pub use capital_labels::*;
+pub use event_popup::*;
 pub use left_panel::*;
 pub use resources::*;
 pub use right_panel::*;

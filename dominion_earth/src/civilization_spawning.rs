@@ -158,7 +158,14 @@ fn spawn_civilization_entity(
         sound_theme: civ_def.sound_theme.clone(),
     };
 
-    let mut civ_entity_commands = commands.spawn((civilization, position, ActiveThisTurn));
+    let mut civ_entity_commands = commands.spawn((
+        civ_id, // Add CivId as a component
+        civilization,
+        position,
+        ActiveThisTurn,
+        core_sim::components::events::EventHistory::default(),
+        core_sim::components::events::ActiveEventModifiers::default(),
+    ));
 
     if is_player {
         civ_entity_commands.insert(PlayerControlled);

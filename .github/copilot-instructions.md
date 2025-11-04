@@ -18,6 +18,7 @@ If you don't understad my requirements, ask questions!
 ## Essential Commands
 
 Always use these commands for building and running the game. Don't use the `--release` flag unless instructed.
+
 ```bash
 cargo run -- --debug-logging        # With debug output
 ```
@@ -30,5 +31,10 @@ Game content lives in `dominion_earth/assets/data/*.ron` - modify RON files rath
 
 Don't install new dependencies without approval.
 
+## Documentation
 
+When making changes to systems or architecture:
 
+- **DO** update relevant documentation in `docs/` folder (e.g., `event_system.md`, `fog_of_war.md`, etc.)
+- **DON'T** modify anything in `docs/bevy_examples/` folder - those are reference examples only
+- Keep docs synchronized with code changes to maintain accuracy

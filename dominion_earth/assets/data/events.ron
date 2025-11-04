@@ -1,0 +1,218 @@
+// Event definitions for Dominion Earth
+// Events can be triggered by various conditions: random chance, resource thresholds, first-time occurrences, etc.
+(
+    events: [
+        // TEST EVENT - Triggers on turn 1 for immediate testing
+        (
+            id: "test_welcome",
+            title: "A New Beginning",
+            description: "Your civilization stands at the dawn of a new era. A mysterious stranger offers you a choice that will shape your destiny.",
+            trigger: SpecificTurn(
+                turn: 1,
+            ),
+            effects: [],
+            choices: [
+                (
+                    text: "Accept the Gift of Gold",
+                    effects: [
+                        GoldChange(200.0),
+                    ],
+                ),
+                (
+                    text: "Seek Wisdom Instead",
+                    effects: [
+                        HappinessChange(30.0),
+                    ],
+                ),
+                (
+                    text: "Decline Politely",
+                    effects: [
+                        TemporaryTraitModifier(
+                            trait_name: "Honor Treaties",
+                            modifier: 0.1,
+                            duration_turns: 10,
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        
+        // Random Events
+        (
+            id: "bountiful_harvest",
+            title: "Bountiful Harvest",
+            description: "The gods have smiled upon your lands! This season's harvest exceeds all expectations, filling your granaries and treasury.",
+            trigger: Random(
+                probability: 1.0, // 100% chance per turn - FOR TESTING
+            ),
+            effects: [
+                GoldChange(100.0),
+            ],
+            choices: [],
+        ),
+        (
+            id: "merchant_caravan",
+            title: "Merchant Caravan Arrives",
+            description: "A wealthy merchant caravan has arrived in your capital, offering exotic goods and trading opportunities.",
+            trigger: Random(
+                probability: 0.03,
+            ),
+            effects: [
+                GoldChange(50.0),
+            ],
+            choices: [],
+        ),
+        (
+            id: "plague_outbreak",
+            title: "Plague Outbreak",
+            description: "A terrible plague sweeps through your cities, devastating the population and economy.",
+            trigger: Random(
+                probability: 0.02,
+            ),
+            effects: [
+                GoldChange(-75.0),
+                HappinessChange(-20.0),
+            ],
+            choices: [],
+        ),
+        
+        // Resource Threshold Events
+        (
+            id: "treasury_surplus",
+            title: "Overflowing Treasury",
+            description: "Your wealth has attracted scholars and craftsmen from distant lands, eager to serve a prosperous civilization.",
+            trigger: ResourceThreshold(
+                resource: Gold,
+                threshold: 500.0,
+                comparison: GreaterThan,
+            ),
+            effects: [
+                ProductionModifier(
+                    multiplier: 1.2,
+                    duration_turns: 10,
+                ),
+            ],
+            choices: [],
+        ),
+        (
+            id: "economic_crisis",
+            title: "Economic Crisis",
+            description: "The royal treasury runs dangerously low. Citizens grow restless as trade stagnates and projects are delayed.",
+            trigger: ResourceThreshold(
+                resource: Gold,
+                threshold: 50.0,
+                comparison: LessThan,
+            ),
+            effects: [
+                HappinessChange(-15.0),
+            ],
+            choices: [],
+        ),
+        
+        // First Time Events
+        (
+            id: "first_warrior_created",
+            title: "Warriors Assembled",
+            description: "Your first warriors stand ready to defend your people. The birth of your military marks a new era of strength.",
+            trigger: FirstUnitCreated(
+                unit_type: "Infantry",
+            ),
+            effects: [
+                TemporaryTraitModifier(
+                    trait_name: "Militarism",
+                    modifier: 0.1,
+                    duration_turns: 20,
+                ),
+            ],
+            choices: [],
+        ),
+        (
+            id: "first_archer_created",
+            title: "Archers Trained",
+            description: "Skilled archers have joined your ranks, bringing the power of ranged warfare to your civilization.",
+            trigger: FirstUnitCreated(
+                unit_type: "Archer",
+            ),
+            effects: [],
+            choices: [],
+        ),
+        
+        // Turn-Based Events
+        (
+            id: "ancient_prophecy",
+            title: "Ancient Prophecy",
+            description: "Seers speak of an ancient prophecy foretelling greatness for your civilization. The people are filled with renewed purpose.",
+            trigger: SpecificTurn(
+                turn: 2, // Changed to turn 2 for easy testing
+            ),
+            effects: [
+                HappinessChange(25.0),
+                GoldChange(50.0),
+            ],
+            choices: [],
+        ),
+        
+        // Events with Choices
+        (
+            id: "foreign_delegation",
+            title: "Foreign Delegation",
+            description: "Envoys from a distant land offer you a choice: accept their generous gift of gold, or reject it to maintain your independence and dignity.",
+            trigger: Random(
+                probability: 0.04,
+            ),
+            effects: [],
+            choices: [
+                (
+                    text: "Accept the Gift",
+                    effects: [
+                        GoldChange(150.0),
+                        TemporaryTraitModifier(
+                            trait_name: "Honor Treaties",
+                            modifier: -0.05,
+                            duration_turns: 15,
+                        ),
+                    ],
+                ),
+                (
+                    text: "Politely Decline",
+                    effects: [
+                        TemporaryTraitModifier(
+                            trait_name: "Honor Treaties",
+                            modifier: 0.1,
+                            duration_turns: 15,
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        (
+            id: "rebel_unrest",
+            title: "Rebel Unrest",
+            description: "Rebels threaten the stability of your realm. You must decide whether to crush them with force or address their grievances.",
+            trigger: Random(
+                probability: 0.03,
+            ),
+            effects: [],
+            choices: [
+                (
+                    text: "Military Suppression",
+                    effects: [
+                        GoldChange(-100.0),
+                        TemporaryTraitModifier(
+                            trait_name: "Militarism",
+                            modifier: 0.15,
+                            duration_turns: 10,
+                        ),
+                    ],
+                ),
+                (
+                    text: "Negotiate Peace",
+                    effects: [
+                        GoldChange(-50.0),
+                        HappinessChange(10.0),
+                    ],
+                ),
+            ],
+        ),
+    ],
+)

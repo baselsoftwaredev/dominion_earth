@@ -322,3 +322,20 @@ impl Default for GameRng {
 /// Resource to request a turn advance (set by UI or timer)
 #[derive(Default, Resource)]
 pub struct TurnAdvanceRequest(pub bool);
+
+/// Event definitions loaded from data files
+#[derive(Resource, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EventDefinitions {
+    pub events: Vec<EventDefinition>,
+}
+
+/// Definition of an event loaded from RON data
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EventDefinition {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub trigger: crate::components::events::EventTriggerType,
+    pub effects: Vec<crate::components::events::EventEffect>,
+    pub choices: Vec<crate::components::events::EventChoice>,
+}
