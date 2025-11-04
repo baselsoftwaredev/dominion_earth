@@ -5,9 +5,10 @@
 //! The generation process is composed of discrete, testable steps:
 //! 1. **Ocean initialization** (landmass_gen) - Initialize all tiles as ocean
 //! 2. **Plains landmass generation** (landmass_gen) - Create archipelago-style islands
-//! 3. **Forest placement** (forest_gen) - Add forests with natural clustering to plains
-//! 4. **Resource placement** (resource_gen) - Distribute resources by terrain type
-//! 5. **Coast conversion** (tile_passes.rs, external) - Convert edge tiles to coast
+//! 3. **Mountain range placement** (mountain_gen) - Add linear mountain chains to plains
+//! 4. **Forest placement** (forest_gen) - Add forests with natural clustering to plains
+//! 5. **Resource placement** (resource_gen) - Distribute resources by terrain type
+//! 6. **Coast conversion** (tile_passes.rs, external) - Convert edge tiles to coast
 //!
 //! Each module can be tested independently and represents a coherent generation phase.
 //! This approach mirrors Bevy's system scheduling model where each system has a clear purpose
@@ -15,6 +16,7 @@
 
 mod forest_gen;
 mod landmass_gen;
+mod mountain_gen;
 mod resource_gen;
 
 use crate::WorldMap;
@@ -33,23 +35,13 @@ use rand::Rng;
 ///
 /// # Returns
 ///
-/// A fully initialized `WorldMap` with oceans, landmasses, forests, and resources.
+/// A fully initialized `WorldMap` with oceans, landmasses, forests, mountains, and resources.
 pub fn generate_island_map(width: u32, height: u32, rng: &mut impl Rng) -> WorldMap {
     let mut map = WorldMap::new(width, height);
 
-    // STEP 1 & 2: Initialize ocean and create plain landmasses
     landmass_gen::generate_landmasses(&mut map, width, height, rng);
-
-    // STEP 3: Add forests to suitable plains tiles
+    mountain_gen::generate_mountains(&mut map, rng);
     forest_gen::generate_forests(&mut map, rng);
-
-    // NOTE: Coast tile conversion will happen later in tile_passes.rs
-    // The coast conversion logic is handled in the three-pass system:
-    // - spawn_tiles_pass: creates initial terrain
-    // - assign_neighbors_pass: links neighbors
-    // - convert_to_coast_pass: processes land->coast conversion with flipping
-
-    // STEP 4: Place resources on all terrain types
     resource_gen::place_resources(&mut map, rng);
 
     map

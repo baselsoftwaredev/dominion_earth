@@ -35,7 +35,7 @@ pub mod sprite_indices {
     // Terrain sprites
     pub const PLAINS: usize = 0;
     pub const HILLS: usize = 0; // TODO: Set actual index
-    pub const MOUNTAINS: usize = 0; // TODO: Set actual index
+    pub const MOUNTAINS: usize = 19; // TODO: Set actual index
     pub const FOREST: usize = 18; // TODO: Set actual index
     pub const DESERT: usize = 0; // TODO: Set actual index
     pub const RIVER: usize = 0; // TODO: Set actual index
@@ -110,6 +110,24 @@ pub mod map_generation {
     /// Island generation noise for natural-looking coastlines
     pub const ISLAND_EDGE_NOISE_AMPLITUDE: f32 = 0.7;
     pub const ISLAND_EDGE_NOISE_OFFSET: f32 = 0.35;
+
+    /// Mountain range generation constants
+    /// Number of mountain ranges to generate
+    pub const MOUNTAIN_RANGES_MIN: u32 = 2;
+    pub const MOUNTAIN_RANGES_MAX: u32 = 5;
+
+    /// Length of each mountain range
+    pub const MOUNTAIN_RANGE_LENGTH_MIN: u32 = 8;
+    pub const MOUNTAIN_RANGE_LENGTH_MAX: u32 = 20;
+
+    /// Chance for mountain range to change direction (creates more natural curves)
+    pub const MOUNTAIN_DIRECTION_CHANGE_CHANCE: f32 = 0.3;
+
+    /// Minimum distance from map edge for mountain range starting points
+    pub const MOUNTAIN_EDGE_MARGIN: u32 = 5;
+
+    /// Maximum attempts to find a suitable starting position for a mountain range
+    pub const MOUNTAIN_START_POSITION_ATTEMPTS: usize = 50;
 } // ============================================================================
   // MOVEMENT AND TERRAIN STATS
   // ============================================================================
@@ -125,6 +143,9 @@ pub mod terrain_stats {
     /// Movement cost for forest terrain
     pub const FOREST_MOVEMENT_COST: f32 = 2.0;
 
+    /// Movement cost for mountain terrain
+    pub const MOUNTAIN_MOVEMENT_COST: f32 = 3.0;
+
     /// Base defense bonus for most terrain
     pub const BASE_DEFENSE_BONUS: f32 = 0.0;
 
@@ -133,6 +154,9 @@ pub mod terrain_stats {
 
     /// Forest defense bonus
     pub const FOREST_DEFENSE_BONUS: f32 = 0.25;
+
+    /// Mountain defense bonus
+    pub const MOUNTAIN_DEFENSE_BONUS: f32 = 0.5;
 }
 
 /// Movement validation constants
