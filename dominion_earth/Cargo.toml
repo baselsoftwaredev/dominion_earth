@@ -23,7 +23,8 @@ dev_native = [
 ]
 
 [dependencies]
-bevy = { workspace = true, features = ["default", "bevy_remote", "png", "vorbis"] }
+bevy = { workspace = true, features = ["default", "bevy_remote", "png"] }
+bevy_kira_audio = { version = "0.24", features = ["ogg"] }
 core_sim = { path = "../core_sim" }
 ai_planner = { path = "../ai_planner" }
 serde = { workspace = true }

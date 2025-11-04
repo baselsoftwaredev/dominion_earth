@@ -1,5 +1,5 @@
-use bevy::audio::GlobalVolume;
 use bevy::prelude::*;
+use bevy_kira_audio::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -78,12 +78,10 @@ pub struct SettingsPersistencePlugin;
 
 impl Plugin for SettingsPersistencePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<GameSettings>()
-            .add_systems(
-                Startup,
-                (load_settings_on_startup, apply_settings_on_startup).chain(),
-            )
-            .add_systems(Update, sync_volume_to_settings);
+        app.register_type::<GameSettings>().add_systems(
+            Startup,
+            (load_settings_on_startup, apply_settings_on_startup).chain(),
+        );
     }
 }
 
@@ -115,16 +113,7 @@ fn load_settings_on_startup(mut commands: Commands) {
 }
 
 /// Apply loaded settings to the game
-fn apply_settings_on_startup(settings: Res<GameSettings>, mut global_volume: ResMut<GlobalVolume>) {
-    global_volume.volume = bevy::audio::Volume::Linear(settings.volume);
-}
-
-/// System to sync current global volume to the settings resource
-pub fn sync_volume_to_settings(
-    global_volume: Res<GlobalVolume>,
-    mut settings: ResMut<GameSettings>,
-) {
-    if global_volume.is_changed() {
-        settings.volume = global_volume.volume.to_linear();
-    }
+fn apply_settings_on_startup(settings: Res<GameSettings>, audio: Res<Audio>) {
+    // bevy_kira_audio volume uses 0.0-1.0 range
+    audio.set_volume(settings.volume);
 }

@@ -1,10 +1,10 @@
-use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
+use bevy_kira_audio::prelude::*;
 
 use crate::{
     menus::{ui_visibility, Menu},
     screens::Screen,
-    settings::{sync_volume_to_settings, GameSettings},
+    settings::GameSettings,
     theme::prelude::*,
 };
 
@@ -28,18 +28,15 @@ pub fn plugin(app: &mut App) {
 
     app.add_systems(
         Update,
-        (update_global_volume_label, sync_volume_to_settings).run_if(in_state(Menu::Settings)),
+        update_global_volume_label.run_if(in_state(Menu::Settings)),
     );
 }
 
-fn spawn_settings_menu(
-    mut commands: Commands,
-    global_volume: Res<GlobalVolume>,
-) {
+fn spawn_settings_menu(mut commands: Commands, settings: Res<GameSettings>) {
     crate::debug_println!("📋 Spawning settings menu");
 
     let current_volume_percent =
-        crate::constants::settings::PERCENTAGE_MULTIPLIER * global_volume.volume.to_linear();
+        crate::constants::settings::PERCENTAGE_MULTIPLIER * settings.volume;
 
     commands
         .spawn((
@@ -127,13 +124,12 @@ fn spawn_settings_menu(
 struct GlobalVolumeLabel;
 
 fn update_global_volume_label(
-    global_volume: Res<GlobalVolume>,
+    settings: Res<GameSettings>,
     mut label_query: Query<&mut Text, With<GlobalVolumeLabel>>,
 ) {
-    if global_volume.is_changed() {
+    if settings.is_changed() {
         if let Some(mut text) = label_query.iter_mut().next() {
-            let percent = crate::constants::settings::PERCENTAGE_MULTIPLIER
-                * global_volume.volume.to_linear();
+            let percent = crate::constants::settings::PERCENTAGE_MULTIPLIER * settings.volume;
             **text = format!("{percent:3.0}%");
         }
     }

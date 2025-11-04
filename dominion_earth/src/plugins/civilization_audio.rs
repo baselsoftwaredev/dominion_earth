@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_kira_audio::prelude::*;
 use core_sim::resources::ActiveCivTurn;
 use core_sim::{Civilization, PlayerControlled};
 
@@ -31,6 +32,7 @@ impl Plugin for CivilizationAudioPlugin {
 struct CurrentMusicTrack {
     playing_entity: Option<Entity>,
     current_civ_id: Option<core_sim::CivId>,
+    instance_handle: Option<Handle<AudioInstance>>,
 }
 
 /// Resource tracking audio system errors to prevent crash loops
@@ -59,6 +61,8 @@ impl AudioErrorState {
 fn detect_turn_change_and_play_music(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    audio: Res<Audio>,
+    mut audio_instances: ResMut<Assets<AudioInstance>>,
     active_civ_turn: Option<Res<ActiveCivTurn>>,
     mut current_track: ResMut<CurrentMusicTrack>,
     mut audio_error_state: ResMut<AudioErrorState>,
@@ -75,18 +79,22 @@ fn detect_turn_change_and_play_music(
     // Don't play music in AI-only mode
     if settings.ai_only {
         // Clean up any existing music when switching to AI-only mode
-        if current_track.playing_entity.is_some() {
-            if let Some(entity) = current_track.playing_entity {
-                if commands.get_entity(entity).is_ok() {
-                    commands.entity(entity).despawn();
-                    info!("🎵 Stopped music for AI-only mode");
+        if current_track.instance_handle.is_some() {
+            if let Some(handle) = &current_track.instance_handle {
+                if let Some(instance) = audio_instances.get_mut(handle) {
+                    instance.stop(AudioTween::default());
                 }
+                info!("🎵 Stopped music for AI-only mode");
+            }
+            if let Some(entity) = current_track.playing_entity {
+                commands.entity(entity).despawn();
             }
             for entity in music_query.iter() {
                 commands.entity(entity).despawn();
             }
             current_track.playing_entity = None;
             current_track.current_civ_id = None;
+            current_track.instance_handle = None;
         }
         return;
     }
@@ -133,13 +141,17 @@ fn detect_turn_change_and_play_music(
                 civ.name, civ.music_theme
             );
 
-            // Clean up old music
-            if let Some(entity) = current_track.playing_entity {
-                if commands.get_entity(entity).is_ok() {
-                    commands.entity(entity).despawn();
+            // Stop old music instance if it exists
+            if let Some(handle) = &current_track.instance_handle {
+                if let Some(instance) = audio_instances.get_mut(handle) {
+                    instance.stop(AudioTween::default());
                 }
             }
 
+            // Clean up old music entities
+            if let Some(entity) = current_track.playing_entity {
+                commands.entity(entity).despawn();
+            }
             for entity in music_query.iter() {
                 commands.entity(entity).despawn();
             }
@@ -148,6 +160,7 @@ fn detect_turn_change_and_play_music(
             if let Err(e) = try_play_music(
                 &mut commands,
                 &asset_server,
+                &audio,
                 &civ.music_theme,
                 &civ.name,
                 &mut current_track,
@@ -167,10 +180,11 @@ fn detect_turn_change_and_play_music(
 fn try_play_music(
     commands: &mut Commands,
     asset_server: &AssetServer,
+    audio: &Audio,
     music_path: &str,
     civ_name: &str,
     current_track: &mut CurrentMusicTrack,
-    audio_error_state: &mut AudioErrorState,
+    _audio_error_state: &mut AudioErrorState,
 ) -> Result<(), String> {
     // Check if the asset path looks valid
     if music_path.is_empty() {
@@ -181,22 +195,12 @@ fn try_play_music(
     let music_path_owned = music_path.to_string();
     let civ_name_owned = civ_name.to_string();
 
-    // Load the audio handle
-    let music_handle = asset_server.load(music_path_owned.clone());
-
-    // Spawn the audio entity
-    // Note: The actual error will occur asynchronously when Bevy tries to decode
-    // We can't catch it here, but we track it via the error state
-    let music_entity = commands
-        .spawn((
-            AudioPlayer::new(music_handle),
-            PlaybackSettings::LOOP.with_spatial(false),
-            crate::audio::Music,
-            Name::new(format!("{} Theme", civ_name_owned)),
-        ))
-        .id();
+    // Play the music using bevy_kira_audio and get the instance handle
+    let (music_entity, instance_handle) =
+        crate::audio::play_music(commands, asset_server, audio, music_path_owned.clone());
 
     current_track.playing_entity = Some(music_entity);
+    current_track.instance_handle = Some(instance_handle);
 
     info!(
         "🎵 Queued music: {} for {}",
@@ -209,6 +213,7 @@ fn try_play_music(
 pub fn play_player_sound(
     commands: &mut Commands,
     asset_server: &AssetServer,
+    audio: &Audio,
     sound_category: &str,
     player_civ: &Query<&Civilization, With<PlayerControlled>>,
 ) {
@@ -221,7 +226,7 @@ pub fn play_player_sound(
     let sound_path = format!("sounds/effects/{}/{}.ogg", sound_theme, sound_category);
 
     // Use the safer audio playing function that handles errors gracefully
-    if let Err(e) = try_play_sound_effect(commands, asset_server, &sound_path) {
+    if let Err(e) = try_play_sound_effect(commands, asset_server, audio, &sound_path) {
         warn!("🔊 Failed to play sound effect '{}': {}", sound_path, e);
     }
 }
@@ -230,6 +235,7 @@ pub fn play_player_sound(
 fn try_play_sound_effect(
     commands: &mut Commands,
     asset_server: &AssetServer,
+    audio: &Audio,
     sound_path: &str,
 ) -> Result<(), String> {
     if sound_path.is_empty() {
@@ -237,18 +243,14 @@ fn try_play_sound_effect(
     }
 
     // Just load and spawn - errors will be logged but won't crash
-    crate::audio::play_sound_effect(commands, asset_server, sound_path.to_string());
+    crate::audio::play_sound_effect(commands, asset_server, audio, sound_path.to_string());
     Ok(())
 }
 
 /// Monitor for audio playback errors and disable audio if too many failures occur
-fn monitor_audio_playback_errors(
-    mut audio_error_state: ResMut<AudioErrorState>,
-    audio_sinks: Query<&AudioSink>,
-) {
+fn monitor_audio_playback_errors(audio_error_state: Res<AudioErrorState>) {
     // This system monitors for audio-related issues
-    // Since Bevy's audio errors occur in async tasks, we can't directly catch them
-    // But we can detect when audio entities fail to initialize properly
+    // Since bevy_kira_audio handles errors internally, we just maintain our disabled state
 
     if audio_error_state.audio_disabled {
         // Once disabled, we stay disabled to prevent crash loops

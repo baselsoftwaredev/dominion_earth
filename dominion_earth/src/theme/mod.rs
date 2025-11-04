@@ -54,13 +54,11 @@ fn handle_button_interactions(
     >,
     mut next_screen: ResMut<NextState<Screen>>,
     mut next_menu: ResMut<NextState<Menu>>,
-    mut global_volume: ResMut<GlobalVolume>,
+    audio: Res<bevy_kira_audio::prelude::Audio>,
     mut settings: ResMut<crate::settings::GameSettings>,
     mut app_exit: MessageWriter<AppExit>,
     screen: Res<State<Screen>>,
 ) {
-    use bevy::audio::{GlobalVolume, Volume};
-
     for (interaction, action) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
             crate::debug_println!(
@@ -81,14 +79,10 @@ fn handle_button_interactions(
                 }
                 widget::ButtonAction::StartGame => {
                     if **screen != Screen::GameSetup {
-                        crate::debug_println!(
-                            "⚠️  Ignoring StartGame button - not in GameSetup!"
-                        );
+                        crate::debug_println!("⚠️  Ignoring StartGame button - not in GameSetup!");
                         continue;
                     }
-                    crate::debug_println!(
-                        "🎮 Starting game - transitioning to Gameplay screen"
-                    );
+                    crate::debug_println!("🎮 Starting game - transitioning to Gameplay screen");
                     next_screen.set(Screen::Gameplay);
                 }
                 widget::ButtonAction::EnterGameplay => {
@@ -123,9 +117,7 @@ fn handle_button_interactions(
                 widget::ButtonAction::GoBack => {
                     // Special handling for GameSetup screen - return to MainMenu
                     if **screen == Screen::GameSetup {
-                        crate::debug_println!(
-                            "🎮 Going back from GameSetup to MainMenu"
-                        );
+                        crate::debug_println!("🎮 Going back from GameSetup to MainMenu");
                         next_screen.set(Screen::MainMenu);
                     } else {
                         next_menu.set(determine_parent_menu_from_screen(**screen));
@@ -133,13 +125,15 @@ fn handle_button_interactions(
                 }
                 widget::ButtonAction::LowerVolume => {
                     apply_volume_adjustment(
-                        &mut global_volume,
+                        &audio,
+                        &mut settings,
                         -constants::audio::VOLUME_ADJUSTMENT_STEP,
                     );
                 }
                 widget::ButtonAction::RaiseVolume => {
                     apply_volume_adjustment(
-                        &mut global_volume,
+                        &audio,
+                        &mut settings,
                         constants::audio::VOLUME_ADJUSTMENT_STEP,
                     );
                 }
@@ -185,11 +179,16 @@ fn determine_parent_menu_from_screen(screen: Screen) -> Menu {
     }
 }
 
-fn apply_volume_adjustment(global_volume: &mut ResMut<GlobalVolume>, adjustment: f32) {
-    use bevy::audio::Volume;
-    let current_linear_volume = global_volume.volume.to_linear();
-    let adjusted_volume = (current_linear_volume + adjustment)
+fn apply_volume_adjustment(
+    audio: &bevy_kira_audio::prelude::Audio,
+    settings: &mut ResMut<crate::settings::GameSettings>,
+    adjustment: f32,
+) {
+    let current_volume = settings.volume;
+    let adjusted_volume = (current_volume + adjustment)
         .max(constants::audio::MINIMUM_VOLUME_LEVEL)
         .min(constants::audio::MAXIMUM_VOLUME_LEVEL);
-    global_volume.volume = Volume::Linear(adjusted_volume);
+    settings.volume = adjusted_volume;
+    // bevy_kira_audio volume is controlled per-play, not globally
+    // We store in settings and apply when playing audio
 }

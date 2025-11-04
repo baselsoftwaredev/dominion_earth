@@ -129,6 +129,7 @@ pub fn handle_next_turn_button(
     mut turn_advance_events: MessageWriter<RequestTurnAdvance>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    audio: Res<bevy_kira_audio::prelude::Audio>,
 ) {
     for (interaction, mut background, mut border) in &mut interaction_query {
         match *interaction {
@@ -137,7 +138,12 @@ pub fn handle_next_turn_button(
                 turn_advance_events.write(RequestTurnAdvance);
                 info!("Player requested turn advancement");
                 // TODO: Fix audio file corruption before re-enabling
-                crate::audio::play_sound_effect(&mut commands, &asset_server, "sounds/click.ogg");
+                crate::audio::play_sound_effect(
+                    &mut commands,
+                    &asset_server,
+                    &audio,
+                    "sounds/click.ogg",
+                );
             }
             Interaction::Hovered => {
                 *background = BackgroundColor(BUTTON_HOVER_BACKGROUND);
