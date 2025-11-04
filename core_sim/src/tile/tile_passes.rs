@@ -5,7 +5,7 @@ use crate::tile::tile_components::{
     TileAssetProvider, TileCapabilities, TileContents, TileNeighbors, WorldTile,
 };
 use crate::{Position, TerrainType};
-use bevy::prelude::{Commands, Entity, InheritedVisibility, Transform, ViewVisibility, Visibility};
+use bevy::prelude::{Commands, Entity};
 use bevy_ecs_tilemap::prelude::*;
 use bevy_ecs_tilemap::tiles::TileFlip;
 
@@ -114,7 +114,7 @@ pub fn spawn_world_tiles_pass(
             // Create the tile entity with all necessary components
             let tile_entity = commands
                 .spawn((
-                    // Core tilemap components
+                    // Core tilemap components (includes Transform, Visibility, InheritedVisibility, ViewVisibility)
                     TileBundle {
                         position: tile_position,
                         tilemap_id,
@@ -129,11 +129,6 @@ pub fn spawn_world_tiles_pass(
                     },
                     // Track what entities are on this tile
                     TileContents::default(),
-                    // Bevy required components for rendering and transforms
-                    Transform::default(),
-                    Visibility::Inherited,
-                    InheritedVisibility::VISIBLE,
-                    ViewVisibility::default(),
                 ))
                 .id();
 

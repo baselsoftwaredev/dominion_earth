@@ -71,7 +71,6 @@ pub struct StatisticsPanelData {
 pub struct TileInfoData {
     pub selected_tile: Option<(i32, i32)>,
     pub world_map: WorldMap,
-    pub debug_logging: bool,
 }
 
 /// Data structure for the minimap

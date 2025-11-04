@@ -9,16 +9,9 @@ pub struct CoreDebugUtils;
 
 #[cfg(debug_assertions)]
 impl CoreDebugUtils {
-    /// Checks if debug logging is enabled by checking RUST_LOG or DEBUG_LOGGING environment variables
-    pub fn is_debug_enabled() -> bool {
-        std::env::var("RUST_LOG").is_ok() || std::env::var("DEBUG_LOGGING").is_ok()
-    }
-
     /// General debug info logging
     pub fn log_info(message: &str) {
-        if Self::is_debug_enabled() {
-            println!("{}", message);
-        }
+        println!("{}", message);
     }
 
     /// Log tile conversion operations
@@ -28,19 +21,15 @@ impl CoreDebugUtils {
         from_terrain: &TerrainType,
         to_terrain: &TerrainType,
     ) {
-        if Self::is_debug_enabled() {
-            println!(
-                "Converting tile at ({}, {}) from {:?} to {:?}",
-                x, y, from_terrain, to_terrain
-            );
-        }
+        println!(
+            "Converting tile at ({}, {}) from {:?} to {:?}",
+            x, y, from_terrain, to_terrain
+        );
     }
 
     /// Log ocean to shallow coast conversion
     pub fn log_shallow_coast_conversion(x: u32, y: u32) {
-        if Self::is_debug_enabled() {
-            println!("Converting ocean tile at ({}, {}) to ShallowCoast", x, y);
-        }
+        println!("Converting ocean tile at ({}, {}) to ShallowCoast", x, y);
     }
 
     /// Log land to coast conversion with ocean neighbors
@@ -50,29 +39,23 @@ impl CoreDebugUtils {
         original_terrain: &TerrainType,
         ocean_directions: &[&str],
     ) {
-        if Self::is_debug_enabled() {
-            println!(
-                "Converting land tile at ({}, {}) from {:?} to Coast. Ocean neighbors: {}",
-                x,
-                y,
-                original_terrain,
-                ocean_directions.join(", ")
-            );
-        }
+        println!(
+            "Converting land tile at ({}, {}) from {:?} to Coast. Ocean neighbors: {}",
+            x,
+            y,
+            original_terrain,
+            ocean_directions.join(", ")
+        );
     }
 
     /// Log coast sprite selection
     pub fn log_coast_sprite_selection(sprite_index: u32) {
-        if Self::is_debug_enabled() {
-            println!("  -> Using coast tile index: {}", sprite_index);
-        }
+        println!("  -> Using coast tile index: {}", sprite_index);
     }
 
     /// Log tile flip operations
     pub fn log_tile_flip(x: bool, y: bool, d: bool) {
-        if Self::is_debug_enabled() && (x || y || d) {
-            println!("  -> Flipping tile: x={}, y={}, d={}", x, y, d);
-        }
+        println!("  -> Flipping tile: x={}, y={}, d={}", x, y, d);
     }
 
     /// Log neighbor analysis for debugging
@@ -82,55 +65,43 @@ impl CoreDebugUtils {
         terrain: &TerrainType,
         neighbors: &[(&str, Option<TerrainType>)],
     ) {
-        if Self::is_debug_enabled() {
-            println!("=== TILE NEIGHBOR ANALYSIS ===");
-            println!("Center tile at ({}, {}): {:?}", x, y, terrain);
-            for (direction, neighbor_terrain) in neighbors {
-                match neighbor_terrain {
-                    Some(terrain) => println!("  {}: {:?}", direction, terrain),
-                    None => println!("  {}: OutOfBounds", direction),
-                }
+        println!("=== TILE NEIGHBOR ANALYSIS ===");
+        println!("Center tile at ({}, {}): {:?}", x, y, terrain);
+        for (direction, neighbor_terrain) in neighbors {
+            match neighbor_terrain {
+                Some(terrain) => println!("  {}: {:?}", direction, terrain),
+                None => println!("  {}: OutOfBounds", direction),
             }
-            println!("===============================");
         }
+        println!("===============================");
     }
 
     /// Log world generation progress
     pub fn log_world_generation(seed: u64) {
-        if Self::is_debug_enabled() {
-            println!("Generating world with random seed: {}", seed);
-        }
+        println!("Generating world with random seed: {}", seed);
     }
 
     /// Log civilization spawning
     pub fn log_civilization_spawn(count: usize) {
-        if Self::is_debug_enabled() {
-            println!("Spawned {} civilizations on buildable terrain", count);
-        }
+        println!("Spawned {} civilizations on buildable terrain", count);
     }
 
     /// Log turn order initialization
     pub fn log_turn_order_init(civ_count: usize) {
-        if Self::is_debug_enabled() {
-            println!("Initialized turn order with {} civilizations", civ_count);
-        }
+        println!("Initialized turn order with {} civilizations", civ_count);
     }
 
     /// Log civilization turn activation
     pub fn log_civ_turn_active(turn: u32, civ_name: &str, civ_id: &str) {
-        if Self::is_debug_enabled() {
-            println!("Turn {}: {} ({}) is now active", turn, civ_name, civ_id);
-        }
+        println!("Turn {}: {} ({}) is now active", turn, civ_name, civ_id);
     }
 
     /// Log unit movement
     pub fn log_unit_movement(unit_id: u32, civ_id: u32, x: i32, y: i32) {
-        if Self::is_debug_enabled() {
-            println!(
-                "  Unit {} owned by Civ {} moved to ({}, {})",
-                unit_id, civ_id, x, y
-            );
-        }
+        println!(
+            "  Unit {} owned by Civ {} moved to ({}, {})",
+            unit_id, civ_id, x, y
+        );
     }
 
     /// Log successful unit movement with cost and remaining points
@@ -143,19 +114,15 @@ impl CoreDebugUtils {
         movement_cost: u32,
         remaining_points: u32,
     ) {
-        if Self::is_debug_enabled() {
-            println!(
-                "Unit {} moved from ({}, {}) to ({}, {}) - Cost: {} - Remaining: {}",
-                unit_id, from_x, from_y, to_x, to_y, movement_cost, remaining_points
-            );
-        }
+        println!(
+            "Unit {} moved from ({}, {}) to ({}, {}) - Cost: {} - Remaining: {}",
+            unit_id, from_x, from_y, to_x, to_y, movement_cost, remaining_points
+        );
     }
 
     /// Log movement validation failure
     pub fn log_unit_movement_failure(unit_id: u32, reason: &str) {
-        if Self::is_debug_enabled() {
-            println!("Unit {} movement blocked: {}", unit_id, reason);
-        }
+        println!("Unit {} movement blocked: {}", unit_id, reason);
     }
 
     /// Log insufficient movement points
@@ -164,36 +131,28 @@ impl CoreDebugUtils {
         required_points: u32,
         available_points: u32,
     ) {
-        if Self::is_debug_enabled() {
-            println!(
-                "Unit {} cannot move - insufficient movement points. Required: {}, Available: {}",
-                unit_id, required_points, available_points
-            );
-        }
+        println!(
+            "Unit {} cannot move - insufficient movement points. Required: {}, Available: {}",
+            unit_id, required_points, available_points
+        );
     }
 
     /// Log turn completion
     pub fn log_turn_complete(completed_turn: u32, starting_turn: u32) {
-        if Self::is_debug_enabled() {
-            println!("=== Turn {} Complete ===", completed_turn);
-            println!("=== Starting Turn {} ===", starting_turn);
-        }
+        println!("=== Turn {} Complete ===", completed_turn);
+        println!("=== Starting Turn {} ===", starting_turn);
     }
 
     /// Log turn advancement (legacy system)
     pub fn log_turn_advance(turn: u32) {
-        if Self::is_debug_enabled() {
-            println!("Advanced to turn {}", turn);
-        }
+        println!("Advanced to turn {}", turn);
     }
 
     /// Log capital evolution
     pub fn log_capital_evolution(civ_name: &str, from_age: &str, to_age: &str, turn: u32) {
-        if Self::is_debug_enabled() {
-            println!(
-                "Capital of {} evolving from {} to {} at turn {}",
-                civ_name, from_age, to_age, turn
-            );
-        }
+        println!(
+            "Capital of {} evolving from {} to {} at turn {}",
+            civ_name, from_age, to_age, turn
+        );
     }
 }
