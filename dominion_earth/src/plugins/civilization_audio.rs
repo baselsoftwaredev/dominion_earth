@@ -62,7 +62,7 @@ fn detect_turn_change_and_play_music(
     active_civ_turn: Option<Res<ActiveCivTurn>>,
     mut current_track: ResMut<CurrentMusicTrack>,
     mut audio_error_state: ResMut<AudioErrorState>,
-    civilizations: Query<&Civilization>,
+    civilizations: Query<(&core_sim::CivId, &Civilization)>,
     music_query: Query<Entity, With<crate::audio::Music>>,
     player_civ: Query<&Civilization, With<PlayerControlled>>,
     settings: Res<crate::settings::GameSettings>,
@@ -119,12 +119,12 @@ fn detect_turn_change_and_play_music(
 
     info!("🎵 Turn changed! New active civ: {:?}", active_civ_id);
 
-    for civ in civilizations.iter() {
-        if civ.id == active_civ_id {
-            let is_player_turn = player_civ.iter().any(|p| p.id == civ.id);
+    for (civ_id, civ) in civilizations.iter() {
+        if *civ_id == active_civ_id {
+            let is_player_turn = player_civ.iter().any(|p| p.id == *civ_id);
 
             if !is_player_turn {
-                current_track.current_civ_id = Some(civ.id);
+                current_track.current_civ_id = Some(*civ_id);
                 continue;
             }
 
@@ -144,7 +144,6 @@ fn detect_turn_change_and_play_music(
                 commands.entity(entity).despawn();
             }
 
-            // TODO: fix this. crashes the game 
             // Try to play music with error handling
             if let Err(e) = try_play_music(
                 &mut commands,
@@ -158,7 +157,7 @@ fn detect_turn_change_and_play_music(
                 audio_error_state.record_failure();
             }
 
-            current_track.current_civ_id = Some(civ.id);
+            current_track.current_civ_id = Some(*civ_id);
             break;
         }
     }
