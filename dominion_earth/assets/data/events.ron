@@ -43,7 +43,7 @@
             title: "Bountiful Harvest",
             description: "The gods have smiled upon your lands! This season's harvest exceeds all expectations, filling your granaries and treasury.",
             trigger: Random(
-                probability: 1.0, // 100% chance per turn - FOR TESTING
+                probability: 0.03,
             ),
             effects: [
                 GoldChange(100.0),

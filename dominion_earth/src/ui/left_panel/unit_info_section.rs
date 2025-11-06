@@ -143,6 +143,7 @@ pub fn spawn_unit_info_panel(commands: &mut Commands) -> Entity {
 pub fn update_unit_info(
     selected_unit: Res<core_sim::SelectedUnit>,
     units_query: Query<&MilitaryUnit>,
+    changed_units: Query<Entity, Changed<MilitaryUnit>>,
     mut panel_query: Query<&mut Node, With<UnitInfoPanel>>,
     mut unit_name_text: Query<
         &mut Text,
@@ -295,7 +296,15 @@ pub fn update_unit_info(
         ),
     >,
 ) {
-    if selected_unit.is_changed() {
+    let selected_unit_changed = selected_unit.is_changed();
+
+    let selected_unit_data_changed = if let Some(unit_entity) = selected_unit.unit_entity {
+        changed_units.contains(unit_entity)
+    } else {
+        false
+    };
+
+    if selected_unit_changed {
         if let Some(mut node) = panel_query.iter_mut().next() {
             node.display = if selected_unit.unit_entity.is_some() {
                 Display::Flex
@@ -303,7 +312,9 @@ pub fn update_unit_info(
                 Display::None
             };
         }
+    }
 
+    if selected_unit_changed || selected_unit_data_changed {
         if let Some(unit_entity) = selected_unit.unit_entity {
             if let Ok(unit) = units_query.get(unit_entity) {
                 if let Some(mut text) = unit_name_text.iter_mut().next() {

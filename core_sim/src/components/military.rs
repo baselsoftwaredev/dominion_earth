@@ -263,4 +263,8 @@ impl UnitType {
             UnitType::Naval => "Naval Unit",
         }
     }
+
+    pub fn can_climb_mountains(&self) -> bool {
+        matches!(self, UnitType::Infantry)
+    }
 }

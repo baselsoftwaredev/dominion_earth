@@ -328,7 +328,7 @@ pub fn handle_turn_transition_complete(
     mut turn_phase: ResMut<TurnPhase>,
     mut current_turn: ResMut<CurrentTurn>,
     mut player_actions: ResMut<PlayerActionsComplete>,
-    mut units: Query<&mut MilitaryUnit>,
+    mut units: Query<(&mut MilitaryUnit, &Position)>,
     mut production_query: Query<(Entity, &mut ProductionQueue, &mut City, &Capital, &Position)>,
     mut commands: Commands,
     mut unit_id_counter: Local<u32>,
@@ -358,6 +358,7 @@ pub fn handle_turn_transition_complete(
 
     advance_current_turn(&mut current_turn);
     reset_all_unit_movement_points(&mut units);
+    apply_mountain_terrain_damage_to_infantry(&mut units, &world_map);
     reset_player_action_tracking(&mut player_actions);
 
     turn_order.current_index = 0;
@@ -386,9 +387,38 @@ fn advance_current_turn(current_turn: &mut ResMut<CurrentTurn>) {
     current_turn.0 += 1;
 }
 
-fn reset_all_unit_movement_points(units: &mut Query<&mut MilitaryUnit>) {
-    for mut unit in units.iter_mut() {
+fn reset_all_unit_movement_points(units: &mut Query<(&mut MilitaryUnit, &Position)>) {
+    for (mut unit, _) in units.iter_mut() {
         unit.reset_movement();
+    }
+}
+
+fn apply_mountain_terrain_damage_to_infantry(
+    units: &mut Query<(&mut MilitaryUnit, &Position)>,
+    world_map: &WorldMap,
+) {
+    use crate::constants::movement_validation;
+    use crate::TerrainType;
+
+    for (mut unit, position) in units.iter_mut() {
+        if !unit.unit_type.can_climb_mountains() {
+            continue;
+        }
+
+        if let Some(tile) = world_map.get_tile(*position) {
+            if matches!(tile.terrain, TerrainType::Mountains) {
+                let damage = movement_validation::INFANTRY_MOUNTAIN_HEALTH_DAMAGE_PER_TURN;
+                unit.health = (unit.health - damage).max(0.0);
+
+                tracing::debug!(
+                    "Infantry unit {} took {} damage from mountain terrain, health now: {}/{}",
+                    unit.id,
+                    damage,
+                    unit.health,
+                    unit.max_health
+                );
+            }
+        }
     }
 }
 

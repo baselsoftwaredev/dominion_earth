@@ -2,7 +2,7 @@ use crate::{
     components::{military::FacingDirection, position::MovementOrder},
     constants::{movement_validation, terrain_stats},
     debug_utils::CoreDebugUtils,
-    MilitaryUnit, PlayerMovementOrder, Position, TerrainType, WorldMap,
+    MilitaryUnit, PlayerMovementOrder, Position, TerrainType, UnitType, WorldMap,
 };
 use bevy::prelude::*;
 
@@ -27,6 +27,7 @@ fn update_unit_facing_direction_from_movement(
 fn validate_movement_to_adjacent_tile(
     from: Position,
     to: Position,
+    unit_type: UnitType,
     world_map: &WorldMap,
 ) -> Result<u32, &'static str> {
     let distance = calculate_manhattan_distance_between_positions(from, to);
@@ -37,6 +38,13 @@ fn validate_movement_to_adjacent_tile(
     if let Some(tile) = world_map.get_tile(to) {
         match tile.terrain {
             TerrainType::Ocean => Err("Cannot move into ocean"),
+            TerrainType::Mountains => {
+                if unit_type.can_climb_mountains() {
+                    Ok(movement_validation::INFANTRY_MOUNTAIN_CLIMBING_COST)
+                } else {
+                    Err("Only infantry can climb mountains")
+                }
+            }
             _ => {
                 let movement_cost = tile.movement_cost as u32;
                 if movement_cost == 0 {
@@ -67,7 +75,12 @@ pub fn execute_movement_orders(
 
         commands.entity(entity).remove::<PlayerMovementOrder>();
 
-        match validate_movement_to_adjacent_tile(current_position, target_position, &world_map) {
+        match validate_movement_to_adjacent_tile(
+            current_position,
+            target_position,
+            unit.unit_type,
+            &world_map,
+        ) {
             Ok(movement_cost) => {
                 if unit.movement_remaining >= movement_cost {
                     update_unit_facing_direction_from_movement(
@@ -124,7 +137,12 @@ pub fn execute_ai_movement_orders(
         if let Some(next_position) = movement_order.next_position() {
             commands.entity(entity).remove::<MovementOrder>();
 
-            match validate_movement_to_adjacent_tile(current_position, next_position, &world_map) {
+            match validate_movement_to_adjacent_tile(
+                current_position,
+                next_position,
+                unit.unit_type,
+                &world_map,
+            ) {
                 Ok(movement_cost) => {
                     if unit.movement_remaining >= movement_cost {
                         update_unit_facing_direction_from_movement(

@@ -166,6 +166,12 @@ pub mod movement_validation {
 
     /// Default movement cost when terrain cost is zero
     pub const DEFAULT_MOVEMENT_COST_WHEN_ZERO: u32 = 1;
+
+    /// Infantry movement cost when climbing mountains
+    pub const INFANTRY_MOUNTAIN_CLIMBING_COST: u32 = 1;
+
+    /// Health damage per turn for infantry on mountains
+    pub const INFANTRY_MOUNTAIN_HEALTH_DAMAGE_PER_TURN: f32 = 10.0;
 }
 
 /// Movement directions (4-directional)

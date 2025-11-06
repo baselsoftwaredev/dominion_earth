@@ -8,6 +8,7 @@ pub mod movement {
     pub const MINIMUM_ADJACENT_DISTANCE: i32 = 1;
     pub const DEFAULT_MOVEMENT_COST: u32 = 1;
     pub const NO_MOVEMENT_REMAINING: u32 = 0;
+    pub const INFANTRY_MOUNTAIN_CLIMBING_COST: u32 = 1;
 }
 
 pub mod unit_actions {

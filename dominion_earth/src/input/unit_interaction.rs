@@ -136,6 +136,7 @@ fn handle_unit_movement_command(
                         match validate_movement_target_and_get_cost(
                             &target_position,
                             current_pos,
+                            unit.unit_type,
                             world_map,
                         ) {
                             Ok(movement_cost) => {
@@ -297,6 +298,7 @@ fn handle_unit_keyboard_actions(
 fn validate_movement_target_and_get_cost(
     target_position: &core_sim::Position,
     current_position: &core_sim::Position,
+    unit_type: core_sim::UnitType,
     world_map: &core_sim::resources::WorldMap,
 ) -> Result<u32, &'static str> {
     let horizontal_distance = (target_position.x - current_position.x).abs();
@@ -310,6 +312,13 @@ fn validate_movement_target_and_get_cost(
     if let Some(tile) = world_map.get_tile(*target_position) {
         match tile.terrain {
             core_sim::TerrainType::Ocean => Err("Cannot move into ocean"),
+            core_sim::TerrainType::Mountains => {
+                if unit_type.can_climb_mountains() {
+                    Ok(constants::movement::INFANTRY_MOUNTAIN_CLIMBING_COST)
+                } else {
+                    Err("Only infantry can climb mountains")
+                }
+            }
             _ => {
                 let movement_cost = tile.movement_cost as u32;
                 if movement_cost == constants::movement::NO_MOVEMENT_REMAINING {
