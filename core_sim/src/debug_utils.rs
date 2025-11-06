@@ -111,11 +111,11 @@ impl CoreDebugUtils {
         from_y: i32,
         to_x: i32,
         to_y: i32,
-        movement_cost: u32,
-        remaining_points: u32,
+        movement_cost: f32,
+        remaining_points: f32,
     ) {
         println!(
-            "Unit {} moved from ({}, {}) to ({}, {}) - Cost: {} - Remaining: {}",
+            "Unit {} moved from ({}, {}) to ({}, {}) - Cost: {:.1} - Remaining: {:.1}",
             unit_id, from_x, from_y, to_x, to_y, movement_cost, remaining_points
         );
     }
@@ -128,11 +128,11 @@ impl CoreDebugUtils {
     /// Log insufficient movement points
     pub fn log_insufficient_movement_points(
         unit_id: u32,
-        required_points: u32,
-        available_points: u32,
+        required_points: f32,
+        available_points: f32,
     ) {
         println!(
-            "Unit {} cannot move - insufficient movement points. Required: {}, Available: {}",
+            "Unit {} cannot move - insufficient movement points. Required: {:.1}, Available: {:.1}",
             unit_id, required_points, available_points
         );
     }

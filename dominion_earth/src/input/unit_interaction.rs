@@ -287,7 +287,8 @@ fn handle_unit_keyboard_actions(
         if let Some(selected_entity) = selected_unit.unit_entity {
             if let Ok((_, mut unit, _)) = units_query.get_mut(selected_entity) {
                 if unit.owner == player_civ_id {
-                    unit.movement_remaining = constants::unit_actions::SKIP_TURN_MOVEMENT_REMAINING;
+                    unit.movement_remaining =
+                        constants::unit_actions::SKIP_TURN_MOVEMENT_REMAINING as f32;
                     DebugUtils::log_info(&format!("Unit {} skipped turn", unit.id));
                 }
             }
@@ -300,7 +301,7 @@ fn validate_movement_target_and_get_cost(
     current_position: &core_sim::Position,
     unit_type: core_sim::UnitType,
     world_map: &core_sim::resources::WorldMap,
-) -> Result<u32, &'static str> {
+) -> Result<f32, &'static str> {
     let horizontal_distance = (target_position.x - current_position.x).abs();
     let vertical_distance = (target_position.y - current_position.y).abs();
     let total_distance = horizontal_distance + vertical_distance;
@@ -314,15 +315,15 @@ fn validate_movement_target_and_get_cost(
             core_sim::TerrainType::Ocean => Err("Cannot move into ocean"),
             core_sim::TerrainType::Mountains => {
                 if unit_type.can_climb_mountains() {
-                    Ok(constants::movement::INFANTRY_MOUNTAIN_CLIMBING_COST)
+                    Ok(constants::movement::INFANTRY_MOUNTAIN_CLIMBING_COST as f32)
                 } else {
                     Err("Only infantry can climb mountains")
                 }
             }
             _ => {
-                let movement_cost = tile.terrain.movement_cost() as u32;
-                if movement_cost == constants::movement::NO_MOVEMENT_REMAINING {
-                    Ok(constants::movement::DEFAULT_MOVEMENT_COST)
+                let movement_cost = tile.terrain.movement_cost();
+                if movement_cost == 0.0 {
+                    Ok(constants::movement::DEFAULT_MOVEMENT_COST as f32)
                 } else {
                     Ok(movement_cost)
                 }

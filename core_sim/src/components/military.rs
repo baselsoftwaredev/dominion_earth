@@ -33,7 +33,7 @@ pub struct MilitaryUnit {
     pub health: f32,
     pub max_health: f32,
     pub movement_range: u32,
-    pub movement_remaining: u32,
+    pub movement_remaining: f32,
     pub range: u32,
 
     pub fatigue: f32,
@@ -61,7 +61,7 @@ impl MilitaryUnit {
             health: max_health,
             max_health,
             movement_range: unit_type.movement_points(),
-            movement_remaining: unit_type.movement_points(),
+            movement_remaining: unit_type.movement_points() as f32,
             range: unit_type.attack_range(),
             fatigue: 0.0,
             supply: 1.0,
@@ -74,13 +74,13 @@ impl MilitaryUnit {
     }
 
     pub fn can_move(&self) -> bool {
-        self.movement_remaining > 0
+        self.movement_remaining > 0.0
     }
 
     pub fn move_to(&mut self, new_position: Position) -> bool {
         if self.can_move() {
             self.position = new_position;
-            self.movement_remaining -= 1;
+            self.movement_remaining -= 1.0;
             true
         } else {
             false
@@ -90,7 +90,7 @@ impl MilitaryUnit {
     pub fn reset_movement(&mut self) {
         let supply_modifier = unit_stats::SUPPLY_MODIFIER_MINIMUM
             + (self.supply * unit_stats::SUPPLY_MODIFIER_MINIMUM);
-        self.movement_remaining = (self.movement_range as f32 * supply_modifier) as u32;
+        self.movement_remaining = self.movement_range as f32 * supply_modifier;
     }
 
     pub fn gain_experience(&mut self, amount: f32) {

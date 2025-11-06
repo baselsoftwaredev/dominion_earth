@@ -29,7 +29,7 @@ fn validate_movement_to_adjacent_tile(
     to: Position,
     unit_type: UnitType,
     world_map: &WorldMap,
-) -> Result<u32, &'static str> {
+) -> Result<f32, &'static str> {
     let distance = calculate_manhattan_distance_between_positions(from, to);
     if distance != movement_validation::ADJACENT_TILE_DISTANCE {
         return Err("Can only move to adjacent tiles");
@@ -40,15 +40,15 @@ fn validate_movement_to_adjacent_tile(
             TerrainType::Ocean => Err("Cannot move into ocean"),
             TerrainType::Mountains => {
                 if unit_type.can_climb_mountains() {
-                    Ok(movement_validation::INFANTRY_MOUNTAIN_CLIMBING_COST)
+                    Ok(movement_validation::INFANTRY_MOUNTAIN_CLIMBING_COST as f32)
                 } else {
                     Err("Only infantry can climb mountains")
                 }
             }
             _ => {
-                let movement_cost = tile.terrain.movement_cost() as u32;
-                if movement_cost == 0 {
-                    Ok(movement_validation::DEFAULT_MOVEMENT_COST_WHEN_ZERO)
+                let movement_cost = tile.terrain.movement_cost();
+                if movement_cost == 0.0 {
+                    Ok(movement_validation::DEFAULT_MOVEMENT_COST_WHEN_ZERO as f32)
                 } else {
                     Ok(movement_cost)
                 }
