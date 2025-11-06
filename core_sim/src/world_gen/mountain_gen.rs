@@ -121,8 +121,6 @@ fn create_mountain_tile() -> MapTile {
         owner: None,
         city: None,
         resource: None,
-        movement_cost: terrain_stats::MOUNTAIN_MOVEMENT_COST,
-        defense_bonus: terrain_stats::MOUNTAIN_DEFENSE_BONUS,
     }
 }
 

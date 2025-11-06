@@ -46,7 +46,7 @@ fn validate_movement_to_adjacent_tile(
                 }
             }
             _ => {
-                let movement_cost = tile.movement_cost as u32;
+                let movement_cost = tile.terrain.movement_cost() as u32;
                 if movement_cost == 0 {
                     Ok(movement_validation::DEFAULT_MOVEMENT_COST_WHEN_ZERO)
                 } else {

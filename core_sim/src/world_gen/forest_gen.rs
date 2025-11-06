@@ -51,8 +51,6 @@ fn create_forest_tile() -> MapTile {
         owner: None,
         city: None,
         resource: None,
-        movement_cost: terrain_stats::FOREST_MOVEMENT_COST,
-        defense_bonus: terrain_stats::FOREST_DEFENSE_BONUS,
     }
 }
 

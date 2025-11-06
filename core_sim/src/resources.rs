@@ -82,8 +82,6 @@ pub struct MapTile {
     pub owner: Option<CivId>,
     pub city: Option<String>,
     pub resource: Option<Resource>,
-    pub movement_cost: f32,
-    pub defense_bonus: f32,
 }
 
 impl Default for MapTile {
@@ -93,8 +91,6 @@ impl Default for MapTile {
             owner: None,
             city: None,
             resource: None,
-            movement_cost: terrain_stats::BASE_MOVEMENT_COST,
-            defense_bonus: terrain_stats::BASE_DEFENSE_BONUS,
         }
     }
 }

@@ -320,7 +320,7 @@ fn validate_movement_target_and_get_cost(
                 }
             }
             _ => {
-                let movement_cost = tile.movement_cost as u32;
+                let movement_cost = tile.terrain.movement_cost() as u32;
                 if movement_cost == constants::movement::NO_MOVEMENT_REMAINING {
                     Ok(constants::movement::DEFAULT_MOVEMENT_COST)
                 } else {

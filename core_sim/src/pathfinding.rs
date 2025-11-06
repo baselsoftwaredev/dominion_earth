@@ -1,6 +1,6 @@
-use crate::{Position, WorldMap, resources::MapTile};
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use crate::{resources::MapTile, Position, WorldMap};
 use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 /// A* pathfinding implementation optimized for the game world
 pub struct Pathfinder {
@@ -24,7 +24,13 @@ impl Pathfinder {
         self.cache.clear();
     }
 
-    pub fn find_path(&mut self, world_map: &WorldMap, start: Position, goal: Position, max_movement: f32) -> Option<Vec<Position>> {
+    pub fn find_path(
+        &mut self,
+        world_map: &WorldMap,
+        start: Position,
+        goal: Position,
+        max_movement: f32,
+    ) -> Option<Vec<Position>> {
         // Check cache first
         let cache_key = (start, goal);
         if let Some(cached_result) = self.cache.get(&cache_key) {
@@ -32,14 +38,20 @@ impl Pathfinder {
         }
 
         let result = self.a_star(world_map, start, goal, max_movement);
-        
+
         // Cache the result
         self.cache.insert(cache_key, result.clone());
-        
+
         result
     }
 
-    fn a_star(&self, world_map: &WorldMap, start: Position, goal: Position, max_movement: f32) -> Option<Vec<Position>> {
+    fn a_star(
+        &self,
+        world_map: &WorldMap,
+        start: Position,
+        goal: Position,
+        max_movement: f32,
+    ) -> Option<Vec<Position>> {
         let mut open_set = BinaryHeap::new();
         let mut came_from: HashMap<Position, Position> = HashMap::new();
         let mut g_score: HashMap<Position, f32> = HashMap::new();
@@ -72,11 +84,12 @@ impl Pathfinder {
                 };
 
                 // Skip impassable terrain
-                if neighbor_tile.movement_cost >= 10.0 {
+                if neighbor_tile.terrain.movement_cost() >= 10.0 {
                     continue;
                 }
 
-                let tentative_g_score = g_score.get(&current).unwrap_or(&f32::INFINITY) + neighbor_tile.movement_cost;
+                let tentative_g_score = g_score.get(&current).unwrap_or(&f32::INFINITY)
+                    + neighbor_tile.terrain.movement_cost();
 
                 // Check if this path exceeds movement limit
                 if tentative_g_score > max_movement {
@@ -110,7 +123,11 @@ impl Pathfinder {
         ((a.x - b.x).abs() + (a.y - b.y).abs()) as f32
     }
 
-    fn reconstruct_path(&self, came_from: &HashMap<Position, Position>, mut current: Position) -> Vec<Position> {
+    fn reconstruct_path(
+        &self,
+        came_from: &HashMap<Position, Position>,
+        mut current: Position,
+    ) -> Vec<Position> {
         let mut path = vec![current];
         while let Some(&previous) = came_from.get(&current) {
             current = previous;
@@ -121,7 +138,12 @@ impl Pathfinder {
     }
 
     /// Find all positions reachable within movement range
-    pub fn find_reachable_positions(&self, world_map: &WorldMap, start: Position, max_movement: f32) -> HashSet<Position> {
+    pub fn find_reachable_positions(
+        &self,
+        world_map: &WorldMap,
+        start: Position,
+        max_movement: f32,
+    ) -> HashSet<Position> {
         let mut reachable = HashSet::new();
         let mut distances: HashMap<Position, f32> = HashMap::new();
         let mut open_set = BinaryHeap::new();
@@ -148,15 +170,16 @@ impl Pathfinder {
                 };
 
                 // Skip impassable terrain
-                if neighbor_tile.movement_cost >= 10.0 {
+                if neighbor_tile.terrain.movement_cost() >= 10.0 {
                     continue;
                 }
 
-                let new_distance = current_distance + neighbor_tile.movement_cost;
-                
+                let new_distance = current_distance + neighbor_tile.terrain.movement_cost();
+
                 if new_distance <= max_movement {
-                    let current_neighbor_distance = *distances.get(&neighbor).unwrap_or(&f32::INFINITY);
-                    
+                    let current_neighbor_distance =
+                        *distances.get(&neighbor).unwrap_or(&f32::INFINITY);
+
                     if new_distance < current_neighbor_distance {
                         distances.insert(neighbor, new_distance);
                         open_set.push(DijkstraNode {
@@ -172,13 +195,19 @@ impl Pathfinder {
     }
 
     /// Find nearest position of a specific type
-    pub fn find_nearest<F>(&self, world_map: &WorldMap, start: Position, predicate: F, max_search_distance: i32) -> Option<Position>
+    pub fn find_nearest<F>(
+        &self,
+        world_map: &WorldMap,
+        start: Position,
+        predicate: F,
+        max_search_distance: i32,
+    ) -> Option<Position>
     where
         F: Fn(&MapTile) -> bool,
     {
         let mut visited = HashSet::new();
         let mut queue = std::collections::VecDeque::new();
-        
+
         queue.push_back((start, 0));
         visited.insert(start);
 
@@ -228,7 +257,10 @@ impl PartialOrd for AStarNode {
 impl Ord for AStarNode {
     fn cmp(&self, other: &Self) -> Ordering {
         // Reverse ordering for min-heap behavior
-        other.f_score.partial_cmp(&self.f_score).unwrap_or(Ordering::Equal)
+        other
+            .f_score
+            .partial_cmp(&self.f_score)
+            .unwrap_or(Ordering::Equal)
     }
 }
 
@@ -255,6 +287,9 @@ impl PartialOrd for DijkstraNode {
 impl Ord for DijkstraNode {
     fn cmp(&self, other: &Self) -> Ordering {
         // Reverse ordering for min-heap behavior
-        other.distance.partial_cmp(&self.distance).unwrap_or(Ordering::Equal)
+        other
+            .distance
+            .partial_cmp(&self.distance)
+            .unwrap_or(Ordering::Equal)
     }
 }

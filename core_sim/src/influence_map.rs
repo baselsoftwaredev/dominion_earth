@@ -185,10 +185,10 @@ impl InfluenceMap {
                     }
 
                     // Defensive bonus
-                    strategic_value += tile.defense_bonus;
+                    strategic_value += tile.terrain.defensive_bonus();
 
                     // Movement accessibility (inverse of movement cost)
-                    strategic_value += 2.0 / tile.movement_cost;
+                    strategic_value += 2.0 / tile.terrain.movement_cost();
 
                     self.set_influence(&InfluenceType::Strategic, pos, strategic_value);
                 }

@@ -49,8 +49,6 @@ fn create_ocean_tile() -> MapTile {
         owner: None,
         city: None,
         resource: None,
-        movement_cost: terrain_stats::OCEAN_MOVEMENT_COST,
-        defense_bonus: terrain_stats::OCEAN_DEFENSE_BONUS,
     }
 }
 
@@ -61,8 +59,6 @@ fn create_plains_tile() -> MapTile {
         owner: None,
         city: None,
         resource: None,
-        movement_cost: terrain_stats::BASE_MOVEMENT_COST,
-        defense_bonus: terrain_stats::BASE_DEFENSE_BONUS,
     }
 }
 
