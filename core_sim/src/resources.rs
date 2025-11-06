@@ -304,6 +304,7 @@ impl Default for GameConfig {
 }
 
 /// Random number generator resource
+/// Uses bevy_rand for deterministic, seeded RNG that can be reproduced exactly
 #[derive(Resource)]
 pub struct GameRng(pub rand_pcg::Pcg64);
 

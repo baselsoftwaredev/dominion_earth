@@ -2,7 +2,9 @@ use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
 use core_sim::components::military::FacingDirection;
 use core_sim::components::turn_phases::TurnPhase;
-use core_sim::resources::{ActiveCivTurn, CurrentTurn, GameConfig, MapTile, Resource, WorldMap};
+use core_sim::resources::{
+    ActiveCivTurn, CurrentTurn, GameConfig, GameRng, MapTile, Resource, WorldMap,
+};
 use core_sim::{
     Building, BuildingType, Capital, CapitalAge, City, CivId, CivPersonality, CivStats,
     Civilization, Direction, Economy, FogOfWarMaps, Military, MilitaryUnit, PlayerControlled,
@@ -10,6 +12,8 @@ use core_sim::{
     VisibilityMap, VisibilityState,
 };
 use moonshine_save::prelude::*;
+use rand::SeedableRng;
+use rand_pcg;
 
 use crate::screens::LoadingState;
 use crate::settings::GameSettings;
@@ -80,6 +84,7 @@ impl Plugin for SaveLoadPlugin {
                 (
                     handle_save_requests,
                     (handle_load_requests, trigger_pending_load).chain(),
+                    regenerate_map_after_load,
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
                     respawn_ui_after_load,
@@ -119,9 +124,11 @@ fn handle_save_requests(
 
         let file_path = format!("saves/{}.ron", save_name);
 
+        // Note: WorldMap is NOT included in the save. Instead, it will be regenerated
+        // from the seed stored in GameConfig when the save is loaded. This ensures
+        // deterministic map generation and reduces save file size.
         commands.trigger_save(
             SaveWorld::default_into_file(file_path)
-                .include_resource::<WorldMap>()
                 .include_resource::<CurrentTurn>()
                 .include_resource::<ActiveCivTurn>()
                 .include_resource::<TurnPhase>()
@@ -191,6 +198,41 @@ pub fn save_game(save_state: &mut ResMut<SaveLoadState>, save_name: &str) {
 pub fn load_game(save_state: &mut ResMut<SaveLoadState>, save_name: &str) {
     save_state.load_requested = Some(save_name.to_string());
     info!("Load requested: {}", save_name);
+}
+
+/// Regenerates the map from the loaded seed after a save is loaded
+///
+/// This system runs after the save file is loaded. Since the WorldMap is not serialized
+/// in save files (to reduce save size and ensure deterministic generation), we regenerate
+/// it here using the seed from GameConfig. This guarantees the same map is recreated.
+fn regenerate_map_after_load(
+    mut world_map: ResMut<WorldMap>,
+    mut rng: ResMut<GameRng>,
+    game_config: Res<GameConfig>,
+    save_state: Res<SaveLoadState>,
+) {
+    // Only regenerate if we've just loaded a save and the game config was loaded
+    if !save_state.is_loading_from_save || !game_config.is_changed() {
+        return;
+    }
+
+    info!(
+        "🗺️ Regenerating map after load using seed: {}",
+        game_config.random_seed
+    );
+
+    // Reinitialize the RNG with the loaded seed
+    rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
+
+    // Regenerate the world map with the same seed
+    let map_width = world_map.width;
+    let map_height = world_map.height;
+    *world_map = core_sim::world_gen::generate_island_map(map_width, map_height, &mut rng.0);
+
+    info!(
+        "✅ Map regeneration complete - {}x{}",
+        world_map.width, world_map.height
+    );
 }
 
 fn restore_player_control_after_load(
