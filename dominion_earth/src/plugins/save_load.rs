@@ -3,7 +3,8 @@ use bevy::prelude::*;
 use core_sim::components::military::FacingDirection;
 use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{
-    ActiveCivTurn, CurrentTurn, GameConfig, GameRng, MapTile, Resource, WorldMap,
+    ActiveCivTurn, CurrentTurn, GameConfig, GameRng, MapTile, Resource, TileModifications,
+    TileState, WorldMap,
 };
 use core_sim::{
     Building, BuildingType, Capital, CapitalAge, City, CivId, CivPersonality, CivStats,
@@ -67,6 +68,8 @@ impl Plugin for SaveLoadPlugin {
             .register_type::<PlayerMovementOrder>()
             .register_type::<ProvidesVision>()
             .register_type::<WorldMap>()
+            .register_type::<TileState>()
+            .register_type::<TileModifications>()
             .register_type::<CurrentTurn>()
             .register_type::<ActiveCivTurn>()
             .register_type::<TurnPhase>()
@@ -84,7 +87,9 @@ impl Plugin for SaveLoadPlugin {
                 (
                     handle_save_requests,
                     (handle_load_requests, trigger_pending_load).chain(),
-                    regenerate_map_after_load,
+                    regenerate_map_from_seed_after_load,
+                    restore_tiles_from_modifications,
+                    rebuild_tilemap_after_modifications,
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
                     respawn_ui_after_load,
@@ -93,7 +98,6 @@ impl Plugin for SaveLoadPlugin {
                     clear_loading_flag,
                 ),
             );
-
         info!("SaveLoadPlugin initialized with moonshine-save MVC architecture");
     }
 }
@@ -116,6 +120,8 @@ fn handle_save_requests(
     mut save_state: ResMut<SaveLoadState>,
     global_volume: Res<GlobalVolume>,
     mut saved_volume: ResMut<SavedMusicVolume>,
+    world_map: Res<WorldMap>,
+    mut tile_modifications: ResMut<TileModifications>,
 ) {
     if let Some(save_name) = save_state.save_requested.take() {
         info!("Saving game: {}", save_name);
@@ -124,11 +130,28 @@ fn handle_save_requests(
 
         let file_path = format!("saves/{}.ron", save_name);
 
-        // Note: WorldMap is NOT included in the save. Instead, it will be regenerated
-        // from the seed stored in GameConfig when the save is loaded. This ensures
-        // deterministic map generation and reduces save file size.
+        // Record all current tile states as modifications from the base seed
+        // Strategy: regenerate from seed + apply mods to recreate exact map state
+        tile_modifications.clear();
+        for x in 0..world_map.width {
+            for y in 0..world_map.height {
+                let pos = core_sim::Position::new(x as i32, y as i32);
+                if let Some(tile) = world_map.get_tile(pos) {
+                    tile_modifications.record_modification(pos, tile.clone());
+                }
+            }
+        }
+
+        info!(
+            "💾 Saving {} tile modifications",
+            tile_modifications.modifications.len()
+        );
+
+        // Save the seed in GameConfig + tile modifications for delta-based regeneration
+        // On load: regenerate base map from seed, then apply all modifications
         commands.trigger_save(
             SaveWorld::default_into_file(file_path)
+                .include_resource::<TileModifications>()
                 .include_resource::<CurrentTurn>()
                 .include_resource::<ActiveCivTurn>()
                 .include_resource::<TurnPhase>()
@@ -188,6 +211,93 @@ fn mark_all_post_load_restoration_flags(save_state: &mut ResMut<SaveLoadState>) 
     save_state.needs_player_restore = true;
     save_state.fog_of_war_needs_refresh = true;
     save_state.ui_needs_respawn = true;
+}
+
+/// Regenerate the map from the saved seed after loading
+/// This ensures a deterministic base map that matches what was originally generated
+fn regenerate_map_from_seed_after_load(
+    mut world_map: ResMut<WorldMap>,
+    mut rng: ResMut<GameRng>,
+    game_config: Res<GameConfig>,
+    save_state: Res<SaveLoadState>,
+) {
+    // Only regenerate if we just loaded a save
+    if !save_state.is_loading_from_save || save_state.frames_since_load_triggered > 0 {
+        return;
+    }
+
+    info!(
+        "🗺️ Regenerating base map from seed: {}",
+        game_config.random_seed
+    );
+
+    // Reinitialize RNG with the saved seed
+    rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
+
+    // Regenerate the world map
+    let map_width = world_map.width;
+    let map_height = world_map.height;
+    *world_map = core_sim::world_gen::generate_island_map(map_width, map_height, &mut rng.0);
+
+    info!(
+        "✅ Base map regenerated - {}x{}",
+        world_map.width, world_map.height
+    );
+}
+
+/// Apply all tile modifications to recreate the exact map state from the save
+fn restore_tiles_from_modifications(
+    mut world_map: ResMut<WorldMap>,
+    tile_modifications: Res<TileModifications>,
+    save_state: Res<SaveLoadState>,
+) {
+    // Only apply if we just loaded a save and have modifications
+    if !save_state.is_loading_from_save {
+        return;
+    }
+
+    if tile_modifications.modifications.is_empty() {
+        return;
+    }
+
+    info!(
+        "🔧 Applying {} tile modifications from save",
+        tile_modifications.modifications.len()
+    );
+
+    // Apply all recorded tile modifications to the regenerated map
+    tile_modifications.apply_to_map(&mut world_map);
+
+    info!("✅ Tile modifications applied - map state restored");
+}
+
+/// Rebuild the tilemap rendering after modifications are applied
+/// Removes the tilemap resource and despawns its entity to force the rendering system to recreate it
+fn rebuild_tilemap_after_modifications(
+    mut commands: Commands,
+    save_state: Res<SaveLoadState>,
+    tilemap_id_resource: Option<Res<crate::rendering::common::TilemapIdResource>>,
+    world_tile_query: Query<Entity, With<core_sim::tile::tile_components::WorldTile>>,
+) {
+    // Only rebuild if we just loaded and applied modifications
+    if !save_state.is_loading_from_save || save_state.frames_since_load_triggered > 1 {
+        return;
+    }
+
+    // If tilemap resource exists, remove it and despawn its entities
+    if tilemap_id_resource.is_some() {
+        info!("🗺️ Rebuilding tilemap to reflect loaded map state...");
+
+        // Despawn all world tile entities
+        for tile_entity in world_tile_query.iter() {
+            commands.entity(tile_entity).despawn();
+        }
+
+        // Remove the tilemap resource
+        commands.remove_resource::<crate::rendering::common::TilemapIdResource>();
+
+        info!("✅ Tilemap cleared and will be recreated with new state");
+    }
 }
 
 pub fn save_game(save_state: &mut ResMut<SaveLoadState>, save_name: &str) {

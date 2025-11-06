@@ -13,7 +13,6 @@ use std::collections::HashMap;
 pub struct WorldMap {
     pub width: u32,
     pub height: u32,
-    #[reflect(skip_serializing)]
     pub tiles: Vec<Vec<MapTile>>,
 }
 
@@ -82,7 +81,6 @@ pub struct MapTile {
     pub terrain: TerrainType,
     pub owner: Option<CivId>,
     pub city: Option<String>,
-    #[reflect(skip_serializing)]
     pub resource: Option<Resource>,
     pub movement_cost: f32,
     pub defense_bonus: f32,
@@ -98,6 +96,86 @@ impl Default for MapTile {
             movement_cost: terrain_stats::BASE_MOVEMENT_COST,
             defense_bonus: terrain_stats::BASE_DEFENSE_BONUS,
         }
+    }
+}
+
+/// Explicit tile state resource for reliable save/load of all tiles
+/// This handles the full 2D tile array which moonshine-save may struggle with
+#[derive(Resource, Debug, Clone, Serialize, Deserialize, Reflect)]
+#[reflect(Resource)]
+pub struct TileState {
+    pub width: u32,
+    pub height: u32,
+    pub tiles: Vec<Vec<MapTile>>,
+}
+
+impl Default for TileState {
+    fn default() -> Self {
+        Self {
+            width: map_generation::DEFAULT_MAP_WIDTH,
+            height: map_generation::DEFAULT_MAP_HEIGHT,
+            tiles: vec![
+                vec![MapTile::default(); map_generation::DEFAULT_MAP_HEIGHT as usize];
+                map_generation::DEFAULT_MAP_WIDTH as usize
+            ],
+        }
+    }
+}
+
+impl From<&WorldMap> for TileState {
+    fn from(map: &WorldMap) -> Self {
+        Self {
+            width: map.width,
+            height: map.height,
+            tiles: map.tiles.clone(),
+        }
+    }
+}
+
+impl TileState {
+    pub fn apply_to_map(&self, map: &mut WorldMap) {
+        map.width = self.width;
+        map.height = self.height;
+        map.tiles = self.tiles.clone();
+    }
+}
+
+/// Tracks modifications to tiles for delta-based map regeneration
+/// Strategy: save seed + modifications, regenerate base map from seed, reapply mods
+/// Using Vec instead of HashMap to avoid Reflect serialization issues with hashable keys
+#[derive(Resource, Debug, Clone, Serialize, Deserialize, Reflect)]
+#[reflect(Resource)]
+pub struct TileModifications {
+    pub modifications: Vec<((i32, i32), MapTile)>,
+}
+
+impl Default for TileModifications {
+    fn default() -> Self {
+        Self {
+            modifications: Vec::new(),
+        }
+    }
+}
+
+impl TileModifications {
+    /// Record a tile modification
+    pub fn record_modification(&mut self, pos: Position, tile: MapTile) {
+        self.modifications.push(((pos.x, pos.y), tile));
+    }
+
+    /// Apply all recorded modifications to the map
+    pub fn apply_to_map(&self, map: &mut WorldMap) {
+        for ((x, y), tile) in &self.modifications {
+            let pos = Position::new(*x, *y);
+            if let Some(map_tile) = map.get_tile_mut(pos) {
+                *map_tile = tile.clone();
+            }
+        }
+    }
+
+    /// Clear all recorded modifications
+    pub fn clear(&mut self) {
+        self.modifications.clear();
     }
 }
 

@@ -101,6 +101,8 @@ pub use resources::{
     DiplomaticState,
     GlobalEconomy,
     Resource as GameResource, // Rename to avoid conflict with bevy_ecs::Resource
+    TileModifications,
+    TileState,
     WorldMap,
 };
 
