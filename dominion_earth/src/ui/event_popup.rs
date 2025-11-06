@@ -11,7 +11,16 @@ use crate::theme::prelude::*;
 /// When added to an event entity, it signals that the event's effects should be applied
 /// and the UI popup should be despawned.
 #[derive(Component)]
-pub struct EventAcknowledged;
+pub struct EventAcknowledged {
+    /// The index of the choice selected by the player (if any)
+    pub selected_choice: Option<usize>,
+}
+
+/// Marker component for events that have had a popup shown.
+///
+/// This prevents duplicate popups from being created for the same event.
+#[derive(Component)]
+pub struct EventPopupShown;
 
 /// Links a UI popup to its corresponding event entity.
 ///
@@ -49,7 +58,7 @@ pub struct EventChoiceButton {
 /// adds the `EventAcknowledged` marker to trigger cleanup.
 pub fn spawn_event_popup(
     mut commands: Commands,
-    pending_events: Query<(Entity, &GameEvent), With<PendingEvent>>,
+    pending_events: Query<(Entity, &GameEvent), (With<PendingEvent>, Without<EventPopupShown>)>,
     player_civs: Query<&core_sim::Civilization, With<PlayerControlled>>,
     game_state: Res<crate::game::GameState>,
 ) {
@@ -90,7 +99,9 @@ pub fn spawn_event_popup(
         );
         create_event_popup_ui(&mut commands, event_entity, event);
 
-        commands.entity(event_entity).remove::<PendingEvent>();
+        // Don't remove PendingEvent here - let the player's choice do that
+        // Mark that we've shown this event to prevent duplicate popups
+        commands.entity(event_entity).insert(EventPopupShown);
     }
 }
 
@@ -330,29 +341,48 @@ fn acknowledge_event(commands: &mut Commands, event_entity: Entity) {
     commands
         .entity(event_entity)
         .remove::<PendingEvent>()
-        .insert(EventAcknowledged);
+        .insert(EventAcknowledged {
+            selected_choice: None,
+        });
 }
 
 fn choose_event_option(commands: &mut Commands, event_entity: Entity, choice_index: usize) {
-    // TODO: Apply the choice-specific effects
-    // For now, just acknowledge the event
-    let _ = choice_index; // Silence unused warning
-    acknowledge_event(commands, event_entity);
+    // Queue a command to update the GameEvent and remove PendingEvent
+    commands.queue(move |world: &mut World| {
+        if let Some(mut event) = world.get_mut::<GameEvent>(event_entity) {
+            event.selected_choice = Some(choice_index);
+            info!(
+                "Player selected choice {} for event '{}'",
+                choice_index, event.title
+            );
+        }
+
+        // Remove PendingEvent marker to trigger effect application
+        world
+            .entity_mut(event_entity)
+            .remove::<PendingEvent>()
+            .insert(EventAcknowledged {
+                selected_choice: Some(choice_index),
+            });
+    });
 }
 
 /// Despawns event popups after their events have been acknowledged.
 ///
 /// This system queries all popups and checks if their linked event entities
-/// have the `EventAcknowledged` marker. Only despawns popups for acknowledged events,
-/// allowing multiple event popups to coexist without interfering with each other.
+/// no longer have PendingEvent (meaning they've been acknowledged and processed).
+/// Despawns popups when the event entity is missing (despawned) or no longer pending.
 pub fn despawn_completed_event_popups(
     mut commands: Commands,
     popups: Query<(Entity, &EventPopup)>,
-    acknowledged_events: Query<Entity, (With<GameEvent>, With<EventAcknowledged>)>,
+    pending_events: Query<(), With<PendingEvent>>,
 ) {
     for (popup_entity, popup) in popups.iter() {
-        if acknowledged_events.contains(popup.event_entity) {
-            debug_println!("🎭 UI: Despawning popup for acknowledged event");
+        // Despawn popup if the event entity doesn't exist or doesn't have PendingEvent
+        let should_despawn = !pending_events.contains(popup.event_entity);
+
+        if should_despawn {
+            debug_println!("🎭 UI: Despawning popup for processed event");
             commands.entity(popup_entity).despawn();
         }
     }

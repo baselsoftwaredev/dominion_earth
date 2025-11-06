@@ -129,6 +129,7 @@ fn spawn_event(
                 choices: event_def.choices.clone(),
                 has_been_shown: false,
                 turn_triggered: current_turn,
+                selected_choice: None,
             },
             PendingEvent,
         ))
@@ -153,27 +154,41 @@ fn spawn_event(
 /// and then despawns the event entity.
 pub fn apply_event_effects(
     mut commands: Commands,
-    mut civs: Query<(
-        &CivId,
-        &mut Civilization,
-        &mut Economy,
-        Option<&mut ActiveEventModifiers>,
-    )>,
+    mut civs: Query<(&CivId, &mut Civilization, Option<&mut ActiveEventModifiers>)>,
     events: Query<(Entity, &GameEvent), Without<PendingEvent>>,
 ) {
     for (event_entity, event) in events.iter() {
-        if let Some((_, mut civ, mut economy, mut modifiers)) = civs
+        if let Some((_, mut civ, mut modifiers)) = civs
             .iter_mut()
-            .find(|(civ_id, _, _, _)| **civ_id == event.affected_civ)
+            .find(|(civ_id, _, _)| **civ_id == event.affected_civ)
         {
-            for effect in &event.effects {
-                apply_effect(
-                    effect,
-                    &mut civ,
-                    &mut economy,
-                    &mut modifiers,
-                    &mut commands,
+            // Determine which effects to apply
+            let effects_to_apply = if let Some(choice_index) = event.selected_choice {
+                // Apply choice-specific effects
+                if let Some(choice) = event.choices.get(choice_index) {
+                    info!(
+                        "Applying choice {} effects for event '{}' to civ {:?}",
+                        choice_index, event.title, event.affected_civ
+                    );
+                    &choice.effects
+                } else {
+                    info!(
+                        "Warning: Invalid choice index {} for event '{}', using base effects",
+                        choice_index, event.title
+                    );
+                    &event.effects
+                }
+            } else {
+                // No choice selected, use base effects
+                info!(
+                    "Applying base effects for event '{}' to civ {:?}",
+                    event.title, event.affected_civ
                 );
+                &event.effects
+            };
+
+            for effect in effects_to_apply {
+                apply_effect(effect, &mut civ, &mut modifiers, &mut commands);
             }
 
             commands.entity(event_entity).despawn();
@@ -183,15 +198,18 @@ pub fn apply_event_effects(
 
 fn apply_effect(
     effect: &EventEffect,
-    _civilization: &mut Civilization,
-    economy: &mut Economy,
+    civilization: &mut Civilization,
     modifiers: &mut Option<Mut<ActiveEventModifiers>>,
     _commands: &mut Commands,
 ) {
     match effect {
         EventEffect::GoldChange(amount) => {
-            economy.gold += amount;
-            info!("Applied gold change: {}", amount);
+            let old_gold = civilization.economy.gold;
+            civilization.economy.gold += amount;
+            info!(
+                "Applied gold change: {} ({} -> {})",
+                amount, old_gold, civilization.economy.gold
+            );
         }
         EventEffect::HappinessChange(_amount) => {
             info!("Happiness change not yet implemented");

@@ -20,18 +20,29 @@ pub struct ProductionDisplayText;
 /// Update gold and production displays from player civilization
 pub fn update_player_resources(
     player_query: Query<&Civilization, With<PlayerControlled>>,
-    mut gold_text: Query<&mut Text, (With<GoldDisplayText>, Without<ProductionDisplayText>)>,
-    mut production_text: Query<&mut Text, With<ProductionDisplayText>>,
+    mut gold_text: Query<&mut Text, With<GoldDisplayText>>,
+    mut production_text: Query<&mut Text, (With<ProductionDisplayText>, Without<GoldDisplayText>)>,
 ) {
-    if let Some(player_civ) = player_query.iter().next() {
-        // Update gold display
-        if let Some(mut text) = gold_text.iter_mut().next() {
-            **text = format!("Gold: {}", player_civ.economy.gold);
-        }
+    let Ok(player_civ) = player_query.single() else {
+        return;
+    };
 
-        // Update production display
-        if let Some(mut text) = production_text.iter_mut().next() {
-            **text = format!("Production: {}", player_civ.economy.production);
+    for mut text in gold_text.iter_mut() {
+        let new_gold_text = format!("Gold: {:.0}", player_civ.economy.gold);
+        if **text != new_gold_text {
+            info!("Gold text changed from '{}' to '{}'", **text, new_gold_text);
+            **text = new_gold_text;
+        }
+    }
+
+    for mut text in production_text.iter_mut() {
+        let new_production_text = format!("Production: {:.0}", player_civ.economy.production);
+        if **text != new_production_text {
+            info!(
+                "Production text changed from '{}' to '{}'",
+                **text, new_production_text
+            );
+            **text = new_production_text;
         }
     }
 }

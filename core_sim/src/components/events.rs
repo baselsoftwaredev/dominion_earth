@@ -18,6 +18,8 @@ pub struct GameEvent {
     pub choices: Vec<EventChoice>,
     pub has_been_shown: bool,
     pub turn_triggered: u32,
+    /// Index of the player/AI selected choice (None means use base effects)
+    pub selected_choice: Option<usize>,
 }
 
 /// The type of trigger condition for an event
