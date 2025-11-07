@@ -158,3 +158,13 @@ pub struct CivStats {
 
 // Re-export ActiveThisTurn from orders module
 pub use super::orders::ActiveThisTurn;
+
+/// Relationship target component tracking all cities belonging to a civilization
+///
+/// This is automatically managed by Bevy's relationship system when CityOfCivilization
+/// components are added to City entities. It allows efficient querying of all cities
+/// belonging to a civilization.
+#[derive(Component, Debug, Default, Reflect)]
+#[reflect(Component)]
+#[require(Save)]
+pub struct CivCities(pub Vec<Entity>);

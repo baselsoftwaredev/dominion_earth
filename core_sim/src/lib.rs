@@ -28,11 +28,13 @@ pub use components::{
     ai::{AIAction, AIDecision, CivilizationData, DecisionType},
     // City components
     city::{
-        Building, BuildingType, Capital, CapitalAge, CapitalEvolutionRequirements, City, Territory,
+        Building, BuildingType, Capital, CapitalAge, CapitalEvolutionRequirements, City,
+        CityOfCivilization, Territory,
     },
     // Civilization components
     civilization::{
-        CivPersonality, CivStats, Civilization, Economy, Military, Technologies, TradeRoute,
+        CivCities, CivPersonality, CivStats, Civilization, Economy, Military, Technologies,
+        TradeRoute,
     },
     // Diplomacy components
     diplomacy::{DiplomaticAction, DiplomaticRelation, Treaty},

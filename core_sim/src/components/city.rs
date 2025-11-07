@@ -1,6 +1,6 @@
 use super::civilization::CivId;
 use super::terrain::TerrainType;
-use bevy::prelude::Reflect;
+use bevy::prelude::{ChildOf, Reflect};
 use bevy_ecs::component::Mutable;
 use bevy_ecs::prelude::*;
 use moonshine_save::prelude::*;
@@ -78,6 +78,15 @@ impl City {
         self.population += amount;
     }
 }
+
+/// Relationship component marking a city as belonging to a civilization
+///
+/// This establishes a parent-child relationship where the civilization is the parent
+/// and cities are the children. This replaces the previous CivId-based lookup pattern.
+#[derive(Component, Debug, Clone, Copy, Reflect)]
+#[reflect(Component)]
+#[require(Save)]
+pub struct CityOfCivilization(pub Entity);
 
 /// Capital component for tracking civilization capitals through different ages
 ///

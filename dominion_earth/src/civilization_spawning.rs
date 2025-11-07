@@ -2,9 +2,9 @@ use crate::debug_utils::DebugUtils;
 use bevy::prelude::*;
 use core_sim::{
     resources::{GameRng, WorldMap},
-    ActiveThisTurn, Building, BuildingType, Capital, CapitalAge, City, CivId, CivPersonality,
-    Civilization, CivilizationDataLoader, CivilizationDefinition, Economy, Military, MilitaryUnit,
-    PlayerControlled, Position, ProductionQueue, Technologies, UnitType,
+    ActiveThisTurn, Building, BuildingType, Capital, CapitalAge, City, CityOfCivilization, CivId,
+    CivPersonality, Civilization, CivilizationDataLoader, CivilizationDefinition, Economy,
+    Military, MilitaryUnit, PlayerControlled, Position, ProductionQueue, Technologies, UnitType,
 };
 
 pub fn spawn_initial_civilizations(
@@ -114,8 +114,12 @@ fn spawn_civilization(
     let civ_id = CivId(civ_index as u32);
     let is_player = !ai_only && civ_index == 0;
 
-    spawn_civilization_entity(commands, civ_def, civ_id, position, is_player);
-    spawn_capital_city(commands, civ_def, civ_id, position, is_player);
+    // Spawn civilization and capture the entity
+    let civ_entity = spawn_civilization_entity(commands, civ_def, civ_id, position, is_player);
+
+    // Spawn capital city with relationship to civilization
+    spawn_capital_city(commands, civ_entity, civ_def, civ_id, position, is_player);
+
     spawn_starting_unit(commands, civ_id, position, civ_index, is_player);
     claim_starting_territory(world_map, civ_id, position, &civ_def.capital_name);
 
@@ -141,7 +145,7 @@ fn spawn_civilization_entity(
     civ_id: CivId,
     position: Position,
     is_player: bool,
-) {
+) -> Entity {
     let color = [civ_def.color.0, civ_def.color.1, civ_def.color.2];
     let personality = CivPersonality::from(civ_def.personality.clone());
 
@@ -179,10 +183,13 @@ fn spawn_civilization_entity(
             civ_def.name
         ));
     }
+
+    civ_entity_commands.id()
 }
 
 fn spawn_capital_city(
     commands: &mut Commands,
+    civ_entity: Entity,
     civ_def: &CivilizationDefinition,
     civ_id: CivId,
     position: Position,
@@ -207,7 +214,13 @@ fn spawn_capital_city(
         established_turn: 0,
     };
 
-    let mut capital_commands = commands.spawn((city, capital, position, civ_id));
+    let mut capital_commands = commands.spawn((
+        city,
+        capital,
+        position,
+        civ_id,
+        CityOfCivilization(civ_entity), // Add relationship to civilization
+    ));
     capital_commands.insert(ProductionQueue::new(civ_id));
     capital_commands.insert(core_sim::ProvidesVision::city_vision());
 
