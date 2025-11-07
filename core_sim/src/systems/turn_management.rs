@@ -2,7 +2,7 @@ use crate::{
     components::{
         city::City,
         position::MovementOrder,
-        production::{ProductionItem, ProductionQueue},
+        production::{ProductionItem, ProductionQueue, QueueItem},
         turn_phases::{
             AITurnComplete, AllAITurnsComplete, ProcessAITurn, StartPlayerTurn, TurnOrder,
             TurnPhase,
@@ -330,6 +330,7 @@ pub fn handle_turn_transition_complete(
     mut player_actions: ResMut<PlayerActionsComplete>,
     mut units: Query<(&mut MilitaryUnit, &Position)>,
     mut production_query: Query<(Entity, &mut ProductionQueue, &mut City, &Capital, &Position)>,
+    queue_items: Query<&QueueItem>,
     mut commands: Commands,
     mut unit_id_counter: Local<u32>,
     world_map: Res<WorldMap>,
@@ -348,6 +349,7 @@ pub fn handle_turn_transition_complete(
 
     process_all_city_production_for_turn(
         &mut production_query,
+        &queue_items,
         &mut commands,
         &mut unit_id_counter,
         &world_map,
@@ -428,6 +430,7 @@ fn reset_player_action_tracking(player_actions: &mut ResMut<PlayerActionsComplet
 
 fn process_all_city_production_for_turn(
     production_query: &mut Query<(Entity, &mut ProductionQueue, &mut City, &Capital, &Position)>,
+    queue_items: &Query<&QueueItem>,
     commands: &mut Commands,
     unit_id_counter: &mut Local<u32>,
     world_map: &WorldMap,
@@ -439,18 +442,25 @@ fn process_all_city_production_for_turn(
         let had_production_before =
             production_queue.current_production.is_some() || !production_queue.queue.is_empty();
 
-        if let Some(completed_item) = production_queue.add_production(city.production) {
-            spawn_completed_production_item(
-                commands,
-                &completed_item,
-                &capital.owner,
-                position,
-                unit_id_counter,
-                &mut city,
-                world_map,
-                turn_number,
-                player_civs,
-            );
+        if let Some(completed_item_entity) =
+            production_queue.add_production(city.production, queue_items)
+        {
+            // Get the completed item data
+            if let Ok(queue_item) = queue_items.get(completed_item_entity) {
+                spawn_completed_production_item(
+                    commands,
+                    &queue_item.0,
+                    &capital.owner,
+                    position,
+                    unit_id_counter,
+                    &mut city,
+                    world_map,
+                    turn_number,
+                    player_civs,
+                );
+                // Despawn the completed queue item entity
+                commands.entity(completed_item_entity).despawn();
+            }
         }
 
         let has_production_after =

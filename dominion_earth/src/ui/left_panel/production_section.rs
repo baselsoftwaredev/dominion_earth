@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use core_sim::{Civilization, PlayerProductionOrder, ProductionQueue, UnitType};
+use core_sim::{Civilization, PlayerProductionOrder, ProductionQueue, QueueItem, UnitType};
 
 use super::constants::*;
 use crate::production_input::SelectedCapital;
@@ -412,15 +412,17 @@ pub fn handle_infantry_button(
     selected_capital: Res<SelectedCapital>,
     mut civilizations: Query<&mut Civilization>,
     mut production_queues: Query<&mut ProductionQueue>,
+    mut commands: Commands,
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
-            handle_unit_production(
+            queue_unit(
                 UnitType::Infantry,
                 &mut production_orders,
                 &selected_capital,
                 &mut civilizations,
                 &mut production_queues,
+                commands.reborrow(),
             );
         }
     }
@@ -432,15 +434,17 @@ pub fn handle_archer_button(
     selected_capital: Res<SelectedCapital>,
     mut civilizations: Query<&mut Civilization>,
     mut production_queues: Query<&mut ProductionQueue>,
+    mut commands: Commands,
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
-            handle_unit_production(
+            queue_unit(
                 UnitType::Archer,
                 &mut production_orders,
                 &selected_capital,
                 &mut civilizations,
                 &mut production_queues,
+                commands.reborrow(),
             );
         }
     }
@@ -452,26 +456,29 @@ pub fn handle_cavalry_button(
     selected_capital: Res<SelectedCapital>,
     mut civilizations: Query<&mut Civilization>,
     mut production_queues: Query<&mut ProductionQueue>,
+    mut commands: Commands,
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
-            handle_unit_production(
+            queue_unit(
                 UnitType::Cavalry,
                 &mut production_orders,
                 &selected_capital,
                 &mut civilizations,
                 &mut production_queues,
+                commands.reborrow(),
             );
         }
     }
 }
 
-fn handle_unit_production(
+fn queue_unit(
     unit_type: UnitType,
     production_orders: &mut MessageWriter<PlayerProductionOrder>,
     selected_capital: &SelectedCapital,
     civilizations: &mut Query<&mut Civilization>,
     production_queues: &mut Query<&mut ProductionQueue>,
+    mut commands: Commands,
 ) {
     if !selected_capital.show_production_menu {
         return;
@@ -503,7 +510,10 @@ fn handle_unit_production(
     }
 
     civilization.economy.gold -= unit_cost as f32;
-    production_queue.add_to_queue(unit_production_item.clone());
+
+    // Spawn queue item entity instead of storing directly
+    let queue_item_entity = commands.spawn(QueueItem(unit_production_item.clone())).id();
+    production_queue.add_to_queue(queue_item_entity);
 
     production_orders.write(PlayerProductionOrder {
         capital_entity,
@@ -548,6 +558,7 @@ pub fn update_production_menu(
     selected_capital: Res<SelectedCapital>,
     civilizations: Query<&Civilization>,
     production_queues: Query<&ProductionQueue>,
+    queue_items: Query<&QueueItem>,
     mut menu_query: Query<&mut Node, With<ProductionMenuPanel>>,
     mut capital_name_text: Query<
         &mut Text,
@@ -669,13 +680,13 @@ pub fn update_production_menu(
                     if let Some(mut text) = current_prod_name_text.iter_mut().next() {
                         **text = queue
                             .current_production
-                            .as_ref()
-                            .map(|item| item.name().to_string())
+                            .and_then(|entity| queue_items.get(entity).ok())
+                            .map(|item| item.0.name().to_string())
                             .unwrap_or_else(|| "None".to_string());
                     }
 
                     if let Some(mut text) = current_prod_progress_text.iter_mut().next() {
-                        let progress = (queue.get_progress_percentage() * 100.0) as i32;
+                        let progress = (queue.get_progress_percentage(&queue_items) * 100.0) as i32;
                         **text = format!("Progress: {}%", progress);
                     }
 

@@ -51,6 +51,7 @@ pub use components::{
     // Production components
     production::{
         PlayerAction, PlayerActionType, PlayerActionsComplete, ProductionItem, ProductionQueue,
+        QueueItem, QueueItemOf, QueuedItems, SerializableProductionQueue,
     },
     // Rendering components
     rendering::SpriteEntityReference,

@@ -1,4 +1,6 @@
-use crate::components::production::{PlayerActionsComplete, ProductionItem, ProductionQueue};
+use crate::components::production::{
+    PlayerActionsComplete, ProductionItem, ProductionQueue, QueueItem,
+};
 use crate::resources::CurrentTurn;
 use crate::{
     Capital, City, CivId, Civilization, MilitaryUnit, PlayerControlled, Position, WorldMap,
@@ -8,23 +10,31 @@ use bevy::prelude::*;
 /// System to process production queues each turn
 pub fn process_production_queues(
     mut query: Query<(&mut ProductionQueue, &mut City, &Capital, &Position)>,
+    queue_items: Query<&QueueItem>,
     mut commands: Commands,
     mut unit_id_counter: Local<u32>,
     world_map: Res<WorldMap>,
     current_turn: Res<CurrentTurn>,
 ) {
     for (mut production_queue, mut city, capital, position) in query.iter_mut() {
-        if let Some(completed_item) = production_queue.add_production(city.production) {
-            spawn_completed_production(
-                &mut commands,
-                &completed_item,
-                &capital.owner,
-                position,
-                &mut unit_id_counter,
-                &mut city,
-                &world_map,
-                current_turn.0,
-            );
+        if let Some(completed_item_entity) =
+            production_queue.add_production(city.production, &queue_items)
+        {
+            // Get the completed item data
+            if let Ok(queue_item) = queue_items.get(completed_item_entity) {
+                spawn_completed_production(
+                    &mut commands,
+                    &queue_item.0,
+                    &capital.owner,
+                    position,
+                    &mut unit_id_counter,
+                    &mut city,
+                    &world_map,
+                    current_turn.0,
+                );
+                // Despawn the completed queue item entity
+                commands.entity(completed_item_entity).despawn();
+            }
         }
     }
 }
