@@ -51,17 +51,21 @@ fn cleanup_all_menu_entities(
     children_query: Query<&Children>,
 ) {
     crate::debug_println!("🧹 Cleaning up menu UI on entering Gameplay");
-    let mut despawned = std::collections::HashSet::new();
+
+    fn despawn_recursive(entity: Entity, commands: &mut Commands, children: &Query<&Children>) {
+        if let Ok(children_list) = children.get(entity) {
+            for child in children_list.iter() {
+                despawn_recursive(child, commands, children);
+            }
+        }
+        commands.entity(entity).despawn();
+    }
+
     for entity in &menu_query {
         if let Ok(z_index) = z_index_query.get(entity) {
             if z_index.0 >= crate::theme::constants::z_index::MENU_OVERLAY_Z_INDEX {
                 crate::debug_println!("  Despawning menu entity with z-index {}", z_index.0);
-                entity_utils::recursively_despawn_entity_with_children(
-                    &mut commands,
-                    entity,
-                    &children_query,
-                    &mut despawned,
-                );
+                despawn_recursive(entity, &mut commands, &children_query);
             }
         }
     }

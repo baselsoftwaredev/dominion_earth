@@ -1,4 +1,3 @@
-use crate::entity_utils;
 use crate::ui::traits::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
@@ -93,33 +92,31 @@ fn cleanup_ui(
     left_panel: Query<Entity, With<crate::ui::left_panel::LeftPanel>>,
     children_query: Query<&Children>,
 ) {
-    let mut despawned = std::collections::HashSet::new();
+    // Clean up UI hierarchies using Bevy's parent-child relationships (Children component).
+    // This leverages the implicit hierarchy created by .with_children() during spawning.
+    //
+    // Related: bevy_relationships_research.md - Phase 1: UI Cleanup
+    // See: https://taintedcoders.com/bevy/relationships
+
+    fn despawn_recursive(entity: Entity, commands: &mut Commands, children: &Query<&Children>) {
+        if let Ok(children_list) = children.get(entity) {
+            for child in children_list.iter() {
+                despawn_recursive(child, commands, children);
+            }
+        }
+        commands.entity(entity).despawn();
+    }
 
     for entity in &top_panel {
-        entity_utils::recursively_despawn_entity_with_children(
-            &mut commands,
-            entity,
-            &children_query,
-            &mut despawned,
-        );
+        despawn_recursive(entity, &mut commands, &children_query);
     }
 
     for entity in &right_panel {
-        entity_utils::recursively_despawn_entity_with_children(
-            &mut commands,
-            entity,
-            &children_query,
-            &mut despawned,
-        );
+        despawn_recursive(entity, &mut commands, &children_query);
     }
 
     for entity in &left_panel {
-        entity_utils::recursively_despawn_entity_with_children(
-            &mut commands,
-            entity,
-            &children_query,
-            &mut despawned,
-        );
+        despawn_recursive(entity, &mut commands, &children_query);
     }
 }
 
