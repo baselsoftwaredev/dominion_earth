@@ -2,7 +2,8 @@ use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins(AudioPlugin);
+    app.add_plugins(AudioPlugin)
+        .add_systems(Update, cleanup_expired_sound_effects);
 }
 
 /// An organizational marker component that should be added to a spawned audio instance if it's in the
@@ -41,8 +42,31 @@ pub fn play_sound_effect(
     let handle = asset_server.load(&path);
     audio.play(handle.clone()).with_volume(0.5);
 
-    // Spawn a marker entity for tracking
-    commands.spawn((SoundEffect, Name::new(format!("SFX: {}", path))));
+    // Spawn a marker entity for tracking with automatic despawn after 5 seconds
+    // (typical sound effect duration, prevents entity accumulation)
+    commands.spawn((
+        SoundEffect,
+        Name::new(format!("SFX: {}", path)),
+        DespawnMarker(Timer::from_seconds(5.0, TimerMode::Once)),
+    ));
+}
+
+/// Marker component to automatically despawn an entity after a timer expires
+#[derive(Component)]
+pub struct DespawnMarker(pub Timer);
+
+/// System to despawn sound effect marker entities when their timer expires
+pub fn cleanup_expired_sound_effects(
+    mut commands: Commands,
+    mut sound_effects: Query<(Entity, &mut DespawnMarker)>,
+    time: Res<Time>,
+) {
+    for (entity, mut despawn_marker) in &mut sound_effects {
+        despawn_marker.0.tick(time.delta());
+        if despawn_marker.0.is_finished() {
+            commands.entity(entity).despawn();
+        }
+    }
 }
 
 /// Helper function to play looping background music.
