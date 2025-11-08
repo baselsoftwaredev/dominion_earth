@@ -12,11 +12,17 @@ pub struct DebugToolboxState {
     pub test_checkbox: bool,
 }
 
+#[derive(Resource, Default)]
+pub struct FogOfWarToggle {
+    pub enabled: bool,
+}
+
 pub struct DebugToolboxPlugin;
 
 impl Plugin for DebugToolboxPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DebugToolboxState>()
+            .init_resource::<FogOfWarToggle>()
             .add_systems(Startup, spawn_debug_toolbox)
             .add_systems(Update, toggle_debug_toolbox)
             .add_systems(EguiPrimaryContextPass, update_debug_toolbox);
@@ -71,7 +77,29 @@ pub fn update_debug_toolbox(world: &mut World) {
 
             ui.separator();
 
-            // Close button
+            // Fog of War Toggle
+            let mut fog_toggle = world.resource_mut::<FogOfWarToggle>();
+            ui.horizontal(|ui| {
+                ui.label("Fog of War:");
+                if ui
+                    .button(if fog_toggle.enabled {
+                        "Disable FOW"
+                    } else {
+                        "Enable FOW"
+                    })
+                    .clicked()
+                {
+                    fog_toggle.enabled = !fog_toggle.enabled;
+                }
+            });
+
+            if fog_toggle.enabled {
+                ui.colored_label(Color32::YELLOW, "✓ Fog of War enabled");
+            } else {
+                ui.colored_label(Color32::RED, "✗ Fog of War disabled");
+            }
+
+            ui.separator();
             if ui.button("Close Toolbox").clicked() {
                 let mut debug_state = world.resource_mut::<DebugToolboxState>();
                 debug_state.is_visible = false;

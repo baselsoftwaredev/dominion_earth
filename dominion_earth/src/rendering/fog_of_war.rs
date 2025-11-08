@@ -3,6 +3,7 @@ use bevy_ecs_tilemap::prelude::*;
 use core_sim::{CivId, FogOfWarMaps, PlayerControlled, Position, VisibilityState};
 
 use crate::ui::capital_labels::CapitalLabel;
+use crate::ui::debug_toolbox::FogOfWarToggle;
 use crate::ui::unit_labels::UnitLabel;
 
 /// Component that links a tile sprite entity to its grid position
@@ -16,9 +17,19 @@ pub struct TileSprite {
 /// This runs after fog of war is updated and modifies tile sprite colors
 pub fn apply_fog_of_war_to_tiles(
     fog_of_war: Res<FogOfWarMaps>,
+    fog_toggle: Res<FogOfWarToggle>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
     mut tile_query: Query<(&TileSprite, &mut TileColor)>,
 ) {
+    // If fog of war is disabled, skip
+    if !fog_toggle.enabled {
+        // Set all tiles to full brightness when FOW is disabled
+        for (_, mut tile_color) in tile_query.iter_mut() {
+            tile_color.0 = Color::WHITE;
+        }
+        return;
+    }
+
     // Get the player's civilization ID
     let player_civ_id = if let Ok(player_civ) = player_query.single() {
         player_civ.id
@@ -51,6 +62,7 @@ pub fn apply_fog_of_war_to_tiles(
 /// This hides units, cities, etc. that are on tiles the player hasn't seen
 pub fn hide_entities_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
+    fog_toggle: Res<FogOfWarToggle>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
     // Query entities with sprites (units, capitals)
     entity_query: Query<(
@@ -61,6 +73,18 @@ pub fn hide_entities_in_fog(
     )>,
     mut visibility_query: Query<&mut Visibility>,
 ) {
+    // If fog of war is disabled, show all entities
+    if !fog_toggle.enabled {
+        for (_, _, sprite_ref, _) in entity_query.iter() {
+            if let Some(sprite_ref) = sprite_ref {
+                if let Ok(mut visibility) = visibility_query.get_mut(sprite_ref.sprite_entity) {
+                    *visibility = Visibility::Inherited;
+                }
+            }
+        }
+        return;
+    }
+
     // Get the player's civilization ID
     let player_civ_id = if let Ok(player_civ) = player_query.single() {
         player_civ.id
@@ -107,10 +131,19 @@ pub fn hide_entities_in_fog(
 /// This hides the Text2d labels above capitals that are in fog of war
 pub fn hide_capital_labels_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
+    fog_toggle: Res<FogOfWarToggle>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
     capital_query: Query<(&Position, &core_sim::Capital)>,
     mut label_query: Query<(Entity, &CapitalLabel, &mut Visibility)>,
 ) {
+    // If fog of war is disabled, show all capital labels
+    if !fog_toggle.enabled {
+        for (_, _, mut label_visibility) in label_query.iter_mut() {
+            *label_visibility = Visibility::Inherited;
+        }
+        return;
+    }
+
     // Get the player's civilization ID
     let player_civ_id = if let Ok(player_civ) = player_query.single() {
         player_civ.id
@@ -153,10 +186,19 @@ pub fn hide_capital_labels_in_fog(
 /// This hides the Text2d labels above units that are in fog of war
 pub fn hide_unit_labels_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
+    fog_toggle: Res<FogOfWarToggle>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
     unit_query: Query<(&Position, &core_sim::MilitaryUnit)>,
     mut label_query: Query<(Entity, &UnitLabel, &mut Visibility)>,
 ) {
+    // If fog of war is disabled, show all unit labels
+    if !fog_toggle.enabled {
+        for (_, _, mut label_visibility) in label_query.iter_mut() {
+            *label_visibility = Visibility::Inherited;
+        }
+        return;
+    }
+
     // Get the player's civilization ID
     let player_civ_id = if let Ok(player_civ) = player_query.single() {
         player_civ.id
