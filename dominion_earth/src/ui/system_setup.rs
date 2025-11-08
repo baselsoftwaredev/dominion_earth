@@ -10,6 +10,11 @@ pub struct BevyUiSystem;
 
 impl BevyUiSystem {
     pub fn setup_plugins(app: &mut App) {
+        #[cfg(debug_assertions)]
+        {
+            app.add_plugins(crate::ui::debug_toolbox::DebugToolboxPlugin);
+        }
+
         app.add_systems(
             Startup,
             (
@@ -41,9 +46,19 @@ impl BevyUiSystem {
                 crate::ui::left_panel::update_unit_info,
             ),
         );
+
+        #[cfg(debug_assertions)]
+        {
+            // Debug toolbox is already set up in the plugin
+        }
     }
 
     pub fn setup_plugins_for_screen<S: States>(app: &mut App, screen: S) {
+        #[cfg(debug_assertions)]
+        {
+            app.add_plugins(crate::ui::debug_toolbox::DebugToolboxPlugin);
+        }
+
         app.add_systems(
             OnEnter(screen.clone()),
             (
@@ -80,8 +95,13 @@ impl BevyUiSystem {
                 crate::ui::left_panel::update_production_menu,
                 crate::ui::left_panel::update_unit_info,
             )
-                .run_if(in_state(screen)),
+                .run_if(in_state(screen.clone())),
         );
+
+        #[cfg(debug_assertions)]
+        {
+            // Debug toolbox is already set up in the plugin
+        }
     }
 }
 

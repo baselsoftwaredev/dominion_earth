@@ -1,5 +1,7 @@
 pub mod capital_labels;
 pub mod constants;
+#[cfg(debug_assertions)]
+pub mod debug_toolbox;
 pub mod event_popup;
 pub mod left_panel;
 pub mod resources;
@@ -9,7 +11,10 @@ pub mod top_panel;
 pub mod traits;
 pub mod unit_labels;
 pub mod utilities;
+
 pub use capital_labels::*;
+#[cfg(debug_assertions)]
+pub use debug_toolbox::*;
 pub use event_popup::*;
 pub use left_panel::*;
 pub use resources::*;
