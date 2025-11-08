@@ -17,5 +17,6 @@ mode: agent
    - Review the examples to understand Bevy best practices and idiomatic patterns for the specific feature being implemented
 
 3. **Apply Standards**
-   - Refactor the code to follow Bevy conventions found in the examples
-   - Ensure consistency with Bevy's ECS patterns, naming conventions, and architectural approaches
+   - Create phase based on the findings from Bevy examples
+   - Implement the phase in the codebase and let the user test it
+   - When the user confirm it step to next phase that you desgined to apply Bevy standards

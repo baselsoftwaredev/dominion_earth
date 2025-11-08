@@ -30,11 +30,3 @@ Game content lives in `dominion_earth/assets/data/*.ron` - modify RON files rath
 ## Cargo
 
 Don't install new dependencies without approval.
-
-## Documentation
-
-When making changes to systems or architecture:
-
-- **DO** update relevant documentation in `docs/` folder (e.g., `event_system.md`, `fog_of_war.md`, etc.)
-- **DON'T** modify anything in `docs/bevy_examples/` folder - those are reference examples only
-- Keep docs synchronized with code changes to maintain accuracy
