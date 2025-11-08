@@ -4,12 +4,6 @@ use bevy::prelude::*;
 use bevy_ecs_tilemap::TilemapPlugin;
 use core_sim::ChunkManager;
 
-fn should_render_sprites_not_loading_from_save(
-    save_state: Option<Res<crate::plugins::save_load::SaveLoadState>>,
-) -> bool {
-    save_state.map_or(true, |state| !state.is_loading_from_save)
-}
-
 /// Plugin for all rendering systems and setup
 pub struct RenderingPlugin;
 
@@ -34,17 +28,18 @@ impl Plugin for RenderingPlugin {
                         .after(rendering::tilemap::spawn_world_tiles)
                         .after(crate::plugins::save_load::handle_load_requests),
                 )
-                    .run_if(in_state(Screen::Gameplay))
-                    .run_if(should_render_sprites_not_loading_from_save),
+                    .run_if(in_state(Screen::Gameplay)),
             )
             .add_systems(
                 Update,
                 (
                     rendering::chunks::debug_chunk_info,
+                    rendering::units::cleanup_unit_sprites_on_load, // Cleanup old unit sprites on load
                     rendering::units::recreate_missing_unit_sprites
                         .after(crate::plugins::save_load::handle_load_requests),
                     rendering::units::apply_facing_to_new_sprites,
                     rendering::units::update_unit_sprites,
+                    rendering::capitals::cleanup_capital_sprites_on_load, // Cleanup old capital sprites on load
                     rendering::capitals::update_capital_sprites,
                     rendering::capitals::update_animated_capital_sprites,
                     rendering::borders::render_civilization_borders,
@@ -53,8 +48,7 @@ impl Plugin for RenderingPlugin {
                     rendering::fog_of_war::hide_capital_labels_in_fog,
                     rendering::fog_of_war::hide_unit_labels_in_fog,
                 )
-                    .run_if(in_state(Screen::Gameplay))
-                    .run_if(should_render_sprites_not_loading_from_save),
+                    .run_if(in_state(Screen::Gameplay)),
             );
     }
 }

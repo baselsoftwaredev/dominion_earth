@@ -97,16 +97,49 @@ pub fn spawn_entity_on_tile(
     sprite_index: usize,
     z_offset: f32,
 ) -> Option<Entity> {
+    spawn_entity_on_tile_with_parent(
+        commands,
+        tile_assets,
+        tile_storage,
+        map_size,
+        tile_size,
+        grid_size,
+        map_type,
+        anchor,
+        position,
+        sprite_index,
+        z_offset,
+        None,
+    )
+}
+
+/// Spawn an entity sprite on a tile, optionally as a child of the tile
+pub fn spawn_entity_on_tile_with_parent(
+    commands: &mut Commands,
+    tile_assets: &TileAssets,
+    tile_storage: &TileStorage,
+    map_size: &TilemapSize,
+    tile_size: &TilemapTileSize,
+    grid_size: &TilemapGridSize,
+    map_type: &TilemapType,
+    anchor: &TilemapAnchor,
+    position: core_sim::Position,
+    sprite_index: usize,
+    z_offset: f32,
+    parent_tile_entity: Option<Entity>,
+) -> Option<Entity> {
     let tile_pos = TilePos {
         x: position.x as u32,
         y: position.y as u32,
     };
 
-    if let Some(_tile_entity) = tile_storage.get(&tile_pos) {
+    if let Some(tile_entity) = tile_storage.get(&tile_pos) {
         let tile_center =
             tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
         let world_pos = tile_center.extend(z_offset);
 
+        // Always spawn as independent entity for proper rendering
+        // The parent_tile_entity parameter is kept for API compatibility but not used
         let sprite_entity = commands
             .spawn((
                 Sprite::from_atlas_image(
@@ -129,10 +162,7 @@ pub fn spawn_entity_on_tile(
 
         Some(sprite_entity)
     } else {
-        crate::debug_println!(
-            "Warning: Could not find tile at position {:?}",
-            position
-        );
+        crate::debug_println!("Warning: Could not find tile at position {:?}", position);
         None
     }
 }

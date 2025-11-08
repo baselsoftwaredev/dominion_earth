@@ -5,7 +5,11 @@ use core_sim::tile::tile_assets::TileAssets;
 use core_sim::components::{city::Capital, position::Position};
 use crate::constants::rendering::{animation, z_layers};
 use crate::screens::{LoadingState, Screen};
-use super::tilemap::spawn_entity_on_tile;
+use super::tilemap::spawn_entity_on_tile_with_parent;
+
+/// Marker component for capital sprite entities (for cleanup)
+#[derive(Component, Debug, Clone)]
+pub struct CapitalSprite;
 
 #[derive(Component, Debug, Clone)]
 pub struct SpriteAnimationTimer {
@@ -63,6 +67,7 @@ pub fn spawn_animated_capital_sprite(
                         animation::ANCIENT_CAPITAL_END_FRAME,
                         animation::ANCIENT_CAPITAL_ANIMATION_SPEED,
                     ),
+                    CapitalSprite, // Marker for cleanup
                     DespawnOnExit(Screen::Gameplay),         // Auto-despawn when leaving Gameplay
                     DespawnOnEnter(LoadingState::Loading),   // Auto-despawn when loading starts
                 ))
@@ -85,6 +90,7 @@ pub fn spawn_animated_capital_sprite(
                         },
                     ),
                     Transform::from_translation(world_pos),
+                    CapitalSprite, // Marker for cleanup
                     DespawnOnExit(Screen::Gameplay),         // Auto-despawn when leaving Gameplay
                     DespawnOnEnter(LoadingState::Loading),   // Auto-despawn when loading starts
                 ))
@@ -209,21 +215,22 @@ pub fn spawn_capital_sprites(
                     pos.y
                 );
             }
-        }
 
-        spawn_entity_on_tile(
-            &mut commands,
-            &tile_assets,
-            tile_storage,
-            map_size,
-            tile_size,
-            grid_size,
-            map_type,
-            anchor,
-            *pos,
-            capital.sprite_index as usize,
-            z_layers::CAPITAL_Z,
-        );
+            spawn_entity_on_tile_with_parent(
+                &mut commands,
+                &tile_assets,
+                tile_storage,
+                map_size,
+                tile_size,
+                grid_size,
+                map_type,
+                anchor,
+                *pos,
+                capital.sprite_index as usize,
+                z_layers::CAPITAL_Z,
+                Some(tile_entity),
+            );
+        }
     }
 }
 
@@ -251,19 +258,27 @@ pub fn update_capital_sprites(
     };
 
     for (capital, pos) in capitals.iter() {
-        spawn_entity_on_tile(
-            &mut commands,
-            &tile_assets,
-            tile_storage,
-            map_size,
-            tile_size,
-            grid_size,
-            map_type,
-            anchor,
-            *pos,
-            capital.sprite_index as usize,
-            z_layers::CAPITAL_Z,
-        );
+        let tile_pos = TilePos {
+            x: pos.x as u32,
+            y: pos.y as u32,
+        };
+
+        if let Some(tile_entity) = tile_storage.get(&tile_pos) {
+            spawn_entity_on_tile_with_parent(
+                &mut commands,
+                &tile_assets,
+                tile_storage,
+                map_size,
+                tile_size,
+                grid_size,
+                map_type,
+                anchor,
+                *pos,
+                capital.sprite_index as usize,
+                z_layers::CAPITAL_Z,
+                Some(tile_entity),
+            );
+        }
     }
 }
 
@@ -287,6 +302,25 @@ pub fn update_animated_capital_sprites(
 
                 texture_atlas.index = next_index;
             }
+        }
+    }
+}
+
+/// System to clean up all capital sprites when entering LoadingState
+/// This ensures old capital sprites don't linger when loading a new game
+pub fn cleanup_capital_sprites_on_load(
+    mut commands: Commands,
+    loading_state: Res<State<LoadingState>>,
+    capital_sprites: Query<Entity, With<CapitalSprite>>,
+) {
+    // Only cleanup when ENTERING LoadingState, not on any state change
+    if *loading_state == LoadingState::Loading && loading_state.is_changed() {
+        for sprite_entity in &capital_sprites {
+            crate::debug_println!(
+                "DEBUG: Explicitly despawning capital sprite {:?} on load",
+                sprite_entity
+            );
+            commands.entity(sprite_entity).despawn();
         }
     }
 }

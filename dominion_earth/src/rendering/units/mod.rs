@@ -1,5 +1,6 @@
-use super::tilemap::spawn_entity_on_tile;
+use super::tilemap::spawn_entity_on_tile_with_parent;
 use crate::constants::rendering::z_layers;
+use crate::screens::LoadingState;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::{
@@ -7,6 +8,10 @@ use core_sim::components::{
     position::Position,
 };
 use core_sim::tile::tile_assets::TileAssets;
+
+/// Marker component for unit sprite entities (for cleanup)
+#[derive(Component, Debug, Clone)]
+pub struct UnitSprite;
 
 mod constants {
     pub const SPRITE_SCALE_FACING_LEFT: f32 = -1.0;
@@ -160,7 +165,14 @@ fn spawn_unit_sprite(
         unit.facing
     );
 
-    if let Some(sprite_entity) = spawn_entity_on_tile(
+    // Get the tile entity at this position to use as parent
+    let tile_pos = TilePos {
+        x: pos.x as u32,
+        y: pos.y as u32,
+    };
+    let parent_tile_entity = tile_storage.get(&tile_pos);
+
+    if let Some(sprite_entity) = spawn_entity_on_tile_with_parent(
         commands,
         tile_assets,
         tile_storage,
@@ -172,6 +184,7 @@ fn spawn_unit_sprite(
         *pos,
         sprite_index,
         z_layers::UNIT_Z,
+        parent_tile_entity,
     ) {
         let scale_x = match unit.facing {
             FacingDirection::Left => constants::SPRITE_SCALE_FACING_LEFT,
@@ -190,6 +203,9 @@ fn spawn_unit_sprite(
                 "Transform not available yet for sprite, will be updated by update_unit_sprites"
             );
         }
+
+        // Add marker component for cleanup and add SpriteEntityReference
+        commands.entity(sprite_entity).insert(UnitSprite); // Marker for cleanup on load
 
         commands
             .entity(unit_entity)
@@ -271,6 +287,25 @@ pub fn apply_facing_to_new_sprites(
                 unit.facing,
                 unit.unit_type
             );
+        }
+    }
+}
+
+/// System to clean up all unit sprites when entering LoadingState
+/// This ensures old unit sprites don't linger when loading a new game
+pub fn cleanup_unit_sprites_on_load(
+    mut commands: Commands,
+    loading_state: Res<State<LoadingState>>,
+    unit_sprites: Query<Entity, With<UnitSprite>>,
+) {
+    // Only cleanup when ENTERING LoadingState, not on any state change
+    if *loading_state == LoadingState::Loading && loading_state.is_changed() {
+        for sprite_entity in &unit_sprites {
+            crate::debug_println!(
+                "DEBUG: Explicitly despawning unit sprite {:?} on load",
+                sprite_entity
+            );
+            commands.entity(sprite_entity).despawn();
         }
     }
 }
