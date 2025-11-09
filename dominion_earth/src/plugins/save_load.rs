@@ -1,6 +1,7 @@
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
 use core_sim::components::military::FacingDirection;
+use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{
     ActiveCivTurn, CurrentTurn, GameConfig, GameRng, MapTile, Resource, TileModifications,
@@ -67,6 +68,7 @@ impl Plugin for SaveLoadPlugin {
             .register_type::<PlayerControlled>()
             .register_type::<PlayerMovementOrder>()
             .register_type::<ProvidesVision>()
+            .register_type::<SpriteEntityReference>()
             .register_type::<WorldMap>()
             .register_type::<TileState>()
             .register_type::<TileModifications>()
