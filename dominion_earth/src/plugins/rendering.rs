@@ -37,6 +37,8 @@ impl Plugin for RenderingPlugin {
                     rendering::units::cleanup_unit_sprites_on_load, // Cleanup old unit sprites on load
                     rendering::units::recreate_missing_unit_sprites
                         .after(crate::plugins::save_load::handle_load_requests),
+                    rendering::capitals::recreate_missing_capital_sprites
+                        .after(crate::plugins::save_load::handle_load_requests),
                     rendering::units::apply_facing_to_new_sprites,
                     rendering::units::update_unit_sprites,
                     rendering::capitals::cleanup_capital_sprites_on_load, // Cleanup old capital sprites on load

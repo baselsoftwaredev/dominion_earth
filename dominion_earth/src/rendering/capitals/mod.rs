@@ -161,11 +161,96 @@ pub fn spawn_animated_capital_tiles(
     >,
 ) {
     let Some(tile_assets) = tile_assets else {
+        // Silently skip if tile_assets not ready yet
         return;
     };
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
+        // Silently skip if tilemap not ready - will retry next frame
+        return;
+    };
+
+    let capital_count = capitals.iter().count();
+    if capital_count == 0 {
+        return;
+    }
+
+    crate::debug_println!(
+        "🏛️ spawn_animated_capital_tiles: Found {} capitals to process",
+        capital_count
+    );
+
+    let tilemap = TilemapContext {
+        tile_storage,
+        map_size,
+        tile_size,
+        grid_size,
+        map_type,
+        anchor,
+    };
+
+    for (capital_entity, capital, pos) in capitals.iter() {
+        crate::debug_println!(
+            "🏛️ Processing capital {:?} at ({}, {}) with sprite index {}",
+            capital_entity,
+            pos.x,
+            pos.y,
+            capital.sprite_index
+        );
+
+        if let Some(sprite_entity) = spawn_animated_capital_sprite(
+            &mut commands,
+            &tile_assets,
+            &tilemap,
+            *pos,
+            capital.sprite_index,
+            z_layers::CAPITAL_Z,
+        ) {
+            crate::debug_println!(
+                "✅ Added SpriteEntityReference to capital {:?}: sprite_entity={:?}",
+                capital_entity,
+                sprite_entity
+            );
+            commands
+                .entity(capital_entity)
+                .insert(core_sim::components::rendering::SpriteEntityReference { sprite_entity });
+        } else {
+            crate::debug_println!(
+                "❌ Failed to spawn sprite for capital {:?} at ({}, {})",
+                capital_entity,
+                pos.x,
+                pos.y
+            );
+        }
+    }
+}
+
+/// Retry spawning capital sprites for any capitals that still don't have sprite references
+/// This handles cases where the tilemap wasn't ready on the first attempt after load
+pub fn recreate_missing_capital_sprites(
+    mut commands: Commands,
+    tile_assets: Option<Res<TileAssets>>,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    capitals: Query<
+        (Entity, &Capital, &Position),
+        Without<core_sim::components::rendering::SpriteEntityReference>,
+    >,
+) {
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
+    else {
+        // Silently skip if tilemap not ready yet
         return;
     };
 
@@ -180,10 +265,10 @@ pub fn spawn_animated_capital_tiles(
 
     for (capital_entity, capital, pos) in capitals.iter() {
         crate::debug_println!(
-            "Processing capital at ({}, {}) with sprite index {}",
+            "🔄 Recreating missing sprite for capital {:?} at ({}, {})",
+            capital_entity,
             pos.x,
-            pos.y,
-            capital.sprite_index
+            pos.y
         );
 
         if let Some(sprite_entity) = spawn_animated_capital_sprite(
@@ -194,6 +279,11 @@ pub fn spawn_animated_capital_tiles(
             capital.sprite_index,
             z_layers::CAPITAL_Z,
         ) {
+            crate::debug_println!(
+                "✅ Restored SpriteEntityReference to capital {:?}: sprite_entity={:?}",
+                capital_entity,
+                sprite_entity
+            );
             commands
                 .entity(capital_entity)
                 .insert(core_sim::components::rendering::SpriteEntityReference { sprite_entity });
