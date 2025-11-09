@@ -23,6 +23,11 @@ Always use these commands for building and running the game. Don't use the `--re
 cargo run -- --debug-logging        # With debug output
 ```
 
+## When needing to grep logs
+
+Make the user run the game with `--debug-logging` and then grep the logs.
+Work with the user so you can grep the log.
+
 ## Data-Driven Design
 
 Game content lives in `dominion_earth/assets/data/*.ron` - modify RON files rather than hardcoding in Rust.

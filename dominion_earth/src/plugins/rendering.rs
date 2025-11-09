@@ -15,7 +15,9 @@ impl Plugin for RenderingPlugin {
             .add_systems(
                 Update,
                 (
-                    rendering::tilemap::setup_tilemap.after(crate::game::setup_game),
+                    rendering::tilemap::setup_tilemap
+                        .after(crate::game::setup_game)
+                        .after(crate::plugins::save_load::rebuild_tilemap_after_modifications),
                     rendering::tilemap::spawn_world_tiles.after(rendering::tilemap::setup_tilemap),
                     rendering::tilemap::attach_tile_sprite_components
                         .after(rendering::tilemap::setup_tilemap),

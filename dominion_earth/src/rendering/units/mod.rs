@@ -46,13 +46,22 @@ pub fn spawn_unit_sprites(
     mut transforms: Query<&mut Transform>,
 ) {
     let Some(tile_assets) = tile_assets else {
+        crate::debug_println!("⚠️ spawn_unit_sprites: tile_assets not ready");
         return;
     };
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
+        crate::debug_println!("⚠️ spawn_unit_sprites: tilemap query failed");
         return;
     };
+
+    let unit_count = units.iter().count();
+    if unit_count == 0 {
+        return;
+    }
+
+    crate::debug_println!("🎖️ spawn_unit_sprites: Found {} units to spawn", unit_count);
 
     for (unit_entity, unit, pos) in units.iter() {
         spawn_unit_sprite(
@@ -95,13 +104,25 @@ pub fn recreate_missing_unit_sprites(
     mut transforms: Query<&mut Transform>,
 ) {
     let Some(tile_assets) = tile_assets else {
+        crate::debug_println!("⚠️ recreate_missing_unit_sprites: tile_assets not ready");
         return;
     };
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
+        crate::debug_println!("⚠️ recreate_missing_unit_sprites: tilemap query failed");
         return;
     };
+
+    let unit_count = units.iter().count();
+    if unit_count == 0 {
+        return;
+    }
+
+    crate::debug_println!(
+        "🎖️ recreate_missing_unit_sprites: Checking {} units",
+        unit_count
+    );
 
     for (unit_entity, unit, pos, sprite_ref) in units.iter() {
         let needs_new_sprite = if let Some(sprite_ref) = sprite_ref {
@@ -111,6 +132,14 @@ pub fn recreate_missing_unit_sprites(
         };
 
         if needs_new_sprite {
+            crate::debug_println!(
+                "🎖️ Unit {:?} at ({}, {}) needs sprite (has_ref: {})",
+                unit_entity,
+                pos.x,
+                pos.y,
+                sprite_ref.is_some()
+            );
+
             if sprite_ref.is_some() {
                 commands
                     .entity(unit_entity)

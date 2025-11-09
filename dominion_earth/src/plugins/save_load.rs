@@ -1,6 +1,7 @@
 use bevy::audio::{GlobalVolume, Volume};
 use bevy::prelude::*;
 use core_sim::components::military::FacingDirection;
+use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::components::turn_phases::TurnPhase;
 use core_sim::resources::{
     ActiveCivTurn, CurrentTurn, GameConfig, GameRng, MapTile, Resource, TileModifications,
@@ -122,9 +123,17 @@ fn handle_save_requests(
     mut saved_volume: ResMut<SavedMusicVolume>,
     world_map: Res<WorldMap>,
     mut tile_modifications: ResMut<TileModifications>,
+    // Query to remove sprite references before save
+    sprite_refs: Query<Entity, With<SpriteEntityReference>>,
 ) {
     if let Some(save_name) = save_state.save_requested.take() {
         info!("Saving game: {}", save_name);
+
+        // Remove SpriteEntityReference components before saving
+        // These are View components and should not be persisted
+        for entity in sprite_refs.iter() {
+            commands.entity(entity).remove::<SpriteEntityReference>();
+        }
 
         sync_current_volume_to_save(&global_volume, &mut saved_volume);
 
@@ -273,14 +282,24 @@ fn restore_tiles_from_modifications(
 
 /// Rebuild the tilemap rendering after modifications are applied
 /// Removes the tilemap resource and despawns its entity to force the rendering system to recreate it
-fn rebuild_tilemap_after_modifications(
+pub fn rebuild_tilemap_after_modifications(
     mut commands: Commands,
     save_state: Res<SaveLoadState>,
     tilemap_id_resource: Option<Res<crate::rendering::common::TilemapIdResource>>,
     world_tile_query: Query<Entity, With<core_sim::tile::tile_components::WorldTile>>,
 ) {
     // Only rebuild if we just loaded and applied modifications
-    if !save_state.is_loading_from_save || save_state.frames_since_load_triggered > 1 {
+    if !save_state.is_loading_from_save {
+        return;
+    }
+
+    crate::debug_println!(
+        "rebuild_tilemap_after_modifications: frames_since_load={}, is_loading={}",
+        save_state.frames_since_load_triggered,
+        save_state.is_loading_from_save
+    );
+
+    if save_state.frames_since_load_triggered > 1 {
         return;
     }
 
