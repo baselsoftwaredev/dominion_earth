@@ -26,7 +26,10 @@ impl Plugin for DebugToolboxPlugin {
         app.init_resource::<DebugToolboxState>()
             .init_resource::<FogOfWarToggle>()
             .add_systems(Startup, spawn_debug_toolbox)
-            .add_systems(Update, toggle_debug_toolbox)
+            .add_systems(
+                Update,
+                (toggle_debug_toolbox, auto_name_capitals_and_cities),
+            )
             .add_systems(EguiPrimaryContextPass, update_debug_toolbox);
     }
 }
@@ -78,8 +81,8 @@ pub fn update_debug_toolbox(world: &mut World) {
 
             ui.separator();
 
-            // Sprite Inspector Section
-            ui.heading("Sprite Inspector");
+            // Entity/Sprite Browser Section
+            ui.heading("Entity Browser");
 
             // Get search query and selected entity
             let search_query = {
@@ -93,10 +96,10 @@ pub fn update_debug_toolbox(world: &mut World) {
                 ui.text_edit_singleline(&mut debug_state.sprite_search_query);
             });
 
-            // Collect sprites first to avoid borrow conflicts
+            // Collect ALL named entities (not just sprites)
             let mut found_entities: Vec<(Entity, String)> = Vec::new();
             {
-                let mut query = world.query_filtered::<(Entity, &Name), With<Sprite>>();
+                let mut query = world.query_filtered::<(Entity, &Name), ()>();
                 for (entity, name) in query.iter(world) {
                     let name_str = name.as_str();
                     if search_query.is_empty()
@@ -109,20 +112,22 @@ pub fn update_debug_toolbox(world: &mut World) {
                 }
             }
 
-            // Display found sprites
-            ui.label("Found sprites:");
+            // Display found entities
+            ui.label(format!("Found: {} entities", found_entities.len()));
             egui::ScrollArea::vertical()
                 .max_height(200.0)
                 .show(ui, |ui| {
                     if found_entities.is_empty() {
-                        ui.label("No sprites found");
+                        ui.label("No entities found. Search for 'capital' or type a name");
                     } else {
                         let mut debug_state = world.resource_mut::<DebugToolboxState>();
                         for (entity, name) in &found_entities {
                             let is_selected = debug_state.selected_entity == Some(*entity);
-                            if ui.selectable_label(is_selected, name).clicked() {
-                                debug_state.selected_entity = Some(*entity);
-                            }
+                            ui.push_id(entity, |ui| {
+                                if ui.selectable_label(is_selected, name).clicked() {
+                                    debug_state.selected_entity = Some(*entity);
+                                }
+                            });
                         }
                     }
                 });
@@ -133,11 +138,13 @@ pub fn update_debug_toolbox(world: &mut World) {
             let selected_entity = world.resource::<DebugToolboxState>().selected_entity;
             if let Some(selected_entity) = selected_entity {
                 ui.heading("Entity Inspector");
-                egui::ScrollArea::vertical()
-                    .max_height(300.0)
-                    .show(ui, |ui| {
-                        bevy_inspector::ui_for_entity(world, selected_entity, ui);
-                    });
+                ui.push_id(selected_entity, |ui| {
+                    egui::ScrollArea::vertical()
+                        .max_height(300.0)
+                        .show(ui, |ui| {
+                            bevy_inspector::ui_for_entity(world, selected_entity, ui);
+                        });
+                });
             }
 
             ui.separator();
@@ -163,5 +170,36 @@ pub fn toggle_debug_toolbox(
 
     if is_modifier_pressed && keyboard.just_pressed(KeyCode::KeyD) {
         debug_state.is_visible = !debug_state.is_visible;
+    }
+}
+
+/// System to auto-name entities with Capital or City components for easier inspection
+pub fn auto_name_capitals_and_cities(
+    mut commands: Commands,
+    capitals_without_name: Query<
+        (
+            Entity,
+            &core_sim::components::city::Capital,
+            &core_sim::Position,
+        ),
+        Without<Name>,
+    >,
+    cities_without_name: Query<
+        (
+            Entity,
+            &core_sim::components::city::City,
+            &core_sim::Position,
+        ),
+        (Without<Name>, Without<core_sim::components::city::Capital>),
+    >,
+) {
+    for (entity, capital, pos) in capitals_without_name.iter() {
+        let name = format!("Capital_{}_({},{})", capital.owner.0, pos.x, pos.y);
+        commands.entity(entity).insert(Name::new(name));
+    }
+
+    for (entity, city, pos) in cities_without_name.iter() {
+        let name = format!("{}({},{})", city.name, pos.x, pos.y);
+        commands.entity(entity).insert(Name::new(name));
     }
 }
