@@ -17,7 +17,6 @@ use rand::SeedableRng;
 pub struct GameState {
     pub _ai_coordinator: AICoordinatorSystem,
     pub paused: bool,
-    pub auto_advance: bool,
     pub ai_only: bool,
     pub total_civilizations: u32,
     pub turn_timer: Timer,
@@ -29,7 +28,6 @@ impl GameState {
         Self {
             _ai_coordinator: AICoordinatorSystem::new(),
             paused: false,
-            auto_advance: auto,
             ai_only: false,
             total_civilizations: 2,
             turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
@@ -41,7 +39,6 @@ impl GameState {
         Self {
             _ai_coordinator: AICoordinatorSystem::new(),
             paused: false,
-            auto_advance: auto,
             ai_only,
             total_civilizations: 2,
             turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
@@ -53,7 +50,6 @@ impl GameState {
         Self {
             _ai_coordinator: AICoordinatorSystem::new(),
             paused: false,
-            auto_advance,
             ai_only,
             total_civilizations,
             turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
@@ -261,11 +257,7 @@ pub fn game_update_system(
 
     game_state.turn_timer.tick(time.delta());
 
-    let should_advance = if game_state.auto_advance {
-        game_state.turn_timer.just_finished()
-    } else {
-        game_state.next_turn_requested
-    };
+    let should_advance = game_state.next_turn_requested;
 
     // Only update when the flag actually changes to prevent unnecessary triggers
     if turn_advance.0 != should_advance {

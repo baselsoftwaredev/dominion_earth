@@ -16,11 +16,6 @@ pub fn handle_input(
         DebugUtils::log_game_state_change("paused", game_state.paused);
     }
 
-    if keyboard_input.just_pressed(KeyCode::KeyA) {
-        game_state.auto_advance = !game_state.auto_advance;
-        DebugUtils::log_game_state_change("auto-advance", game_state.auto_advance);
-    }
-
     // Save/Load hotkeys
     if keyboard_input.just_pressed(KeyCode::F5) {
         save_game(&mut save_load_state, "quicksave");

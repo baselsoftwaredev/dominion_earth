@@ -1,6 +1,6 @@
 # Dominion Earth
 
-A turn-based, 2D grand strategy game prototype built with Rust and Bevy 0.16. Experience AI-driven gameplay with ~40 civilizations placed in real-world locations, each with distinct human-like personalities and strategic decision-making capabilities.
+A turn-based, 2D grand strategy game prototype built with Rust and Bevy. Experience AI-driven gameplay with ~40 civilizations placed in real-world locations, each with distinct human-like personalities and strategic decision-making capabilities.
 
 ## 🎮 Features
 
@@ -105,7 +105,6 @@ Game settings (volume, random seed, AI-only mode) are saved in `saves/settings.r
 #### Game Controls
 
 - **P**: Pause/Resume
-- **A**: Toggle auto-advance mode
 
 ### Development
 
@@ -187,4 +186,3 @@ The engine supports:
 
 - **Bevy Engine**: Modern ECS game engine for Rust
 - **Rust Community**: Excellent crates and documentation
-- **Strategy Game Classics**: Inspiration from Civilization, Europa Universalis, and similar games

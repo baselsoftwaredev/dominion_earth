@@ -163,11 +163,8 @@ fn reset_all_game_resources(
     *player_actions = core_sim::PlayerActionsComplete::default();
     *selected_capital = crate::production_input::SelectedCapital::default();
 
-    *game_state = crate::game::GameState::new(
-        game_state.auto_advance,
-        game_config.ai_only,
-        game_state.total_civilizations,
-    );
+    *game_state =
+        crate::game::GameState::new(false, game_config.ai_only, game_state.total_civilizations);
 
     crate::debug_println!("✅ Game world cleanup complete");
 }

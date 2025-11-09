@@ -44,7 +44,6 @@ impl Plugin for ResourcesPlugin {
 /// Configuration for resource plugin
 #[derive(Resource)]
 pub struct ResourceConfig {
-    pub auto_advance: bool,
     pub ai_only: bool,
     pub total_civs: u32,
     pub seed: Option<u64>,
@@ -79,7 +78,7 @@ impl Plugin for ResourcesPluginWithConfig {
                 game_config
             })
             .insert_resource(game::GameState::new(
-                self.config.auto_advance,
+                false,
                 self.config.ai_only,
                 self.config.total_civs,
             ));

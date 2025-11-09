@@ -35,7 +35,6 @@ fn main() {
     let loaded_settings = crate::settings::GameSettings::load();
 
     let config = ResourceConfig {
-        auto_advance: false,
         ai_only: loaded_settings.ai_only,
         total_civs: 3,
         seed: loaded_settings.seed,

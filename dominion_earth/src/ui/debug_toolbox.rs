@@ -4,12 +4,14 @@
 /// Based on bevy-inspector-egui patterns for proper egui context handling
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPrimaryContextPass, PrimaryEguiContext};
+use bevy_inspector_egui::bevy_inspector;
 use egui::Color32;
 
 #[derive(Resource, Default)]
 pub struct DebugToolboxState {
     pub is_visible: bool,
-    pub test_checkbox: bool,
+    pub sprite_search_query: String,
+    pub selected_entity: Option<Entity>,
 }
 
 #[derive(Resource, Default)]
@@ -58,25 +60,6 @@ pub fn update_debug_toolbox(world: &mut World) {
             ui.heading("Development Tools");
             ui.separator();
 
-            // Test Label
-            ui.label("Test Label Placeholder:");
-            ui.label("This is a debug toolbox window for development utilities");
-
-            ui.separator();
-
-            // Test Checkbox
-            let mut debug_state = world.resource_mut::<DebugToolboxState>();
-            ui.horizontal(|ui| {
-                ui.label("Test Feature:");
-                ui.checkbox(&mut debug_state.test_checkbox, "Enable test feature");
-            });
-
-            if debug_state.test_checkbox {
-                ui.colored_label(Color32::GREEN, "✓ Test feature is enabled");
-            }
-
-            ui.separator();
-
             // Fog of War Toggle
             let mut fog_toggle = world.resource_mut::<FogOfWarToggle>();
             ui.horizontal(|ui| {
@@ -93,10 +76,68 @@ pub fn update_debug_toolbox(world: &mut World) {
                 }
             });
 
-            if fog_toggle.enabled {
-                ui.colored_label(Color32::YELLOW, "✓ Fog of War enabled");
-            } else {
-                ui.colored_label(Color32::RED, "✗ Fog of War disabled");
+            ui.separator();
+
+            // Sprite Inspector Section
+            ui.heading("Sprite Inspector");
+
+            // Get search query and selected entity
+            let search_query = {
+                let debug_state = world.resource::<DebugToolboxState>();
+                debug_state.sprite_search_query.clone()
+            };
+
+            ui.horizontal(|ui| {
+                ui.label("Search by name:");
+                let mut debug_state = world.resource_mut::<DebugToolboxState>();
+                ui.text_edit_singleline(&mut debug_state.sprite_search_query);
+            });
+
+            // Collect sprites first to avoid borrow conflicts
+            let mut found_entities: Vec<(Entity, String)> = Vec::new();
+            {
+                let mut query = world.query_filtered::<(Entity, &Name), With<Sprite>>();
+                for (entity, name) in query.iter(world) {
+                    let name_str = name.as_str();
+                    if search_query.is_empty()
+                        || name_str
+                            .to_lowercase()
+                            .contains(&search_query.to_lowercase())
+                    {
+                        found_entities.push((entity, name_str.to_string()));
+                    }
+                }
+            }
+
+            // Display found sprites
+            ui.label("Found sprites:");
+            egui::ScrollArea::vertical()
+                .max_height(200.0)
+                .show(ui, |ui| {
+                    if found_entities.is_empty() {
+                        ui.label("No sprites found");
+                    } else {
+                        let mut debug_state = world.resource_mut::<DebugToolboxState>();
+                        for (entity, name) in &found_entities {
+                            let is_selected = debug_state.selected_entity == Some(*entity);
+                            if ui.selectable_label(is_selected, name).clicked() {
+                                debug_state.selected_entity = Some(*entity);
+                            }
+                        }
+                    }
+                });
+
+            ui.separator();
+
+            // Selected Entity Inspector
+            let selected_entity = world.resource::<DebugToolboxState>().selected_entity;
+            if let Some(selected_entity) = selected_entity {
+                ui.heading("Entity Inspector");
+                egui::ScrollArea::vertical()
+                    .max_height(300.0)
+                    .show(ui, |ui| {
+                        bevy_inspector::ui_for_entity(world, selected_entity, ui);
+                    });
             }
 
             ui.separator();

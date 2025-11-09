@@ -1,16 +1,17 @@
+use super::tilemap::spawn_entity_on_tile_with_parent;
+use crate::constants::rendering::{animation, z_layers};
+use crate::screens::{LoadingState, Screen};
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use bevy_ecs_tilemap::tiles::AnimatedTile;
-use core_sim::tile::tile_assets::TileAssets;
 use core_sim::components::{city::Capital, position::Position};
-use crate::constants::rendering::{animation, z_layers};
-use crate::screens::{LoadingState, Screen};
-use super::tilemap::spawn_entity_on_tile_with_parent;
+use core_sim::tile::tile_assets::TileAssets;
 
 /// Marker component for capital sprite entities (for cleanup)
 #[derive(Component, Debug, Clone)]
 pub struct CapitalSprite;
 
+/// Tracks animation state for capital sprites
 #[derive(Component, Debug, Clone)]
 pub struct SpriteAnimationTimer {
     pub animated_tile: AnimatedTile,
@@ -26,15 +27,45 @@ impl SpriteAnimationTimer {
     }
 }
 
+/// Helper struct to reduce function parameter bloat
+pub struct TilemapContext<'a> {
+    pub tile_storage: &'a TileStorage,
+    pub map_size: &'a TilemapSize,
+    pub tile_size: &'a TilemapTileSize,
+    pub grid_size: &'a TilemapGridSize,
+    pub map_type: &'a TilemapType,
+    pub anchor: &'a TilemapAnchor,
+}
+
+/// Creates the base sprite with texture atlas
+fn create_capital_sprite(
+    tile_assets: &TileAssets,
+    sprite_index: u32,
+    world_pos: Vec3,
+) -> (Sprite, Transform) {
+    let sprite = Sprite::from_atlas_image(
+        tile_assets.sprite_sheet.clone(),
+        TextureAtlas {
+            layout: tile_assets.texture_atlas_layout.clone(),
+            index: sprite_index as usize,
+        },
+    );
+    let transform = Transform::from_translation(world_pos);
+    (sprite, transform)
+}
+
+/// Checks if a sprite index should be animated
+fn should_animate_sprite(sprite_index: u32) -> bool {
+    matches!(
+        sprite_index,
+        animation::ANCIENT_CAPITAL_START_FRAME..=animation::ANCIENT_CAPITAL_END_FRAME
+    )
+}
+
 pub fn spawn_animated_capital_sprite(
     commands: &mut Commands,
     tile_assets: &TileAssets,
-    tile_storage: &TileStorage,
-    map_size: &TilemapSize,
-    tile_size: &TilemapTileSize,
-    grid_size: &TilemapGridSize,
-    map_type: &TilemapType,
-    anchor: &TilemapAnchor,
+    tilemap: &TilemapContext,
     position: Position,
     sprite_index: u32,
     z_offset: f32,
@@ -44,71 +75,70 @@ pub fn spawn_animated_capital_sprite(
         y: position.y as u32,
     };
 
-    if let Some(_tile_entity) = tile_storage.get(&tile_pos) {
-        let tile_center =
-            tile_pos.center_in_world(map_size, grid_size, tile_size, map_type, anchor);
-        let world_pos = tile_center.extend(z_offset);
+    // Ensure the tile exists in the tilemap
+    tilemap.tile_storage.get(&tile_pos)?;
 
-        let should_animate = matches!(sprite_index, animation::ANCIENT_CAPITAL_START_FRAME..=animation::ANCIENT_CAPITAL_END_FRAME);
-        
-        let sprite_entity = if should_animate {
-            let entity = commands
-                .spawn((
-                    Sprite::from_atlas_image(
-                        tile_assets.sprite_sheet.clone(),
-                        TextureAtlas {
-                            layout: tile_assets.texture_atlas_layout.clone(),
-                            index: sprite_index as usize,
-                        },
-                    ),
-                    Transform::from_translation(world_pos),
-                    SpriteAnimationTimer::new(
-                        animation::ANCIENT_CAPITAL_START_FRAME,
-                        animation::ANCIENT_CAPITAL_END_FRAME,
-                        animation::ANCIENT_CAPITAL_ANIMATION_SPEED,
-                    ),
-                    CapitalSprite, // Marker for cleanup
-                    DespawnOnExit(Screen::Gameplay),         // Auto-despawn when leaving Gameplay
-                    DespawnOnEnter(LoadingState::Loading),   // Auto-despawn when loading starts
-                ))
-                .id();
+    let tile_center = tile_pos.center_in_world(
+        tilemap.map_size,
+        tilemap.grid_size,
+        tilemap.tile_size,
+        tilemap.map_type,
+        tilemap.anchor,
+    );
+    let world_pos = tile_center.extend(z_offset);
 
-            crate::debug_println!( 
-                "DEBUG: Spawned animated capital sprite at ({}, {}) with animation range {}-{}, speed {}", 
-                position.x, position.y, animation::ANCIENT_CAPITAL_START_FRAME, animation::ANCIENT_CAPITAL_END_FRAME, animation::ANCIENT_CAPITAL_ANIMATION_SPEED
-            );
+    let (sprite, transform) = create_capital_sprite(tile_assets, sprite_index, world_pos);
 
-            entity
-        } else {
-            let entity = commands
-                .spawn((
-                    Sprite::from_atlas_image(
-                        tile_assets.sprite_sheet.clone(),
-                        TextureAtlas {
-                            layout: tile_assets.texture_atlas_layout.clone(),
-                            index: sprite_index as usize,
-                        },
-                    ),
-                    Transform::from_translation(world_pos),
-                    CapitalSprite, // Marker for cleanup
-                    DespawnOnExit(Screen::Gameplay),         // Auto-despawn when leaving Gameplay
-                    DespawnOnEnter(LoadingState::Loading),   // Auto-despawn when loading starts
-                ))
-                .id();
+    let sprite_entity = if should_animate_sprite(sprite_index) {
+        // Spawn animated capital sprite
+        let entity = commands
+            .spawn((
+                sprite,
+                transform,
+                SpriteAnimationTimer::new(
+                    animation::ANCIENT_CAPITAL_START_FRAME,
+                    animation::ANCIENT_CAPITAL_END_FRAME,
+                    animation::ANCIENT_CAPITAL_ANIMATION_SPEED,
+                ),
+                CapitalSprite,
+                DespawnOnExit(Screen::Gameplay),
+                DespawnOnEnter(LoadingState::Loading),
+            ))
+            .id();
 
-            crate::debug_println!(
-                "DEBUG: Spawned static capital sprite at ({}, {}) with index {}", 
-                position.x, position.y, sprite_index
-            );
+        crate::debug_println!(
+            "Spawned animated capital at ({}, {}) with animation range {}-{}, speed {}",
+            position.x,
+            position.y,
+            animation::ANCIENT_CAPITAL_START_FRAME,
+            animation::ANCIENT_CAPITAL_END_FRAME,
+            animation::ANCIENT_CAPITAL_ANIMATION_SPEED
+        );
 
-            entity
-        };
-
-        Some(sprite_entity)
+        entity
     } else {
-        crate::debug_println!("Warning: Could not find tile at position {:?}", position);
-        None
-    }
+        // Spawn static capital sprite
+        let entity = commands
+            .spawn((
+                sprite,
+                transform,
+                CapitalSprite,
+                DespawnOnExit(Screen::Gameplay),
+                DespawnOnEnter(LoadingState::Loading),
+            ))
+            .id();
+
+        crate::debug_println!(
+            "Spawned static capital at ({}, {}) with sprite index {}",
+            position.x,
+            position.y,
+            sprite_index
+        );
+
+        entity
+    };
+
+    Some(sprite_entity)
 }
 
 pub fn spawn_animated_capital_tiles(
@@ -122,7 +152,6 @@ pub fn spawn_animated_capital_tiles(
         &TilemapType,
         &TilemapAnchor,
     )>,
-    // Also check for capitals without sprite references (e.g., loaded from save or spawned before tilemap was ready)
     capitals: Query<
         (Entity, &Capital, &Position),
         Or<(
@@ -131,7 +160,6 @@ pub fn spawn_animated_capital_tiles(
         )>,
     >,
 ) {
-    // Wait for TileAssets to be loaded
     let Some(tile_assets) = tile_assets else {
         return;
     };
@@ -141,9 +169,18 @@ pub fn spawn_animated_capital_tiles(
         return;
     };
 
+    let tilemap = TilemapContext {
+        tile_storage,
+        map_size,
+        tile_size,
+        grid_size,
+        map_type,
+        anchor,
+    };
+
     for (capital_entity, capital, pos) in capitals.iter() {
         crate::debug_println!(
-            "DEBUG: spawn_animated_capital_tiles processing capital at ({}, {}) with sprite index {}",
+            "Processing capital at ({}, {}) with sprite index {}",
             pos.x,
             pos.y,
             capital.sprite_index
@@ -152,12 +189,7 @@ pub fn spawn_animated_capital_tiles(
         if let Some(sprite_entity) = spawn_animated_capital_sprite(
             &mut commands,
             &tile_assets,
-            tile_storage,
-            map_size,
-            tile_size,
-            grid_size,
-            map_type,
-            anchor,
+            &tilemap,
             *pos,
             capital.sprite_index,
             z_layers::CAPITAL_Z,
@@ -183,7 +215,6 @@ pub fn spawn_capital_sprites(
     world_tile_q: Query<&core_sim::tile::tile_components::WorldTile>,
     capitals: Query<(Entity, &Capital, &Position), Added<Capital>>,
 ) {
-    // Wait for TileAssets to be loaded
     let Some(tile_assets) = tile_assets else {
         return;
     };
@@ -193,9 +224,18 @@ pub fn spawn_capital_sprites(
         return;
     };
 
+    let tilemap = TilemapContext {
+        tile_storage,
+        map_size,
+        tile_size,
+        grid_size,
+        map_type,
+        anchor,
+    };
+
     for (_capital_entity, capital, pos) in capitals.iter() {
         crate::debug_println!(
-            "DEBUG: spawn_capital_sprites processing capital at ({}, {}) with sprite index {}",
+            "Spawning capital at ({}, {}) with sprite index {}",
             pos.x,
             pos.y,
             capital.sprite_index
@@ -206,10 +246,11 @@ pub fn spawn_capital_sprites(
             y: pos.y as u32,
         };
 
-        if let Some(tile_entity) = tile_storage.get(&tile_pos) {
+        if let Some(tile_entity) = tilemap.tile_storage.get(&tile_pos) {
+            // Log terrain type for debugging
             if let Ok(world_tile) = world_tile_q.get(tile_entity) {
                 crate::debug_println!(
-                    "DEBUG: Spawning capital on {:?} tile at ({}, {})",
+                    "Capital placed on {:?} terrain at ({}, {})",
                     world_tile.terrain_type,
                     pos.x,
                     pos.y
@@ -219,12 +260,12 @@ pub fn spawn_capital_sprites(
             spawn_entity_on_tile_with_parent(
                 &mut commands,
                 &tile_assets,
-                tile_storage,
-                map_size,
-                tile_size,
-                grid_size,
-                map_type,
-                anchor,
+                tilemap.tile_storage,
+                tilemap.map_size,
+                tilemap.tile_size,
+                tilemap.grid_size,
+                tilemap.map_type,
+                tilemap.anchor,
                 *pos,
                 capital.sprite_index as usize,
                 z_layers::CAPITAL_Z,
@@ -247,7 +288,6 @@ pub fn update_capital_sprites(
     )>,
     capitals: Query<(&Capital, &Position), bevy::ecs::query::Changed<Capital>>,
 ) {
-    // Wait for TileAssets to be loaded
     let Some(tile_assets) = tile_assets else {
         return;
     };
@@ -257,22 +297,31 @@ pub fn update_capital_sprites(
         return;
     };
 
+    let tilemap = TilemapContext {
+        tile_storage,
+        map_size,
+        tile_size,
+        grid_size,
+        map_type,
+        anchor,
+    };
+
     for (capital, pos) in capitals.iter() {
         let tile_pos = TilePos {
             x: pos.x as u32,
             y: pos.y as u32,
         };
 
-        if let Some(tile_entity) = tile_storage.get(&tile_pos) {
+        if let Some(tile_entity) = tilemap.tile_storage.get(&tile_pos) {
             spawn_entity_on_tile_with_parent(
                 &mut commands,
                 &tile_assets,
-                tile_storage,
-                map_size,
-                tile_size,
-                grid_size,
-                map_type,
-                anchor,
+                tilemap.tile_storage,
+                tilemap.map_size,
+                tilemap.tile_size,
+                tilemap.grid_size,
+                tilemap.map_type,
+                tilemap.anchor,
                 *pos,
                 capital.sprite_index as usize,
                 z_layers::CAPITAL_Z,
@@ -286,18 +335,19 @@ pub fn update_animated_capital_sprites(
     time: Res<Time>,
     mut animated_query: Query<(&mut Sprite, &mut SpriteAnimationTimer)>,
 ) {
-    for (mut sprite, mut animation_timer) in animated_query.iter_mut() {
-        animation_timer.timer += time.delta_secs();
+    for (mut sprite, mut anim_timer) in animated_query.iter_mut() {
+        anim_timer.timer += time.delta_secs();
 
-        if animation_timer.timer >= animation_timer.animated_tile.speed {
-            animation_timer.timer = animation::ANIMATION_TIMER_RESET_VALUE;
+        // Advance animation frame when timer exceeds animation speed
+        if anim_timer.timer >= anim_timer.animated_tile.speed {
+            anim_timer.timer = animation::ANIMATION_TIMER_RESET_VALUE;
 
             if let Some(texture_atlas) = &mut sprite.texture_atlas {
-                let current_index = texture_atlas.index;
-                let next_index = if current_index >= animation_timer.animated_tile.end as usize {
-                    animation_timer.animated_tile.start as usize
+                // Wrap animation back to start when reaching the end frame
+                let next_index = if texture_atlas.index >= anim_timer.animated_tile.end as usize {
+                    anim_timer.animated_tile.start as usize
                 } else {
-                    current_index + 1
+                    texture_atlas.index + 1
                 };
 
                 texture_atlas.index = next_index;
@@ -306,20 +356,16 @@ pub fn update_animated_capital_sprites(
     }
 }
 
-/// System to clean up all capital sprites when entering LoadingState
-/// This ensures old capital sprites don't linger when loading a new game
+/// Cleans up capital sprites when loading starts
+/// Ensures old sprites don't persist when transitioning to a new game
 pub fn cleanup_capital_sprites_on_load(
     mut commands: Commands,
     loading_state: Res<State<LoadingState>>,
     capital_sprites: Query<Entity, With<CapitalSprite>>,
 ) {
-    // Only cleanup when ENTERING LoadingState, not on any state change
     if *loading_state == LoadingState::Loading && loading_state.is_changed() {
         for sprite_entity in &capital_sprites {
-            crate::debug_println!(
-                "DEBUG: Explicitly despawning capital sprite {:?} on load",
-                sprite_entity
-            );
+            crate::debug_println!("Despawning capital sprite {:?} on load", sprite_entity);
             commands.entity(sprite_entity).despawn();
         }
     }
