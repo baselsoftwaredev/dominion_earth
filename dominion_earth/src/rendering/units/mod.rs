@@ -52,7 +52,6 @@ pub fn spawn_unit_sprites(
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
-        crate::debug_println!("⚠️ spawn_unit_sprites: tilemap query failed");
         return;
     };
 
@@ -110,7 +109,6 @@ pub fn recreate_missing_unit_sprites(
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
-        crate::debug_println!("⚠️ recreate_missing_unit_sprites: tilemap query failed");
         return;
     };
 

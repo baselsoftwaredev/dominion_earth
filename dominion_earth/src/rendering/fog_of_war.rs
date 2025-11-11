@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
+use core_sim::components::military::MilitaryUnit;
+use core_sim::components::rendering::SpriteEntityReference;
 use core_sim::{CivId, FogOfWarMaps, PlayerControlled, Position, VisibilityState};
 
 use crate::ui::capital_labels::CapitalLabel;
@@ -64,18 +66,32 @@ pub fn hide_entities_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
     fog_toggle: Res<FogOfWarToggle>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
-    // Query entities with sprites (units, capitals)
-    entity_query: Query<(
+    // Query units with sprites
+    units_query: Query<(
         &Position,
+        &core_sim::components::military::MilitaryUnit,
         Option<&PlayerControlled>,
-        Option<&core_sim::SpriteEntityReference>,
-        Option<&CivId>,
+        Option<&SpriteEntityReference>,
+    )>,
+    // Query capitals with sprites
+    capitals_query: Query<(
+        &Position,
+        &core_sim::Capital,
+        Option<&PlayerControlled>,
+        Option<&SpriteEntityReference>,
     )>,
     mut visibility_query: Query<&mut Visibility>,
 ) {
     // If fog of war is disabled, show all entities
     if !fog_toggle.enabled {
-        for (_, _, sprite_ref, _) in entity_query.iter() {
+        for (_, _, _, sprite_ref) in units_query.iter() {
+            if let Some(sprite_ref) = sprite_ref {
+                if let Ok(mut visibility) = visibility_query.get_mut(sprite_ref.sprite_entity) {
+                    *visibility = Visibility::Inherited;
+                }
+            }
+        }
+        for (_, _, _, sprite_ref) in capitals_query.iter() {
             if let Some(sprite_ref) = sprite_ref {
                 if let Ok(mut visibility) = visibility_query.get_mut(sprite_ref.sprite_entity) {
                     *visibility = Visibility::Inherited;
@@ -99,17 +115,17 @@ pub fn hide_entities_in_fog(
         return; // No visibility map yet
     };
 
-    // Hide/show sprite entities based on visibility
-    for (position, is_player_controlled, sprite_ref, civ_id) in entity_query.iter() {
+    // Hide/show unit sprites based on visibility
+    for (position, unit, is_player_controlled, sprite_ref) in units_query.iter() {
         let tile_visibility = visibility_map
             .get(*position)
             .unwrap_or(VisibilityState::Unexplored);
 
-        // Determine if entity should be visible:
-        // 1. Player-controlled entities are always visible
-        // 2. Entities belonging to the player's civ are always visible
-        // 3. Other entities only visible if tile is currently visible (not just explored)
-        let belongs_to_player = civ_id.map_or(false, |cid| *cid == player_civ_id);
+        // Determine if unit should be visible:
+        // 1. Player-controlled units are always visible
+        // 2. Units belonging to the player's civ are always visible
+        // 3. Other units only visible if tile is currently visible (not just explored)
+        let belongs_to_player = unit.owner == player_civ_id;
         let should_be_visible = is_player_controlled.is_some()
             || belongs_to_player
             || matches!(tile_visibility, VisibilityState::Visible);
@@ -117,11 +133,62 @@ pub fn hide_entities_in_fog(
         // Set visibility on the sprite entity (the actual visual representation)
         if let Some(sprite_ref) = sprite_ref {
             if let Ok(mut visibility) = visibility_query.get_mut(sprite_ref.sprite_entity) {
-                *visibility = if should_be_visible {
+                let new_visibility = if should_be_visible {
                     Visibility::Inherited
                 } else {
                     Visibility::Hidden
                 };
+
+                // Debug log for entities that should be hidden
+                if matches!(new_visibility, Visibility::Hidden) {
+                    crate::debug_println!(
+                        "🫙 Hiding unit at {:?} (visibility={:?}, belongs_to_player={})",
+                        position,
+                        tile_visibility,
+                        belongs_to_player
+                    );
+                }
+
+                *visibility = new_visibility;
+            }
+        }
+    }
+
+    // Hide/show capital sprites based on visibility
+    for (position, capital, is_player_controlled, sprite_ref) in capitals_query.iter() {
+        let tile_visibility = visibility_map
+            .get(*position)
+            .unwrap_or(VisibilityState::Unexplored);
+
+        // Determine if capital should be visible:
+        // 1. Player-controlled capitals are always visible
+        // 2. Capitals belonging to the player's civ are always visible
+        // 3. Other capitals only visible if tile is currently visible (not just explored)
+        let belongs_to_player = capital.owner == player_civ_id;
+        let should_be_visible = is_player_controlled.is_some()
+            || belongs_to_player
+            || matches!(tile_visibility, VisibilityState::Visible);
+
+        // Set visibility on the sprite entity (the actual visual representation)
+        if let Some(sprite_ref) = sprite_ref {
+            if let Ok(mut visibility) = visibility_query.get_mut(sprite_ref.sprite_entity) {
+                let new_visibility = if should_be_visible {
+                    Visibility::Inherited
+                } else {
+                    Visibility::Hidden
+                };
+
+                // Debug log for entities that should be hidden
+                if matches!(new_visibility, Visibility::Hidden) {
+                    crate::debug_println!(
+                        "🫙 Hiding capital at {:?} (visibility={:?}, belongs_to_player={})",
+                        position,
+                        tile_visibility,
+                        belongs_to_player
+                    );
+                }
+
+                *visibility = new_visibility;
             }
         }
     }
@@ -178,6 +245,109 @@ pub fn hide_capital_labels_in_fog(
             } else {
                 Visibility::Hidden
             };
+        }
+    }
+}
+
+/// System to despawn sprite entities that are hidden by fog of war to save memory
+/// This prevents accumulation of invisible entities
+pub fn despawn_hidden_entity_sprites(
+    mut commands: Commands,
+    fog_of_war: Res<FogOfWarMaps>,
+    fog_toggle: Res<FogOfWarToggle>,
+    player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
+    // Query units with sprites
+    units_query: Query<(
+        &Position,
+        &core_sim::components::military::MilitaryUnit,
+        Option<&PlayerControlled>,
+        Option<&SpriteEntityReference>,
+    )>,
+    // Query capitals with sprites
+    capitals_query: Query<(
+        &Position,
+        &core_sim::Capital,
+        Option<&PlayerControlled>,
+        Option<&SpriteEntityReference>,
+    )>,
+    visibility_query: Query<&Visibility>,
+) {
+    // Don't despawn if fog of war is disabled
+    if !fog_toggle.enabled {
+        return;
+    }
+
+    // Get the player's civilization ID
+    let player_civ_id = if let Ok(player_civ) = player_query.single() {
+        player_civ.id
+    } else {
+        return; // No player, nothing to do
+    };
+
+    // Get the player's visibility map
+    let visibility_map = if let Some(map) = fog_of_war.get(player_civ_id) {
+        map
+    } else {
+        return; // No visibility map yet
+    };
+
+    // Despawn hidden unit sprites
+    for (position, unit, is_player_controlled, sprite_ref) in units_query.iter() {
+        if is_player_controlled.is_some() {
+            continue; // Keep player-controlled unit sprites
+        }
+
+        let belongs_to_player = unit.owner == player_civ_id;
+        if belongs_to_player {
+            continue; // Keep units belonging to player's civ
+        }
+
+        let tile_visibility = visibility_map
+            .get(*position)
+            .unwrap_or(VisibilityState::Unexplored);
+
+        // Only despawn if tile is not visible (explored or unexplored)
+        if matches!(tile_visibility, VisibilityState::Visible) {
+            continue;
+        }
+
+        // Check if sprite is actually hidden
+        if let Some(sprite_ref) = sprite_ref {
+            if let Ok(visibility) = visibility_query.get(sprite_ref.sprite_entity) {
+                if matches!(visibility, Visibility::Hidden) {
+                    commands.entity(sprite_ref.sprite_entity).despawn();
+                }
+            }
+        }
+    }
+
+    // Despawn hidden capital sprites
+    for (position, capital, is_player_controlled, sprite_ref) in capitals_query.iter() {
+        if is_player_controlled.is_some() {
+            continue; // Keep player-controlled capital sprites
+        }
+
+        let belongs_to_player = capital.owner == player_civ_id;
+        if belongs_to_player {
+            continue; // Keep capitals belonging to player's civ
+        }
+
+        let tile_visibility = visibility_map
+            .get(*position)
+            .unwrap_or(VisibilityState::Unexplored);
+
+        // Only despawn if tile is not visible (explored or unexplored)
+        if matches!(tile_visibility, VisibilityState::Visible) {
+            continue;
+        }
+
+        // Check if sprite is actually hidden
+        if let Some(sprite_ref) = sprite_ref {
+            if let Ok(visibility) = visibility_query.get(sprite_ref.sprite_entity) {
+                if matches!(visibility, Visibility::Hidden) {
+                    commands.entity(sprite_ref.sprite_entity).despawn();
+                }
+            }
         }
     }
 }

@@ -14,9 +14,15 @@ pub struct DebugToolboxState {
     pub selected_entity: Option<Entity>,
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct FogOfWarToggle {
     pub enabled: bool,
+}
+
+impl Default for FogOfWarToggle {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
 }
 
 pub struct DebugToolboxPlugin;

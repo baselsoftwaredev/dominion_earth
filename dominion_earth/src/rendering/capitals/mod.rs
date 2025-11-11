@@ -291,6 +291,91 @@ pub fn recreate_missing_capital_sprites(
     }
 }
 
+/// Recreate capital sprites that have invalid sprite references
+/// This handles stale references that were saved before being properly cleared
+pub fn validate_and_recreate_capital_sprites(
+    mut commands: Commands,
+    tile_assets: Option<Res<TileAssets>>,
+    tilemap_q: Query<(
+        &TileStorage,
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    capitals: Query<
+        (
+            Entity,
+            &Capital,
+            &Position,
+            Option<&core_sim::components::rendering::SpriteEntityReference>,
+        ),
+        With<Capital>,
+    >,
+    mut transforms: Query<&mut Transform>,
+) {
+    let Some(tile_assets) = tile_assets else {
+        return;
+    };
+
+    let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
+    else {
+        return;
+    };
+
+    let tilemap = TilemapContext {
+        tile_storage,
+        map_size,
+        tile_size,
+        grid_size,
+        map_type,
+        anchor,
+    };
+
+    for (capital_entity, capital, pos, sprite_ref) in capitals.iter() {
+        let needs_new_sprite = if let Some(sprite_ref) = sprite_ref {
+            // Check if the sprite entity still exists
+            transforms.get(sprite_ref.sprite_entity).is_err()
+        } else {
+            false // No reference means it's OK, will be handled by recreate_missing_capital_sprites
+        };
+
+        if needs_new_sprite {
+            crate::debug_println!(
+                "🏛️ Capital {:?} at ({}, {}) has invalid sprite reference, recreating",
+                capital_entity,
+                pos.x,
+                pos.y
+            );
+
+            // Remove the stale reference
+            commands
+                .entity(capital_entity)
+                .remove::<core_sim::components::rendering::SpriteEntityReference>();
+
+            // Spawn new sprite
+            if let Some(sprite_entity) = spawn_animated_capital_sprite(
+                &mut commands,
+                &tile_assets,
+                &tilemap,
+                *pos,
+                capital.sprite_index,
+                z_layers::CAPITAL_Z,
+            ) {
+                crate::debug_println!(
+                    "✅ Recreated sprite for capital {:?}: sprite_entity={:?}",
+                    capital_entity,
+                    sprite_entity
+                );
+                commands.entity(capital_entity).insert(
+                    core_sim::components::rendering::SpriteEntityReference { sprite_entity },
+                );
+            }
+        }
+    }
+}
+
 pub fn spawn_capital_sprites(
     mut commands: Commands,
     tile_assets: Option<Res<TileAssets>>,
