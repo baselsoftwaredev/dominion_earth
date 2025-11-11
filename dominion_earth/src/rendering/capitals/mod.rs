@@ -145,7 +145,6 @@ pub fn spawn_animated_capital_sprite(
 
 pub fn spawn_animated_capital_tiles(
     mut commands: Commands,
-    mut visibility_init: ResMut<crate::rendering::fog_of_war::EntityVisibilityNeedsInit>,
     tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
@@ -162,6 +161,7 @@ pub fn spawn_animated_capital_tiles(
             Without<core_sim::components::rendering::SpriteEntityReference>,
         )>,
     >,
+    mut visibility_init: ResMut<crate::rendering::fog_of_war::EntityVisibilityNeedsInit>,
 ) {
     let capital_count = capitals.iter().count();
 
@@ -170,23 +170,14 @@ pub fn spawn_animated_capital_tiles(
         return;
     }
 
-    crate::debug_println!(
-        "🏛️ spawn_animated_capital_tiles: Found {} capitals to process",
-        capital_count
-    );
-    // Signal that entity visibility needs to be initialized after sprite creation
-    visibility_init.needs_init = true;
-
     let Some(tile_assets) = tile_assets else {
         // Silently skip if tile_assets not ready yet
-        crate::debug_println!("🏛️ spawn_animated_capital_tiles: tile_assets not ready");
         return;
     };
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         // Silently skip if tilemap not ready - will retry next frame
-        crate::debug_println!("🏛️ spawn_animated_capital_tiles: tilemap not ready");
         return;
     };
 
@@ -204,6 +195,7 @@ pub fn spawn_animated_capital_tiles(
         anchor,
     };
 
+    let mut sprites_created = false;
     for (capital_entity, capital, pos) in capitals.iter() {
         crate::debug_println!(
             "🏛️ Processing capital {:?} at ({}, {}) with sprite index {}",
@@ -221,6 +213,7 @@ pub fn spawn_animated_capital_tiles(
             capital.sprite_index,
             z_layers::CAPITAL_Z,
         ) {
+            sprites_created = true;
             crate::debug_println!(
                 "✅ Added SpriteEntityReference to capital {:?}: sprite_entity={:?}",
                 capital_entity,
@@ -237,6 +230,11 @@ pub fn spawn_animated_capital_tiles(
                 pos.y
             );
         }
+    }
+
+    // Only signal visibility init if we actually created sprites
+    if sprites_created {
+        visibility_init.needs_init = true;
     }
 }
 
@@ -266,24 +264,20 @@ pub fn recreate_missing_capital_sprites(
         return;
     }
 
-    crate::debug_println!(
-        "🔄 recreate_missing_capital_sprites: Found {} capitals without sprite refs",
-        capital_count
-    );
-    // Signal that entity visibility needs to be initialized after sprite recreation
-    visibility_init.needs_init = true;
-
     let Some(tile_assets) = tile_assets else {
-        crate::debug_println!("🔄 recreate_missing_capital_sprites: tile_assets not ready");
         return;
     };
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         // Silently skip if tilemap not ready yet
-        crate::debug_println!("🔄 recreate_missing_capital_sprites: tilemap not ready");
         return;
     };
+
+    crate::debug_println!(
+        "🔄 recreate_missing_capital_sprites: Found {} capitals without sprite refs",
+        capital_count
+    );
 
     let tilemap = TilemapContext {
         tile_storage,
@@ -294,6 +288,7 @@ pub fn recreate_missing_capital_sprites(
         anchor,
     };
 
+    let mut sprites_created = false;
     for (capital_entity, capital, pos) in capitals.iter() {
         crate::debug_println!(
             "🔄 Recreating missing sprite for capital {:?} at ({}, {})",
@@ -310,6 +305,7 @@ pub fn recreate_missing_capital_sprites(
             capital.sprite_index,
             z_layers::CAPITAL_Z,
         ) {
+            sprites_created = true;
             crate::debug_println!(
                 "✅ Restored SpriteEntityReference to capital {:?}: sprite_entity={:?}",
                 capital_entity,
@@ -319,6 +315,11 @@ pub fn recreate_missing_capital_sprites(
                 .entity(capital_entity)
                 .insert(core_sim::components::rendering::SpriteEntityReference { sprite_entity });
         }
+    }
+
+    // Only signal visibility init if we actually created sprites
+    if sprites_created {
+        visibility_init.needs_init = true;
     }
 }
 
