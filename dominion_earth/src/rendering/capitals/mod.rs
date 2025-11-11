@@ -95,6 +95,7 @@ pub fn spawn_animated_capital_sprite(
             .spawn((
                 sprite,
                 transform,
+                Visibility::Hidden, // Start hidden - fog_of_war system will show if appropriate
                 SpriteAnimationTimer::new(
                     animation::ANCIENT_CAPITAL_START_FRAME,
                     animation::ANCIENT_CAPITAL_END_FRAME,
@@ -122,6 +123,7 @@ pub fn spawn_animated_capital_sprite(
             .spawn((
                 sprite,
                 transform,
+                Visibility::Hidden, // Start hidden - fog_of_war system will show if appropriate
                 CapitalSprite,
                 DespawnOnExit(Screen::Gameplay),
                 DespawnOnEnter(LoadingState::Loading),
@@ -313,7 +315,7 @@ pub fn validate_and_recreate_capital_sprites(
         ),
         With<Capital>,
     >,
-    mut transforms: Query<&mut Transform>,
+    sprites: Query<&Transform>, // Query to check if sprite entities exist
 ) {
     let Some(tile_assets) = tile_assets else {
         return;
@@ -335,8 +337,9 @@ pub fn validate_and_recreate_capital_sprites(
 
     for (capital_entity, capital, pos, sprite_ref) in capitals.iter() {
         let needs_new_sprite = if let Some(sprite_ref) = sprite_ref {
-            // Check if the sprite entity still exists
-            transforms.get(sprite_ref.sprite_entity).is_err()
+            // Check if the sprite entity still exists (not just if it's hidden)
+            // A hidden sprite is still valid - don't recreate it
+            sprites.get(sprite_ref.sprite_entity).is_err()
         } else {
             false // No reference means it's OK, will be handled by recreate_missing_capital_sprites
         };

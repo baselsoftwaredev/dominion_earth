@@ -112,16 +112,8 @@ pub fn recreate_missing_unit_sprites(
         return;
     };
 
-    let unit_count = units.iter().count();
-    if unit_count == 0 {
-        return;
-    }
-
-    crate::debug_println!(
-        "🎖️ recreate_missing_unit_sprites: Checking {} units",
-        unit_count
-    );
-
+    // First pass: check if any units actually need sprite recreation
+    let mut units_needing_sprites = Vec::new();
     for (unit_entity, unit, pos, sprite_ref) in units.iter() {
         let needs_new_sprite = if let Some(sprite_ref) = sprite_ref {
             transforms.get(sprite_ref.sprite_entity).is_err()
@@ -130,6 +122,19 @@ pub fn recreate_missing_unit_sprites(
         };
 
         if needs_new_sprite {
+            units_needing_sprites.push((unit_entity, unit, pos, sprite_ref));
+        }
+    }
+
+    // Only do work and print debug message if there are units that actually need sprites
+    if !units_needing_sprites.is_empty() {
+        crate::debug_println!(
+            "🎖️ recreate_missing_unit_sprites: Recreating sprites for {} of {} units",
+            units_needing_sprites.len(),
+            units.iter().count()
+        );
+
+        for (unit_entity, unit, pos, sprite_ref) in units_needing_sprites {
             crate::debug_println!(
                 "🎖️ Unit {:?} at ({}, {}) needs sprite (has_ref: {})",
                 unit_entity,
