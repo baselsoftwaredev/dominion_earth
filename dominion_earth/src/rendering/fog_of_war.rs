@@ -15,6 +15,12 @@ pub struct TileSprite {
     pub position: Position,
 }
 
+/// Resource to track if entity visibility needs to be initialized after sprite recreation
+#[derive(Resource, Default, Debug)]
+pub struct EntityVisibilityNeedsInit {
+    pub needs_init: bool,
+}
+
 /// System to apply fog of war visibility to tile sprites
 /// This runs after fog of war is updated and modifies tile sprite colors
 pub fn apply_fog_of_war_to_tiles(
@@ -62,18 +68,20 @@ pub fn apply_fog_of_war_to_tiles(
 
 /// System to hide entities on unexplored tiles
 /// This hides units, cities, etc. that are on tiles the player hasn't seen
+/// Only runs when entity positions change or fog of war is updated
 pub fn hide_entities_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
     fog_toggle: Res<FogOfWarToggle>,
+    mut visibility_init: ResMut<EntityVisibilityNeedsInit>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
-    // Query units with sprites
+    // Query units with sprites - NO change filter, needs to work after load
     units_query: Query<(
         &Position,
         &core_sim::components::military::MilitaryUnit,
         Option<&PlayerControlled>,
         Option<&SpriteEntityReference>,
     )>,
-    // Query capitals with sprites
+    // Query capitals with sprites - NO change filter, needs to work after load
     capitals_query: Query<(
         &Position,
         &core_sim::Capital,
@@ -82,6 +90,19 @@ pub fn hide_entities_in_fog(
     )>,
     mut visibility_query: Query<&mut Visibility>,
 ) {
+    // Early exit if fog of war hasn't changed, toggle hasn't changed, AND we don't need visibility init
+    if !fog_toggle.is_changed() && !fog_of_war.is_changed() && !visibility_init.needs_init {
+        return;
+    }
+
+    // Mark that we've initialized visibility this frame
+    if visibility_init.needs_init {
+        visibility_init.needs_init = false;
+        crate::debug_println!(
+            "🔍 hide_entities_in_fog: Initializing entity visibility after sprite recreation"
+        );
+    }
+
     // If fog of war is disabled, show all entities
     if !fog_toggle.enabled {
         for (_, _, _, sprite_ref) in units_query.iter() {
@@ -196,13 +217,22 @@ pub fn hide_entities_in_fog(
 
 /// System to hide capital labels for cities not visible to the player
 /// This hides the Text2d labels above capitals that are in fog of war
+/// Only runs when fog of war or capital positions change
 pub fn hide_capital_labels_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
     fog_toggle: Res<FogOfWarToggle>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
-    capital_query: Query<(&Position, &core_sim::Capital)>,
+    capital_query: Query<
+        (&Position, &core_sim::Capital),
+        Or<(Changed<Position>, Changed<core_sim::Capital>)>,
+    >,
     mut label_query: Query<(Entity, &CapitalLabel, &mut Visibility)>,
 ) {
+    // Early exit if nothing changed and fog of war hasn't changed
+    if !fog_toggle.is_changed() && !fog_of_war.is_changed() && capital_query.is_empty() {
+        return;
+    }
+
     // If fog of war is disabled, show all capital labels
     if !fog_toggle.enabled {
         for (_, _, mut label_visibility) in label_query.iter_mut() {
@@ -354,13 +384,22 @@ pub fn despawn_hidden_entity_sprites(
 
 /// System to hide unit labels for units not visible to the player
 /// This hides the Text2d labels above units that are in fog of war
+/// Only runs when fog of war or unit positions change
 pub fn hide_unit_labels_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
     fog_toggle: Res<FogOfWarToggle>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
-    unit_query: Query<(&Position, &core_sim::MilitaryUnit)>,
+    unit_query: Query<
+        (&Position, &core_sim::MilitaryUnit),
+        Or<(Changed<Position>, Changed<core_sim::MilitaryUnit>)>,
+    >,
     mut label_query: Query<(Entity, &UnitLabel, &mut Visibility)>,
 ) {
+    // Early exit if nothing changed and fog of war hasn't changed
+    if !fog_toggle.is_changed() && !fog_of_war.is_changed() && unit_query.is_empty() {
+        return;
+    }
+
     // If fog of war is disabled, show all unit labels
     if !fog_toggle.enabled {
         for (_, _, mut label_visibility) in label_query.iter_mut() {

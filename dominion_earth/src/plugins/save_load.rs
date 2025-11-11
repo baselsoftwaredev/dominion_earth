@@ -83,6 +83,7 @@ impl Plugin for SaveLoadPlugin {
             .register_type::<SavedMusicVolume>()
             .insert_resource(SavedMusicVolume::default())
             .insert_resource(SaveLoadState::default())
+            .insert_resource(crate::rendering::fog_of_war::EntityVisibilityNeedsInit::default())
             .add_systems(
                 Update,
                 (
@@ -91,8 +92,10 @@ impl Plugin for SaveLoadPlugin {
                     regenerate_map_from_seed_after_load,
                     restore_tiles_from_modifications,
                     rebuild_tilemap_after_modifications,
+                    cleanup_stale_sprite_references_after_load,
                     restore_player_control_after_load,
                     refresh_fog_of_war_after_load,
+                    mark_entity_visibility_init_needed,
                     respawn_ui_after_load,
                     restore_music_volume_after_load,
                     sync_game_config_to_settings_after_load,
@@ -319,6 +322,48 @@ pub fn rebuild_tilemap_after_modifications(
     }
 }
 
+/// Clean up stale sprite references after load
+/// After loading, entities have old SpriteEntityReference components that point to despawned sprites
+/// This removes those stale references so sprite recreation systems can recreate them
+fn cleanup_stale_sprite_references_after_load(
+    mut commands: Commands,
+    save_state: Res<SaveLoadState>,
+    units_query: Query<Entity, (With<MilitaryUnit>, With<SpriteEntityReference>)>,
+    capitals_query: Query<Entity, (With<Capital>, With<SpriteEntityReference>)>,
+) {
+    // Only run during the first 2 frames after load is triggered
+    if !save_state.is_loading_from_save
+        || save_state.frames_since_load_triggered < 1
+        || save_state.frames_since_load_triggered > 2
+    {
+        return;
+    }
+
+    let unit_count = units_query.iter().count();
+    let capital_count = capitals_query.iter().count();
+
+    info!(
+        "🧹 Cleaning up stale sprite references: {} units, {} capitals",
+        unit_count, capital_count
+    );
+
+    // Remove stale sprite references from units
+    for unit_entity in units_query.iter() {
+        commands
+            .entity(unit_entity)
+            .remove::<SpriteEntityReference>();
+    }
+
+    // Remove stale sprite references from capitals
+    for capital_entity in capitals_query.iter() {
+        commands
+            .entity(capital_entity)
+            .remove::<SpriteEntityReference>();
+    }
+
+    info!("✅ Stale sprite references cleaned up - sprites will be recreated");
+}
+
 pub fn save_game(save_state: &mut ResMut<SaveLoadState>, save_name: &str) {
     save_state.save_requested = Some(save_name.to_string());
     info!("Save requested: {}", save_name);
@@ -472,6 +517,26 @@ fn refresh_fog_of_war_after_load(
 
     info!("Fog of war refresh complete after load");
     save_state.fog_of_war_needs_refresh = false;
+}
+
+/// Mark that entity visibility needs to be initialized
+/// This ensures hide_entities_in_fog runs once after fog of war is refreshed
+fn mark_entity_visibility_init_needed(
+    save_state: Res<SaveLoadState>,
+    mut visibility_init: ResMut<crate::rendering::fog_of_war::EntityVisibilityNeedsInit>,
+) {
+    // Only run during load sequence
+    if !save_state.is_loading_from_save {
+        return;
+    }
+
+    // After fog of war is refreshed, mark that we need to initialize entity visibility
+    if save_state.frames_since_load_triggered > 2 && !save_state.fog_of_war_needs_refresh {
+        if !visibility_init.needs_init {
+            visibility_init.needs_init = true;
+            info!("📍 ✅ Set visibility_init.needs_init = true");
+        }
+    }
 }
 
 fn respawn_ui_after_load(mut commands: Commands, mut save_state: ResMut<SaveLoadState>) {

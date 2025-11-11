@@ -145,6 +145,7 @@ pub fn spawn_animated_capital_sprite(
 
 pub fn spawn_animated_capital_tiles(
     mut commands: Commands,
+    mut visibility_init: ResMut<crate::rendering::fog_of_war::EntityVisibilityNeedsInit>,
     tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
@@ -162,21 +163,32 @@ pub fn spawn_animated_capital_tiles(
         )>,
     >,
 ) {
+    let capital_count = capitals.iter().count();
+
+    // Early exit if no capitals need sprite spawning
+    if capital_count == 0 {
+        return;
+    }
+
+    crate::debug_println!(
+        "🏛️ spawn_animated_capital_tiles: Found {} capitals to process",
+        capital_count
+    );
+    // Signal that entity visibility needs to be initialized after sprite creation
+    visibility_init.needs_init = true;
+
     let Some(tile_assets) = tile_assets else {
         // Silently skip if tile_assets not ready yet
+        crate::debug_println!("🏛️ spawn_animated_capital_tiles: tile_assets not ready");
         return;
     };
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         // Silently skip if tilemap not ready - will retry next frame
+        crate::debug_println!("🏛️ spawn_animated_capital_tiles: tilemap not ready");
         return;
     };
-
-    let capital_count = capitals.iter().count();
-    if capital_count == 0 {
-        return;
-    }
 
     crate::debug_println!(
         "🏛️ spawn_animated_capital_tiles: Found {} capitals to process",
@@ -232,6 +244,7 @@ pub fn spawn_animated_capital_tiles(
 /// This handles cases where the tilemap wasn't ready on the first attempt after load
 pub fn recreate_missing_capital_sprites(
     mut commands: Commands,
+    mut visibility_init: ResMut<crate::rendering::fog_of_war::EntityVisibilityNeedsInit>,
     tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
@@ -246,13 +259,29 @@ pub fn recreate_missing_capital_sprites(
         Without<core_sim::components::rendering::SpriteEntityReference>,
     >,
 ) {
+    let capital_count = capitals.iter().count();
+
+    // Early exit if no capitals need sprite recreation
+    if capital_count == 0 {
+        return;
+    }
+
+    crate::debug_println!(
+        "🔄 recreate_missing_capital_sprites: Found {} capitals without sprite refs",
+        capital_count
+    );
+    // Signal that entity visibility needs to be initialized after sprite recreation
+    visibility_init.needs_init = true;
+
     let Some(tile_assets) = tile_assets else {
+        crate::debug_println!("🔄 recreate_missing_capital_sprites: tile_assets not ready");
         return;
     };
 
     let Ok((tile_storage, map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single()
     else {
         // Silently skip if tilemap not ready yet
+        crate::debug_println!("🔄 recreate_missing_capital_sprites: tilemap not ready");
         return;
     };
 

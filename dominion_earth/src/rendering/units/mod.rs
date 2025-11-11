@@ -27,6 +27,7 @@ fn apply_unit_facing_to_sprite_scale(transform: &mut Transform, facing: FacingDi
 
 pub fn spawn_unit_sprites(
     mut commands: Commands,
+    mut visibility_init: ResMut<crate::rendering::fog_of_war::EntityVisibilityNeedsInit>,
     tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
@@ -61,6 +62,8 @@ pub fn spawn_unit_sprites(
     }
 
     crate::debug_println!("🎖️ spawn_unit_sprites: Found {} units to spawn", unit_count);
+    // Signal that entity visibility needs to be initialized after sprite creation
+    visibility_init.needs_init = true;
 
     for (unit_entity, unit, pos) in units.iter() {
         spawn_unit_sprite(
@@ -82,6 +85,7 @@ pub fn spawn_unit_sprites(
 
 pub fn recreate_missing_unit_sprites(
     mut commands: Commands,
+    mut visibility_init: ResMut<crate::rendering::fog_of_war::EntityVisibilityNeedsInit>,
     tile_assets: Option<Res<TileAssets>>,
     tilemap_q: Query<(
         &TileStorage,
@@ -133,6 +137,8 @@ pub fn recreate_missing_unit_sprites(
             units_needing_sprites.len(),
             units.iter().count()
         );
+        // Signal that entity visibility needs to be initialized after sprite recreation
+        visibility_init.needs_init = true;
 
         for (unit_entity, unit, pos, sprite_ref) in units_needing_sprites {
             crate::debug_println!(
