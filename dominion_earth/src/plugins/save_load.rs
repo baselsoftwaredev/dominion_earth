@@ -84,6 +84,9 @@ impl Plugin for SaveLoadPlugin {
             .insert_resource(SavedMusicVolume::default())
             .insert_resource(SaveLoadState::default())
             .insert_resource(crate::rendering::fog_of_war::EntityVisibilityNeedsInit::default())
+            .insert_resource(
+                crate::rendering::fog_of_war::EntityLabelVisibilityNeedsInit::default(),
+            )
             .add_systems(
                 Update,
                 (
@@ -97,6 +100,7 @@ impl Plugin for SaveLoadPlugin {
                     refresh_fog_of_war_after_load,
                     mark_entity_visibility_init_needed,
                     respawn_ui_after_load,
+                    mark_entity_label_visibility_init_needed.after(respawn_ui_after_load),
                     restore_music_volume_after_load,
                     sync_game_config_to_settings_after_load,
                     clear_loading_flag,
@@ -552,6 +556,26 @@ fn respawn_ui_after_load(mut commands: Commands, mut save_state: ResMut<SaveLoad
 
     save_state.ui_needs_respawn = false;
     info!("UI respawn complete after load");
+}
+
+/// Mark that entity label visibility needs to be initialized
+/// This ensures hide_capital_labels_in_fog and hide_unit_labels_in_fog run after UI is respawned
+fn mark_entity_label_visibility_init_needed(
+    save_state: Res<SaveLoadState>,
+    mut label_visibility_init: ResMut<crate::rendering::fog_of_war::EntityLabelVisibilityNeedsInit>,
+) {
+    // Only run during load sequence
+    if !save_state.is_loading_from_save {
+        return;
+    }
+
+    // After UI is respawned, mark that we need to initialize entity label visibility
+    if !save_state.ui_needs_respawn {
+        if !label_visibility_init.needs_init {
+            label_visibility_init.needs_init = true;
+            info!("📍 ✅ Set label_visibility_init.needs_init = true");
+        }
+    }
 }
 
 fn restore_music_volume_after_load(

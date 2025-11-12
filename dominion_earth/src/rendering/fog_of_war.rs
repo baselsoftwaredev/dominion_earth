@@ -21,6 +21,12 @@ pub struct EntityVisibilityNeedsInit {
     pub needs_init: bool,
 }
 
+/// Resource to track if entity label visibility needs to be initialized after load
+#[derive(Resource, Default, Debug)]
+pub struct EntityLabelVisibilityNeedsInit {
+    pub needs_init: bool,
+}
+
 /// System to apply fog of war visibility to tile sprites
 /// This runs after fog of war is updated and modifies tile sprite colors
 pub fn apply_fog_of_war_to_tiles(
@@ -221,16 +227,31 @@ pub fn hide_entities_in_fog(
 pub fn hide_capital_labels_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
     fog_toggle: Res<FogOfWarToggle>,
+    mut label_visibility_init: ResMut<EntityLabelVisibilityNeedsInit>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
     capital_query: Query<
         (&Position, &core_sim::Capital),
         Or<(Changed<Position>, Changed<core_sim::Capital>)>,
     >,
+    // Additional query without filters for when we need to process all labels
+    all_capitals_query: Query<(&Position, &core_sim::Capital)>,
     mut label_query: Query<(Entity, &CapitalLabel, &mut Visibility)>,
 ) {
-    // Early exit if nothing changed and fog of war hasn't changed
-    if !fog_toggle.is_changed() && !fog_of_war.is_changed() && capital_query.is_empty() {
+    // Early exit if nothing changed and fog of war hasn't changed AND labels don't need init
+    if !fog_toggle.is_changed()
+        && !fog_of_war.is_changed()
+        && capital_query.is_empty()
+        && !label_visibility_init.needs_init
+    {
         return;
+    }
+
+    // Track if this is a full initialization pass
+    let is_init_pass = label_visibility_init.needs_init;
+
+    // Mark that we've initialized label visibility this frame
+    if label_visibility_init.needs_init {
+        label_visibility_init.needs_init = false;
     }
 
     // If fog of war is disabled, show all capital labels
@@ -257,25 +278,39 @@ pub fn hide_capital_labels_in_fog(
 
     // Hide/show capital labels based on visibility
     for (_label_entity, capital_label, mut label_visibility) in label_query.iter_mut() {
-        // Get the capital entity's position and owner
-        if let Ok((position, capital)) = capital_query.get(capital_label.capital_entity) {
-            let tile_visibility = visibility_map
-                .get(*position)
-                .unwrap_or(VisibilityState::Unexplored);
-
-            // Show label if:
-            // 1. Capital belongs to the player's civ, OR
-            // 2. Tile is currently visible (not just explored)
-            let belongs_to_player = capital.owner == player_civ_id;
-            let should_be_visible =
-                belongs_to_player || matches!(tile_visibility, VisibilityState::Visible);
-
-            *label_visibility = if should_be_visible {
-                Visibility::Inherited
+        // During init pass, use all_capitals_query; otherwise use filtered capital_query
+        let (position, capital) = if is_init_pass {
+            // For init pass, we need to look up from all capitals
+            if let Ok((pos, cap)) = all_capitals_query.get(capital_label.capital_entity) {
+                (pos, cap)
             } else {
-                Visibility::Hidden
-            };
-        }
+                continue;
+            }
+        } else {
+            // For change-based updates, use the filtered query
+            if let Ok((pos, cap)) = capital_query.get(capital_label.capital_entity) {
+                (pos, cap)
+            } else {
+                continue;
+            }
+        };
+
+        let tile_visibility = visibility_map
+            .get(*position)
+            .unwrap_or(VisibilityState::Unexplored);
+
+        // Show label if:
+        // 1. Capital belongs to the player's civ, OR
+        // 2. Tile is currently visible (not just explored)
+        let belongs_to_player = capital.owner == player_civ_id;
+        let should_be_visible =
+            belongs_to_player || matches!(tile_visibility, VisibilityState::Visible);
+
+        *label_visibility = if should_be_visible {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
     }
 }
 
@@ -388,16 +423,31 @@ pub fn despawn_hidden_entity_sprites(
 pub fn hide_unit_labels_in_fog(
     fog_of_war: Res<FogOfWarMaps>,
     fog_toggle: Res<FogOfWarToggle>,
+    mut label_visibility_init: ResMut<EntityLabelVisibilityNeedsInit>,
     player_query: Query<&core_sim::Civilization, With<PlayerControlled>>,
     unit_query: Query<
         (&Position, &core_sim::MilitaryUnit),
         Or<(Changed<Position>, Changed<core_sim::MilitaryUnit>)>,
     >,
+    // Additional query without filters for when we need to process all labels
+    all_units_query: Query<(&Position, &core_sim::MilitaryUnit)>,
     mut label_query: Query<(Entity, &UnitLabel, &mut Visibility)>,
 ) {
-    // Early exit if nothing changed and fog of war hasn't changed
-    if !fog_toggle.is_changed() && !fog_of_war.is_changed() && unit_query.is_empty() {
+    // Early exit if nothing changed and fog of war hasn't changed AND labels don't need init
+    if !fog_toggle.is_changed()
+        && !fog_of_war.is_changed()
+        && unit_query.is_empty()
+        && !label_visibility_init.needs_init
+    {
         return;
+    }
+
+    // Track if this is a full initialization pass
+    let is_init_pass = label_visibility_init.needs_init;
+
+    // Mark that we've initialized label visibility this frame
+    if label_visibility_init.needs_init {
+        label_visibility_init.needs_init = false;
     }
 
     // If fog of war is disabled, show all unit labels
@@ -424,24 +474,38 @@ pub fn hide_unit_labels_in_fog(
 
     // Hide/show unit labels based on visibility
     for (_label_entity, unit_label, mut label_visibility) in label_query.iter_mut() {
-        // Get the unit entity's position and owner
-        if let Ok((position, unit)) = unit_query.get(unit_label.unit_entity) {
-            let tile_visibility = visibility_map
-                .get(*position)
-                .unwrap_or(VisibilityState::Unexplored);
-
-            // Show label if:
-            // 1. Unit belongs to the player's civ, OR
-            // 2. Tile is currently visible (not just explored)
-            let belongs_to_player = unit.owner == player_civ_id;
-            let should_be_visible =
-                belongs_to_player || matches!(tile_visibility, VisibilityState::Visible);
-
-            *label_visibility = if should_be_visible {
-                Visibility::Inherited
+        // During init pass, use all_units_query; otherwise use filtered unit_query
+        let (position, unit) = if is_init_pass {
+            // For init pass, we need to look up from all units
+            if let Ok((pos, u)) = all_units_query.get(unit_label.unit_entity) {
+                (pos, u)
             } else {
-                Visibility::Hidden
-            };
-        }
+                continue;
+            }
+        } else {
+            // For change-based updates, use the filtered query
+            if let Ok((pos, u)) = unit_query.get(unit_label.unit_entity) {
+                (pos, u)
+            } else {
+                continue;
+            }
+        };
+
+        let tile_visibility = visibility_map
+            .get(*position)
+            .unwrap_or(VisibilityState::Unexplored);
+
+        // Show label if:
+        // 1. Unit belongs to the player's civ, OR
+        // 2. Tile is currently visible (not just explored)
+        let belongs_to_player = unit.owner == player_civ_id;
+        let should_be_visible =
+            belongs_to_player || matches!(tile_visibility, VisibilityState::Visible);
+
+        *label_visibility = if should_be_visible {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
     }
 }

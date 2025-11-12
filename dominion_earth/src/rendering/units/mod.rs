@@ -36,13 +36,7 @@ pub fn spawn_unit_sprites(
         &TilemapType,
         &TilemapAnchor,
     )>,
-    units: Query<
-        (Entity, &MilitaryUnit, &Position),
-        Or<(
-            Added<MilitaryUnit>,
-            Without<core_sim::components::rendering::SpriteEntityReference>,
-        )>,
-    >,
+    units: Query<(Entity, &MilitaryUnit, &Position), Added<MilitaryUnit>>,
     mut transforms: Query<&mut Transform>,
 ) {
     let Some(tile_assets) = tile_assets else {
@@ -146,7 +140,10 @@ pub fn recreate_missing_unit_sprites(
                 sprite_ref.is_some()
             );
 
-            if sprite_ref.is_some() {
+            if let Some(sprite_ref) = sprite_ref {
+                // Despawn the old sprite entity before creating a new one
+                commands.entity(sprite_ref.sprite_entity).despawn();
+                // Remove the sprite reference from the unit
                 commands
                     .entity(unit_entity)
                     .remove::<core_sim::components::rendering::SpriteEntityReference>();
