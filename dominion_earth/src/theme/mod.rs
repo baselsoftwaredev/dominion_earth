@@ -11,6 +11,7 @@ pub mod prelude {
 
 use crate::{menus::Menu, screens::Screen};
 use bevy::prelude::*;
+use bevy_pkv::PkvStore;
 
 pub fn plugin(app: &mut App) {
     app.add_plugins(interaction::plugin);
@@ -56,6 +57,7 @@ fn handle_button_interactions(
     mut next_menu: ResMut<NextState<Menu>>,
     audio: Res<bevy_kira_audio::prelude::Audio>,
     mut settings: ResMut<crate::settings::GameSettings>,
+    mut pkv: ResMut<PkvStore>,
     mut app_exit: MessageWriter<AppExit>,
     screen: Res<State<Screen>>,
 ) {
@@ -138,8 +140,8 @@ fn handle_button_interactions(
                     );
                 }
                 widget::ButtonAction::SaveSettings => {
-                    crate::debug_println!("💾 Saving settings to file...");
-                    if let Err(e) = settings.save() {
+                    crate::debug_println!("💾 Saving settings to PkvStore...");
+                    if let Err(e) = settings.save(&mut pkv) {
                         error!("❌ Failed to save settings: {}", e);
                     } else {
                         info!("✅ Settings saved successfully");
@@ -165,6 +167,46 @@ fn handle_button_interactions(
                     let new_seed = rand::thread_rng().gen::<u64>();
                     settings.seed = Some(new_seed);
                     crate::debug_println!("🎲 Random seed set: {}", new_seed);
+                }
+                widget::ButtonAction::IncreaseMapSize => {
+                    use crate::settings::MapSize;
+                    settings.map_size = match settings.map_size {
+                        MapSize::Small => MapSize::Medium,
+                        MapSize::Medium => MapSize::Large,
+                        MapSize::Large => MapSize::Huge,
+                        MapSize::Huge => MapSize::Huge,
+                    };
+                    crate::debug_println!("🗺️ Map size increased to: {:?}", settings.map_size);
+                }
+                widget::ButtonAction::DecreaseMapSize => {
+                    use crate::settings::MapSize;
+                    settings.map_size = match settings.map_size {
+                        MapSize::Small => MapSize::Small,
+                        MapSize::Medium => MapSize::Small,
+                        MapSize::Large => MapSize::Medium,
+                        MapSize::Huge => MapSize::Large,
+                    };
+                    crate::debug_println!("🗺️ Map size decreased to: {:?}", settings.map_size);
+                }
+                widget::ButtonAction::IncreaseCivilizations => {
+                    use crate::settings::GameSettings;
+                    if settings.num_civilizations < GameSettings::MAX_CIVILIZATIONS {
+                        settings.num_civilizations += 1;
+                        crate::debug_println!(
+                            "👥 Civilizations increased to: {}",
+                            settings.num_civilizations
+                        );
+                    }
+                }
+                widget::ButtonAction::DecreaseCivilizations => {
+                    use crate::settings::GameSettings;
+                    if settings.num_civilizations > GameSettings::MIN_CIVILIZATIONS {
+                        settings.num_civilizations -= 1;
+                        crate::debug_println!(
+                            "👥 Civilizations decreased to: {}",
+                            settings.num_civilizations
+                        );
+                    }
                 }
             }
         }

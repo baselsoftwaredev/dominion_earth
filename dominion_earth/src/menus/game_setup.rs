@@ -12,7 +12,13 @@ pub fn plugin(app: &mut App) {
     app.add_systems(OnEnter(Menu::GameSetup), setup_game_setup_menu)
         .add_systems(
             Update,
-            (update_seed_label, update_ai_only_label).run_if(in_state(Menu::GameSetup)),
+            (
+                update_seed_label,
+                update_ai_only_label,
+                update_map_size_label,
+                update_civilizations_label,
+            )
+                .run_if(in_state(Menu::GameSetup)),
         );
 }
 
@@ -148,6 +154,154 @@ fn setup_game_setup_menu(mut commands: Commands, mut settings: ResMut<GameSettin
                                         });
                                 });
 
+                            // Map Size setting row
+                            parent
+                                .spawn((
+                                    Name::new("Map Size Row"),
+                                    Node {
+                                        flex_direction: FlexDirection::Row,
+                                        align_items: AlignItems::Center,
+                                        column_gap: ui_palette::px(20.0),
+                                        width: ui_palette::percent(100.0),
+                                        ..default()
+                                    },
+                                ))
+                                .with_children(|parent| {
+                                    // Label column (33% width)
+                                    parent
+                                        .spawn((
+                                            Name::new("Label Column"),
+                                            Node {
+                                                width: ui_palette::percent(33.33),
+                                                ..default()
+                                            },
+                                        ))
+                                        .with_children(|parent| {
+                                            parent.spawn(widget::label("Map Size"));
+                                        });
+
+                                    // Value column (33% width)
+                                    parent
+                                        .spawn((
+                                            Name::new("Value Column"),
+                                            Node {
+                                                width: ui_palette::percent(33.33),
+                                                ..default()
+                                            },
+                                        ))
+                                        .with_children(|parent| {
+                                            parent.spawn((
+                                                Name::new("Map Size Label"),
+                                                Text::new(format!("{:?}", settings.map_size)),
+                                                TextFont {
+                                                    font_size: constants::font_sizes::LABEL_TEXT_SIZE,
+                                                    ..default()
+                                                },
+                                                TextColor(ui_palette::TEXT_PRIMARY),
+                                                MapSizeLabel,
+                                            ));
+                                        });
+
+                                    // Buttons column (33% width)
+                                    parent
+                                        .spawn((
+                                            Name::new("Map Size Buttons"),
+                                            Node {
+                                                flex_direction: FlexDirection::Row,
+                                                align_items: AlignItems::Center,
+                                                column_gap: ui_palette::px(
+                                                    crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
+                                                ),
+                                                width: ui_palette::percent(33.33),
+                                                ..default()
+                                            },
+                                        ))
+                                        .with_children(|parent| {
+                                            parent.spawn(widget::button_small(
+                                                "-",
+                                                widget::ButtonAction::DecreaseMapSize,
+                                            ));
+                                            parent.spawn(widget::button_small(
+                                                "+",
+                                                widget::ButtonAction::IncreaseMapSize,
+                                            ));
+                                        });
+                                });
+
+                            // Civilizations setting row
+                            parent
+                                .spawn((
+                                    Name::new("Civilizations Row"),
+                                    Node {
+                                        flex_direction: FlexDirection::Row,
+                                        align_items: AlignItems::Center,
+                                        column_gap: ui_palette::px(20.0),
+                                        width: ui_palette::percent(100.0),
+                                        ..default()
+                                    },
+                                ))
+                                .with_children(|parent| {
+                                    // Label column (33% width)
+                                    parent
+                                        .spawn((
+                                            Name::new("Label Column"),
+                                            Node {
+                                                width: ui_palette::percent(33.33),
+                                                ..default()
+                                            },
+                                        ))
+                                        .with_children(|parent| {
+                                            parent.spawn(widget::label("Civilizations"));
+                                        });
+
+                                    // Value column (33% width)
+                                    parent
+                                        .spawn((
+                                            Name::new("Value Column"),
+                                            Node {
+                                                width: ui_palette::percent(33.33),
+                                                ..default()
+                                            },
+                                        ))
+                                        .with_children(|parent| {
+                                            parent.spawn((
+                                                Name::new("Civilizations Label"),
+                                                Text::new(format!("{}", settings.num_civilizations)),
+                                                TextFont {
+                                                    font_size: constants::font_sizes::LABEL_TEXT_SIZE,
+                                                    ..default()
+                                                },
+                                                TextColor(ui_palette::TEXT_PRIMARY),
+                                                CivilizationsLabel,
+                                            ));
+                                        });
+
+                                    // Buttons column (33% width)
+                                    parent
+                                        .spawn((
+                                            Name::new("Civilizations Buttons"),
+                                            Node {
+                                                flex_direction: FlexDirection::Row,
+                                                align_items: AlignItems::Center,
+                                                column_gap: ui_palette::px(
+                                                    crate::constants::ui::spacing::VOLUME_CONTROLS_GAP,
+                                                ),
+                                                width: ui_palette::percent(33.33),
+                                                ..default()
+                                            },
+                                        ))
+                                        .with_children(|parent| {
+                                            parent.spawn(widget::button_small(
+                                                "-",
+                                                widget::ButtonAction::DecreaseCivilizations,
+                                            ));
+                                            parent.spawn(widget::button_small(
+                                                "+",
+                                                widget::ButtonAction::IncreaseCivilizations,
+                                            ));
+                                        });
+                                });
+
                             // AI-Only Mode setting row
                             parent
                                 .spawn((
@@ -262,6 +416,14 @@ struct SeedLabel;
 #[reflect(Component)]
 struct AiOnlyLabel;
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct MapSizeLabel;
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct CivilizationsLabel;
+
 fn update_seed_label(
     settings: Res<GameSettings>,
     mut label_query: Query<&mut Text, With<SeedLabel>>,
@@ -287,6 +449,28 @@ fn update_ai_only_label(
             } else {
                 "Disabled".to_string()
             };
+        }
+    }
+}
+
+fn update_map_size_label(
+    settings: Res<GameSettings>,
+    mut label_query: Query<&mut Text, With<MapSizeLabel>>,
+) {
+    if settings.is_changed() {
+        if let Some(mut text) = label_query.iter_mut().next() {
+            **text = format!("{:?}", settings.map_size);
+        }
+    }
+}
+
+fn update_civilizations_label(
+    settings: Res<GameSettings>,
+    mut label_query: Query<&mut Text, With<CivilizationsLabel>>,
+) {
+    if settings.is_changed() {
+        if let Some(mut text) = label_query.iter_mut().next() {
+            **text = format!("{}", settings.num_civilizations);
         }
     }
 }

@@ -121,4 +121,8 @@ pub enum ButtonAction {
     ToggleAiOnly,
     ClearSeed,
     SetRandomSeed,
+    IncreaseMapSize,
+    DecreaseMapSize,
+    IncreaseCivilizations,
+    DecreaseCivilizations,
 }

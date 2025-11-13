@@ -1,11 +1,9 @@
 use bevy::prelude::*;
 use bevy_kira_audio::prelude::*;
+use bevy_pkv::PkvStore;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::PathBuf;
 
-const SETTINGS_FILENAME: &str = "settings.ron";
-const SAVES_DIRECTORY: &str = "saves";
+const SETTINGS_KEY: &str = "game_settings";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Resource, Reflect)]
 #[reflect(Resource)]
@@ -13,6 +11,22 @@ pub struct GameSettings {
     pub volume: f32,
     pub seed: Option<u64>,
     pub ai_only: bool,
+    pub map_size: MapSize,
+    pub num_civilizations: u32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Reflect, PartialEq)]
+pub enum MapSize {
+    Small,
+    Medium,
+    Large,
+    Huge,
+}
+
+impl Default for MapSize {
+    fn default() -> Self {
+        MapSize::Medium
+    }
 }
 
 impl Default for GameSettings {
@@ -21,54 +35,57 @@ impl Default for GameSettings {
             volume: crate::constants::audio::DEFAULT_MUSIC_VOLUME,
             seed: None,
             ai_only: false,
+            map_size: MapSize::Medium,
+            num_civilizations: 2,
         }
     }
 }
 
 impl GameSettings {
-    pub fn get_settings_path() -> PathBuf {
-        PathBuf::from(format!("{}/{}", SAVES_DIRECTORY, SETTINGS_FILENAME))
+    /// Minimum number of civilizations
+    pub const MIN_CIVILIZATIONS: u32 = 1;
+    /// Maximum number of civilizations
+    pub const MAX_CIVILIZATIONS: u32 = 50;
+
+    /// Clamp num_civilizations to valid range
+    pub fn clamp_civilizations(&mut self) {
+        self.num_civilizations = self
+            .num_civilizations
+            .clamp(Self::MIN_CIVILIZATIONS, Self::MAX_CIVILIZATIONS);
     }
 
-    pub fn load() -> Self {
-        let path = Self::get_settings_path();
+    /// Load settings early (before Bevy app is created)
+    /// This is used in main() to configure the initial app setup
+    pub fn load_early() -> Self {
+        // Create a temporary PkvStore for early loading
+        match PkvStore::new("BaselSoftwareDev", "DominionEarth").get::<GameSettings>(SETTINGS_KEY) {
+            Ok(mut settings) => {
+                settings.clamp_civilizations();
+                settings
+            }
+            Err(_) => Self::default(),
+        }
+    }
 
-        match fs::read_to_string(&path) {
-            Ok(contents) => match ron::from_str::<GameSettings>(&contents) {
-                Ok(settings) => {
-                    info!("✅ Loaded settings from {:?}", path);
-                    settings
-                }
-                Err(e) => {
-                    warn!(
-                        "⚠️ Failed to parse settings file {:?}: {}. Using defaults.",
-                        path, e
-                    );
-                    Self::default()
-                }
-            },
+    pub fn load(pkv: &PkvStore) -> Self {
+        match pkv.get::<GameSettings>(SETTINGS_KEY) {
+            Ok(mut settings) => {
+                info!("✅ Loaded settings from PkvStore");
+                settings.clamp_civilizations();
+                settings
+            }
             Err(_) => {
-                info!("ℹ️ Settings file not found at {:?}. Using defaults.", path);
+                info!("ℹ️ Settings not found in PkvStore. Using defaults.");
                 Self::default()
             }
         }
     }
 
-    pub fn save(&self) -> Result<(), String> {
-        let path = Self::get_settings_path();
+    pub fn save(&self, pkv: &mut PkvStore) -> Result<(), String> {
+        pkv.set(SETTINGS_KEY, self)
+            .map_err(|e| format!("Failed to save settings: {}", e))?;
 
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create saves directory: {}", e))?;
-        }
-
-        let ron_string = ron::ser::to_string_pretty(self, ron::ser::PrettyConfig::default())
-            .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-
-        fs::write(&path, ron_string)
-            .map_err(|e| format!("Failed to write settings file: {}", e))?;
-
-        info!("💾 Saved settings to {:?}", path);
+        info!("💾 Saved settings to PkvStore");
         Ok(())
     }
 }
@@ -78,18 +95,21 @@ pub struct SettingsPersistencePlugin;
 
 impl Plugin for SettingsPersistencePlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<GameSettings>().add_systems(
-            Startup,
-            (load_settings_on_startup, apply_settings_on_startup).chain(),
-        );
+        app.register_type::<GameSettings>()
+            .register_type::<MapSize>()
+            .insert_resource(PkvStore::new("BaselSoftwareDev", "DominionEarth"))
+            .add_systems(
+                Startup,
+                (load_settings_on_startup, apply_settings_on_startup).chain(),
+            );
     }
 }
 
 /// Load settings on startup
-fn load_settings_on_startup(mut commands: Commands) {
+fn load_settings_on_startup(mut commands: Commands, pkv: Res<PkvStore>) {
     crate::debug_println!("🔧 Loading game settings...");
 
-    let settings = GameSettings::load();
+    let settings = GameSettings::load(&pkv);
 
     crate::debug_println!(
         "🔊 Loaded volume setting: {:.0}%",
@@ -108,6 +128,9 @@ fn load_settings_on_startup(mut commands: Commands) {
             "disabled"
         }
     );
+
+    crate::debug_println!("🗺️ Map size: {:?}", settings.map_size);
+    crate::debug_println!("👥 Number of civilizations: {}", settings.num_civilizations);
 
     commands.insert_resource(settings);
 }

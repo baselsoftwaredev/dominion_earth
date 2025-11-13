@@ -31,11 +31,11 @@ struct CliArgs {
 fn main() {
     let args = CliArgs::parse();
 
-    let loaded_settings = crate::settings::GameSettings::load();
+    let loaded_settings = crate::settings::GameSettings::load_early();
 
     let config = ResourceConfig {
         ai_only: loaded_settings.ai_only,
-        total_civs: 3,
+        total_civs: loaded_settings.num_civilizations,
         seed: loaded_settings.seed,
         debug_logging: args.debug_logging,
     };

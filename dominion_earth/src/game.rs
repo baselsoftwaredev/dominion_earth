@@ -91,6 +91,46 @@ pub fn sync_settings_to_game_config(
             game_settings.ai_only
         );
     }
+
+    // Update map size from settings
+    use crate::settings::MapSize;
+    let new_world_size = match game_settings.map_size {
+        MapSize::Small => core_sim::resources::WorldSize::Small,
+        MapSize::Medium => core_sim::resources::WorldSize::Medium,
+        MapSize::Large => core_sim::resources::WorldSize::Large,
+        MapSize::Huge => core_sim::resources::WorldSize::Huge,
+    };
+    if !matches!(
+        (&game_config.world_size, &new_world_size),
+        (
+            core_sim::resources::WorldSize::Small,
+            core_sim::resources::WorldSize::Small
+        ) | (
+            core_sim::resources::WorldSize::Medium,
+            core_sim::resources::WorldSize::Medium
+        ) | (
+            core_sim::resources::WorldSize::Large,
+            core_sim::resources::WorldSize::Large
+        ) | (
+            core_sim::resources::WorldSize::Huge,
+            core_sim::resources::WorldSize::Huge
+        )
+    ) {
+        game_config.world_size = new_world_size;
+        crate::debug_println!(
+            "🗺️ Updated map size from settings: {:?}",
+            game_settings.map_size
+        );
+    }
+
+    // Update civilization count from settings
+    if game_state.total_civilizations != game_settings.num_civilizations {
+        game_state.total_civilizations = game_settings.num_civilizations;
+        crate::debug_println!(
+            "👥 Updated civilization count from settings: {}",
+            game_settings.num_civilizations
+        );
+    }
 }
 
 /// Setup the initial game world
