@@ -72,6 +72,8 @@ pub mod game {
     pub mod map {
         pub const DEFAULT_WIDTH: u32 = 50;
         pub const DEFAULT_HEIGHT: u32 = 25;
+        pub const DEBUG_WIDTH: u32 = 10;
+        pub const DEBUG_HEIGHT: u32 = 10;
     }
 
     /// Simulation timing

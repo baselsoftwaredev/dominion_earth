@@ -356,6 +356,7 @@ pub enum WorldSize {
     Medium,
     Large,
     Huge,
+    Debug,
 }
 
 impl Default for GameConfig {

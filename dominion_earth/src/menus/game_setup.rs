@@ -15,7 +15,7 @@ pub fn plugin(app: &mut App) {
             (
                 update_seed_label,
                 update_ai_only_label,
-                update_map_size_label,
+                update_map_label,
                 update_civilizations_label,
             )
                 .run_if(in_state(Menu::GameSetup)),
@@ -154,10 +154,10 @@ fn setup_game_setup_menu(mut commands: Commands, mut settings: ResMut<GameSettin
                                         });
                                 });
 
-                            // Map Size setting row
+                            // Map Selection setting row
                             parent
                                 .spawn((
-                                    Name::new("Map Size Row"),
+                                    Name::new("Map Selection Row"),
                                     Node {
                                         flex_direction: FlexDirection::Row,
                                         align_items: AlignItems::Center,
@@ -177,7 +177,7 @@ fn setup_game_setup_menu(mut commands: Commands, mut settings: ResMut<GameSettin
                                             },
                                         ))
                                         .with_children(|parent| {
-                                            parent.spawn(widget::label("Map Size"));
+                                            parent.spawn(widget::label("Map"));
                                         });
 
                                     // Value column (33% width)
@@ -191,21 +191,21 @@ fn setup_game_setup_menu(mut commands: Commands, mut settings: ResMut<GameSettin
                                         ))
                                         .with_children(|parent| {
                                             parent.spawn((
-                                                Name::new("Map Size Label"),
-                                                Text::new(format!("{:?}", settings.map_size)),
+                                                Name::new("Map Label"),
+                                                Text::new(format!("{:?}", settings.map)),
                                                 TextFont {
                                                     font_size: constants::font_sizes::LABEL_TEXT_SIZE,
                                                     ..default()
                                                 },
                                                 TextColor(ui_palette::TEXT_PRIMARY),
-                                                MapSizeLabel,
+                                                MapLabel,
                                             ));
                                         });
 
                                     // Buttons column (33% width)
                                     parent
                                         .spawn((
-                                            Name::new("Map Size Buttons"),
+                                            Name::new("Map Buttons"),
                                             Node {
                                                 flex_direction: FlexDirection::Row,
                                                 align_items: AlignItems::Center,
@@ -218,12 +218,12 @@ fn setup_game_setup_menu(mut commands: Commands, mut settings: ResMut<GameSettin
                                         ))
                                         .with_children(|parent| {
                                             parent.spawn(widget::button_small(
-                                                "-",
-                                                widget::ButtonAction::DecreaseMapSize,
+                                                "<",
+                                                widget::ButtonAction::PreviousMap,
                                             ));
                                             parent.spawn(widget::button_small(
-                                                "+",
-                                                widget::ButtonAction::IncreaseMapSize,
+                                                ">",
+                                                widget::ButtonAction::NextMap,
                                             ));
                                         });
                                 });
@@ -418,7 +418,7 @@ struct AiOnlyLabel;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-struct MapSizeLabel;
+struct MapLabel;
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -453,13 +453,13 @@ fn update_ai_only_label(
     }
 }
 
-fn update_map_size_label(
+fn update_map_label(
     settings: Res<GameSettings>,
-    mut label_query: Query<&mut Text, With<MapSizeLabel>>,
+    mut label_query: Query<&mut Text, With<MapLabel>>,
 ) {
     if settings.is_changed() {
         if let Some(mut text) = label_query.iter_mut().next() {
-            **text = format!("{:?}", settings.map_size);
+            **text = format!("{:?}", settings.map);
         }
     }
 }

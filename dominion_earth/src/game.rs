@@ -92,13 +92,14 @@ pub fn sync_settings_to_game_config(
         );
     }
 
-    // Update map size from settings
-    use crate::settings::MapSize;
-    let new_world_size = match game_settings.map_size {
-        MapSize::Small => core_sim::resources::WorldSize::Small,
-        MapSize::Medium => core_sim::resources::WorldSize::Medium,
-        MapSize::Large => core_sim::resources::WorldSize::Large,
-        MapSize::Huge => core_sim::resources::WorldSize::Huge,
+    // Update map from settings
+    use crate::settings::Map;
+    let new_world_size = match game_settings.map {
+        Map::Small => core_sim::resources::WorldSize::Small,
+        Map::Medium => core_sim::resources::WorldSize::Medium,
+        Map::Large => core_sim::resources::WorldSize::Large,
+        Map::Huge => core_sim::resources::WorldSize::Huge,
+        Map::Debug => core_sim::resources::WorldSize::Debug,
     };
     if !matches!(
         (&game_config.world_size, &new_world_size),
@@ -114,12 +115,15 @@ pub fn sync_settings_to_game_config(
         ) | (
             core_sim::resources::WorldSize::Huge,
             core_sim::resources::WorldSize::Huge
+        ) | (
+            core_sim::resources::WorldSize::Debug,
+            core_sim::resources::WorldSize::Debug
         )
     ) {
         game_config.world_size = new_world_size;
         crate::debug_println!(
-            "🗺️ Updated map size from settings: {:?}",
-            game_settings.map_size
+            "🗺️ Updated map from settings: {:?}",
+            game_settings.map
         );
     }
 
@@ -145,9 +149,14 @@ pub fn setup_game(
     rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
     DebugUtils::log_world_generation(game_config.random_seed);
 
+    // Determine map dimensions based on world size
+    let (width, height) = match game_config.world_size {
+        core_sim::resources::WorldSize::Debug => (map::DEBUG_WIDTH, map::DEBUG_HEIGHT),
+        _ => (map::DEFAULT_WIDTH, map::DEFAULT_HEIGHT),
+    };
+
     // Generate the world map
-    *world_map =
-        world_gen::generate_island_map(map::DEFAULT_WIDTH, map::DEFAULT_HEIGHT, &mut rng.0);
+    *world_map = world_gen::generate_island_map(width, height, &mut rng.0);
 
     println!(
         "World map generated with size {}x{}",

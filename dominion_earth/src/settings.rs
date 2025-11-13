@@ -11,21 +11,22 @@ pub struct GameSettings {
     pub volume: f32,
     pub seed: Option<u64>,
     pub ai_only: bool,
-    pub map_size: MapSize,
+    pub map: Map,
     pub num_civilizations: u32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Reflect, PartialEq)]
-pub enum MapSize {
+pub enum Map {
+    Debug,
     Small,
     Medium,
     Large,
     Huge,
 }
 
-impl Default for MapSize {
+impl Default for Map {
     fn default() -> Self {
-        MapSize::Medium
+        Map::Medium
     }
 }
 
@@ -35,7 +36,7 @@ impl Default for GameSettings {
             volume: crate::constants::audio::DEFAULT_MUSIC_VOLUME,
             seed: None,
             ai_only: false,
-            map_size: MapSize::Medium,
+            map: Map::Medium,
             num_civilizations: 2,
         }
     }
@@ -96,7 +97,7 @@ pub struct SettingsPersistencePlugin;
 impl Plugin for SettingsPersistencePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<GameSettings>()
-            .register_type::<MapSize>()
+            .register_type::<Map>()
             .insert_resource(PkvStore::new("BaselSoftwareDev", "DominionEarth"))
             .add_systems(
                 Startup,
@@ -129,7 +130,7 @@ fn load_settings_on_startup(mut commands: Commands, pkv: Res<PkvStore>) {
         }
     );
 
-    crate::debug_println!("🗺️ Map size: {:?}", settings.map_size);
+    crate::debug_println!("🗺️ Map: {:?}", settings.map);
     crate::debug_println!("👥 Number of civilizations: {}", settings.num_civilizations);
 
     commands.insert_resource(settings);

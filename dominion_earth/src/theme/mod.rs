@@ -168,25 +168,27 @@ fn handle_button_interactions(
                     settings.seed = Some(new_seed);
                     crate::debug_println!("🎲 Random seed set: {}", new_seed);
                 }
-                widget::ButtonAction::IncreaseMapSize => {
-                    use crate::settings::MapSize;
-                    settings.map_size = match settings.map_size {
-                        MapSize::Small => MapSize::Medium,
-                        MapSize::Medium => MapSize::Large,
-                        MapSize::Large => MapSize::Huge,
-                        MapSize::Huge => MapSize::Huge,
+                widget::ButtonAction::NextMap => {
+                    use crate::settings::Map;
+                    settings.map = match settings.map {
+                        Map::Debug => Map::Small,
+                        Map::Small => Map::Medium,
+                        Map::Medium => Map::Large,
+                        Map::Large => Map::Huge,
+                        Map::Huge => Map::Debug,
                     };
-                    crate::debug_println!("🗺️ Map size increased to: {:?}", settings.map_size);
+                    crate::debug_println!("🗺️ Map cycled to: {:?}", settings.map);
                 }
-                widget::ButtonAction::DecreaseMapSize => {
-                    use crate::settings::MapSize;
-                    settings.map_size = match settings.map_size {
-                        MapSize::Small => MapSize::Small,
-                        MapSize::Medium => MapSize::Small,
-                        MapSize::Large => MapSize::Medium,
-                        MapSize::Huge => MapSize::Large,
+                widget::ButtonAction::PreviousMap => {
+                    use crate::settings::Map;
+                    settings.map = match settings.map {
+                        Map::Debug => Map::Huge,
+                        Map::Small => Map::Debug,
+                        Map::Medium => Map::Small,
+                        Map::Large => Map::Medium,
+                        Map::Huge => Map::Large,
                     };
-                    crate::debug_println!("🗺️ Map size decreased to: {:?}", settings.map_size);
+                    crate::debug_println!("🗺️ Map cycled to: {:?}", settings.map);
                 }
                 widget::ButtonAction::IncreaseCivilizations => {
                     use crate::settings::GameSettings;
