@@ -24,6 +24,14 @@ pub fn handle_player_unit_interaction(
     capitals_query: Query<(Entity, &core_sim::Capital, &core_sim::Position)>,
     player_civilizations_query: Query<Entity, With<core_sim::PlayerControlled>>,
     asset_server: Res<AssetServer>,
+    tilemap_query: Query<(
+        &Transform,
+        &bevy_ecs_tilemap::prelude::TilemapSize,
+        &bevy_ecs_tilemap::prelude::TilemapGridSize,
+        &bevy_ecs_tilemap::prelude::TilemapTileSize,
+        &bevy_ecs_tilemap::prelude::TilemapType,
+        &bevy_ecs_tilemap::prelude::TilemapAnchor,
+    )>,
 ) {
     if game_state.ai_only {
         return;
@@ -60,6 +68,7 @@ pub fn handle_player_unit_interaction(
             &player_sound_theme,
             &asset_server,
             &player_civs,
+            &tilemap_query,
         );
     }
 
@@ -84,6 +93,7 @@ pub fn handle_player_unit_interaction(
             player_civ_id,
             &capitals_query,
             &player_civilizations_query,
+            &tilemap_query,
         );
     }
 
@@ -107,6 +117,14 @@ fn handle_unit_movement_command(
     sound_theme: &str,
     asset_server: &Res<AssetServer>,
     player_civs: &Query<&core_sim::Civilization, With<core_sim::PlayerControlled>>,
+    tilemap_query: &Query<(
+        &Transform,
+        &bevy_ecs_tilemap::prelude::TilemapSize,
+        &bevy_ecs_tilemap::prelude::TilemapGridSize,
+        &bevy_ecs_tilemap::prelude::TilemapTileSize,
+        &bevy_ecs_tilemap::prelude::TilemapType,
+        &bevy_ecs_tilemap::prelude::TilemapAnchor,
+    )>,
 ) {
     let Ok(window) = windows.single() else {
         return;
@@ -120,7 +138,24 @@ fn handle_unit_movement_command(
         return;
     };
 
-    match convert_cursor_position_to_tile_coordinates(cursor_pos, camera, camera_transform) {
+    // Get tilemap parameters for proper coordinate conversion
+    let Ok((tilemap_transform, map_size, grid_size, tile_size, map_type, anchor)) =
+        tilemap_query.single()
+    else {
+        return;
+    };
+
+    match convert_cursor_position_to_tile_coordinates(
+        cursor_pos,
+        camera,
+        camera_transform,
+        tilemap_transform,
+        map_size,
+        grid_size,
+        tile_size,
+        map_type,
+        anchor,
+    ) {
         Ok(target_position) => {
             if let Some(selected_entity) = selected_unit.unit_entity {
                 if let Ok((entity, unit, current_pos)) = units_query.get_mut(selected_entity) {
@@ -187,6 +222,14 @@ fn handle_unit_selection(
     player_civ_id: CivId,
     capitals_query: &Query<(Entity, &core_sim::Capital, &core_sim::Position)>,
     player_civilizations_query: &Query<Entity, With<core_sim::PlayerControlled>>,
+    tilemap_query: &Query<(
+        &Transform,
+        &bevy_ecs_tilemap::prelude::TilemapSize,
+        &bevy_ecs_tilemap::prelude::TilemapGridSize,
+        &bevy_ecs_tilemap::prelude::TilemapTileSize,
+        &bevy_ecs_tilemap::prelude::TilemapType,
+        &bevy_ecs_tilemap::prelude::TilemapAnchor,
+    )>,
 ) {
     let Ok(window) = windows.single() else {
         return;
@@ -200,7 +243,24 @@ fn handle_unit_selection(
         return;
     };
 
-    match convert_cursor_position_to_tile_coordinates(cursor_pos, camera, camera_transform) {
+    // Get tilemap parameters for proper coordinate conversion
+    let Ok((tilemap_transform, map_size, grid_size, tile_size, map_type, anchor)) =
+        tilemap_query.single()
+    else {
+        return;
+    };
+
+    match convert_cursor_position_to_tile_coordinates(
+        cursor_pos,
+        camera,
+        camera_transform,
+        tilemap_transform,
+        map_size,
+        grid_size,
+        tile_size,
+        map_type,
+        anchor,
+    ) {
         Ok(click_position) => {
             let player_civilization_entities: Vec<Entity> =
                 player_civilizations_query.iter().collect();

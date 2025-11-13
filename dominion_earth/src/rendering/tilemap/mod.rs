@@ -44,7 +44,7 @@ pub fn setup_tilemap(
         x: tile_size::GRID_WIDTH,
         y: tile_size::GRID_HEIGHT,
     };
-    let map_type = TilemapType::Square;
+    let map_type = TilemapType::Isometric(IsoCoordSystem::Diamond);
 
     commands.entity(tilemap_entity).insert(TilemapBundle {
         grid_size,
@@ -57,6 +57,7 @@ pub fn setup_tilemap(
         texture: TilemapTexture::Single(tile_assets.sprite_sheet.clone()),
         tile_size,
         transform: Transform::from_translation(Vec3::ZERO),
+        anchor: TilemapAnchor::Center,
         ..Default::default()
     });
 }

@@ -215,6 +215,14 @@ pub fn handle_tile_selection_on_mouse_click(
     mut selected_capital: ResMut<SelectedCapital>,
     mut selected_unit: ResMut<core_sim::SelectedUnit>,
     units_query: Query<(Entity, &core_sim::MilitaryUnit, &core_sim::Position)>,
+    tilemap_query: Query<(
+        &Transform,
+        &bevy_ecs_tilemap::prelude::TilemapSize,
+        &bevy_ecs_tilemap::prelude::TilemapGridSize,
+        &bevy_ecs_tilemap::prelude::TilemapTileSize,
+        &bevy_ecs_tilemap::prelude::TilemapType,
+        &bevy_ecs_tilemap::prelude::TilemapAnchor,
+    )>,
 ) {
     if !mouse_button_input.just_pressed(MouseButton::Left) {
         return;
@@ -251,10 +259,24 @@ pub fn handle_tile_selection_on_mouse_click(
         return;
     };
 
+    // Get tilemap parameters for proper coordinate conversion
+    let Ok((tilemap_transform, map_size, grid_size, tile_size, map_type, anchor)) =
+        tilemap_query.single()
+    else {
+        debug_println!("DEBUG TILE SELECTION: Tilemap not found");
+        return;
+    };
+
     match convert_cursor_position_to_tile_coordinates(
         cursor_screen_position,
         camera,
         camera_global_transform,
+        tilemap_transform,
+        map_size,
+        grid_size,
+        tile_size,
+        map_type,
+        anchor,
     ) {
         Ok(tile_world_position) => {
             DebugUtils::log_tile_click(tile_world_position.x, tile_world_position.y);
@@ -283,6 +305,14 @@ pub fn handle_tile_hover_on_mouse_move(
     camera_query: Query<(&Camera, &GlobalTransform)>,
     mut hovered_tile: ResMut<HoveredTile>,
     tile_query: Query<(Entity, &WorldTile, &TileNeighbors)>,
+    tilemap_query: Query<(
+        &Transform,
+        &bevy_ecs_tilemap::prelude::TilemapSize,
+        &bevy_ecs_tilemap::prelude::TilemapGridSize,
+        &bevy_ecs_tilemap::prelude::TilemapTileSize,
+        &bevy_ecs_tilemap::prelude::TilemapType,
+        &bevy_ecs_tilemap::prelude::TilemapAnchor,
+    )>,
 ) {
     let Ok(primary_window) = windows_query.single() else {
         return;
@@ -305,10 +335,23 @@ pub fn handle_tile_hover_on_mouse_move(
         return;
     };
 
+    // Get tilemap parameters for proper coordinate conversion
+    let Ok((tilemap_transform, map_size, grid_size, tile_size, map_type, anchor)) =
+        tilemap_query.single()
+    else {
+        return;
+    };
+
     match convert_cursor_position_to_tile_coordinates(
         cursor_screen_position,
         camera,
         camera_global_transform,
+        tilemap_transform,
+        map_size,
+        grid_size,
+        tile_size,
+        map_type,
+        anchor,
     ) {
         Ok(tile_position) => {
             if let Some((_, world_tile, _)) =

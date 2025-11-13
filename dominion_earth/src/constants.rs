@@ -4,11 +4,12 @@
 /// Rendering and visual constants
 pub mod rendering {
     /// Tile and grid size constants
+    /// Configured for isometric (diamond) projection: 2:1 ratio
     pub mod tile_size {
         pub const TILE_WIDTH: f32 = 128.0;
-        pub const TILE_HEIGHT: f32 = 128.0;
+        pub const TILE_HEIGHT: f32 = 64.0;
         pub const GRID_WIDTH: f32 = 128.0;
-        pub const GRID_HEIGHT: f32 = 128.0;
+        pub const GRID_HEIGHT: f32 = 64.0;
     }
 
     /// Z-layer offsets for different entity types
