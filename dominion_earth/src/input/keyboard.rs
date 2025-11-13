@@ -1,28 +1,17 @@
 use crate::constants::input::camera;
 use crate::debug_utils::DebugUtils;
 use crate::game::GameState;
-use crate::plugins::save_load::{load_game, save_game, SaveLoadState};
 use bevy::prelude::*;
 
 pub fn handle_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut game_state: ResMut<GameState>,
-    mut save_load_state: ResMut<SaveLoadState>,
     mut camera_query: Query<&mut Transform, With<Camera>>,
     time: Res<Time>,
 ) {
     if keyboard_input.just_pressed(KeyCode::KeyP) {
         game_state.paused = !game_state.paused;
         DebugUtils::log_game_state_change("paused", game_state.paused);
-    }
-
-    // Save/Load hotkeys
-    if keyboard_input.just_pressed(KeyCode::F5) {
-        save_game(&mut save_load_state, "quicksave");
-    }
-
-    if keyboard_input.just_pressed(KeyCode::F9) {
-        load_game(&mut save_load_state, "quicksave");
     }
 
     handle_camera_controls(&keyboard_input, &mut camera_query, &time);

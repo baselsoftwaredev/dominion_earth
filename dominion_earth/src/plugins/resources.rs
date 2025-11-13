@@ -3,9 +3,7 @@ use crate::{game, production_input};
 use bevy::prelude::*;
 use core_sim::{
     influence_map::InfluenceMap,
-    resources::{
-        ActiveCivTurn, CurrentTurn, GameConfig, GameRng, TileModifications, TileState, WorldMap,
-    },
+    resources::{ActiveCivTurn, CurrentTurn, GameConfig, GameRng, TileState, WorldMap},
     PlayerActionsComplete,
 };
 
@@ -28,7 +26,6 @@ impl Plugin for ResourcesPlugin {
             .init_resource::<GameRng>()
             .init_resource::<WorldMap>()
             .init_resource::<TileState>()
-            .init_resource::<TileModifications>()
             .init_resource::<core_sim::resources::TurnAdvanceRequest>()
             .init_resource::<InfluenceMap>()
             .init_resource::<PlayerActionsComplete>()

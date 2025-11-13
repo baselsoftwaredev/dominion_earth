@@ -1,5 +1,4 @@
 use super::common::TilemapIdResource;
-use super::fog_of_war::TileSprite;
 use crate::constants::rendering::tile_size;
 use crate::screens::{LoadingState, Screen};
 use bevy::prelude::*;
@@ -62,17 +61,9 @@ pub fn setup_tilemap(
     });
 }
 
-/// System to attach TileSprite components to all tiles
-/// This runs after tiles are spawned and links each tile entity to its position
-pub fn attach_tile_sprite_components(
-    mut commands: Commands,
-    tile_query: Query<(Entity, &core_sim::tile::tile_components::WorldTile), Without<TileSprite>>,
-) {
-    for (entity, world_tile) in tile_query.iter() {
-        commands.entity(entity).insert(TileSprite {
-            position: world_tile.grid_pos,
-        });
-    }
+/// Tiles no longer need TileSprite component as fog of war has been removed
+pub fn attach_tile_sprite_components() {
+    // This function is kept for compatibility but does nothing
 }
 
 pub fn spawn_world_tiles(_commands: Commands, tilemap_id_resource: Option<Res<TilemapIdResource>>) {

@@ -143,16 +143,8 @@ fn reset_all_game_resources(
     mut player_actions: ResMut<core_sim::PlayerActionsComplete>,
     mut selected_capital: ResMut<crate::production_input::SelectedCapital>,
     game_config: Res<core_sim::resources::GameConfig>,
-    save_load_state: Res<crate::plugins::save_load::SaveLoadState>,
 ) {
     crate::debug_println!("  Resetting game resources");
-
-    // Don't reset game state resources if we're loading from a save
-    // Let the loaded resources persist instead
-    if save_load_state.is_loading_from_save {
-        crate::debug_println!("  Skipping resource reset - loading from save file");
-        return;
-    }
 
     *world_map = core_sim::WorldMap::default();
     *current_turn = core_sim::resources::CurrentTurn::default();

@@ -7,7 +7,6 @@ pub mod inspector;
 pub mod menu;
 pub mod rendering;
 pub mod resources;
-pub mod save_load;
 pub mod ui_integration;
 
 pub use audio::AudioPlugin;
@@ -19,7 +18,6 @@ pub use inspector::InspectorPlugin;
 pub use menu::MenuPlugin;
 pub use rendering::RenderingPlugin;
 pub use resources::{ResourcesPlugin, ResourcesPluginWithConfig};
-pub use save_load::SaveLoadPlugin;
 pub use ui_integration::UiIntegrationPlugin;
 
 pub struct DominionEarthPlugins;
@@ -36,7 +34,6 @@ impl bevy::app::PluginGroup for DominionEarthPlugins {
             .add(InputHandlingPlugin)
             .add(AudioPlugin)
             .add(CivilizationAudioPlugin)
-            .add(SaveLoadPlugin::default())
             .add(UiIntegrationPlugin)
     }
 }
@@ -63,7 +60,6 @@ impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
             .add(InputHandlingPlugin)
             .add(AudioPlugin)
             .add(CivilizationAudioPlugin)
-            .add(SaveLoadPlugin::default())
             .add(UiIntegrationPlugin);
 
         #[cfg(debug_assertions)]

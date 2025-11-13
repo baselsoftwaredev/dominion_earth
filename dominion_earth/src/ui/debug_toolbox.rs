@@ -14,23 +14,11 @@ pub struct DebugToolboxState {
     pub selected_entity: Option<Entity>,
 }
 
-#[derive(Resource)]
-pub struct FogOfWarToggle {
-    pub enabled: bool,
-}
-
-impl Default for FogOfWarToggle {
-    fn default() -> Self {
-        Self { enabled: true }
-    }
-}
-
 pub struct DebugToolboxPlugin;
 
 impl Plugin for DebugToolboxPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DebugToolboxState>()
-            .init_resource::<FogOfWarToggle>()
             .add_systems(Startup, spawn_debug_toolbox)
             .add_systems(
                 Update,
@@ -67,24 +55,6 @@ pub fn update_debug_toolbox(world: &mut World) {
         .show(egui_context.get_mut(), |ui| {
             // Title
             ui.heading("Development Tools");
-            ui.separator();
-
-            // Fog of War Toggle
-            let mut fog_toggle = world.resource_mut::<FogOfWarToggle>();
-            ui.horizontal(|ui| {
-                ui.label("Fog of War:");
-                if ui
-                    .button(if fog_toggle.enabled {
-                        "Disable FOW"
-                    } else {
-                        "Enable FOW"
-                    })
-                    .clicked()
-                {
-                    fog_toggle.enabled = !fog_toggle.enabled;
-                }
-            });
-
             ui.separator();
 
             // Entity/Sprite Browser Section
@@ -179,7 +149,7 @@ pub fn toggle_debug_toolbox(
     }
 }
 
-/// System to auto-name entities with Capital or City components for easier inspection
+/// System to auto-name entities with Capital, City, or Unit components for easier inspection
 pub fn auto_name_capitals_and_cities(
     mut commands: Commands,
     capitals_without_name: Query<
@@ -198,6 +168,18 @@ pub fn auto_name_capitals_and_cities(
         ),
         (Without<Name>, Without<core_sim::components::city::Capital>),
     >,
+    units_without_name: Query<
+        (
+            Entity,
+            &core_sim::components::military::MilitaryUnit,
+            &core_sim::Position,
+        ),
+        (
+            Without<Name>,
+            Without<core_sim::components::city::Capital>,
+            Without<core_sim::components::city::City>,
+        ),
+    >,
 ) {
     for (entity, capital, pos) in capitals_without_name.iter() {
         let name = format!("Capital_{}_({},{})", capital.owner.0, pos.x, pos.y);
@@ -206,6 +188,14 @@ pub fn auto_name_capitals_and_cities(
 
     for (entity, city, pos) in cities_without_name.iter() {
         let name = format!("{}({},{})", city.name, pos.x, pos.y);
+        commands.entity(entity).insert(Name::new(name));
+    }
+
+    for (entity, unit, pos) in units_without_name.iter() {
+        let name = format!(
+            "{:?}_{}_({},{})",
+            unit.unit_type, unit.owner.0, pos.x, pos.y
+        );
         commands.entity(entity).insert(Name::new(name));
     }
 }

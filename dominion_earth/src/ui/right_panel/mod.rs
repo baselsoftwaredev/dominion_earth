@@ -4,7 +4,6 @@ pub mod hovered_tile_section;
 pub mod statistics_section;
 
 use bevy::prelude::*;
-use moonshine_save::prelude::*;
 
 use crate::ui::constants::display_layout;
 use constants::*;
@@ -14,7 +13,6 @@ pub use hovered_tile_section::*;
 pub use statistics_section::*;
 
 #[derive(Component)]
-#[require(Unload)]
 pub struct RightPanel;
 
 pub fn spawn_right_panel(mut commands: Commands) {

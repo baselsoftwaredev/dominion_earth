@@ -3,7 +3,6 @@ pub mod resources_section;
 pub mod turn_section;
 
 use bevy::prelude::*;
-use moonshine_save::prelude::*;
 
 use crate::ui::constants::display_layout;
 use constants::*;
@@ -17,7 +16,6 @@ pub use turn_section::*;
 
 /// Marker component for the top panel container
 #[derive(Component)]
-#[require(Unload)]
 pub struct TopPanel;
 
 /// Marker component for the game title text

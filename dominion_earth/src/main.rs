@@ -14,7 +14,6 @@ mod screens;
 mod settings;
 mod theme;
 mod ui;
-mod unit_assets;
 
 use crate::constants::{network, window};
 use crate::plugins::{resources::ResourceConfig, DominionEarthPlugins};
