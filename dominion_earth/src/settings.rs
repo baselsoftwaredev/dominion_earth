@@ -18,15 +18,11 @@ pub struct GameSettings {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Reflect, PartialEq)]
 pub enum Map {
     Debug,
-    Small,
-    Medium,
-    Large,
-    Huge,
 }
 
 impl Default for Map {
     fn default() -> Self {
-        Map::Medium
+        Map::Debug
     }
 }
 
@@ -36,7 +32,7 @@ impl Default for GameSettings {
             volume: crate::constants::audio::DEFAULT_MUSIC_VOLUME,
             seed: None,
             ai_only: false,
-            map: Map::Medium,
+            map: Map::Debug,
             num_civilizations: 2,
         }
     }

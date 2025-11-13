@@ -352,10 +352,6 @@ pub enum AIDifficulty {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub enum WorldSize {
-    Small,
-    Medium,
-    Large,
-    Huge,
     Debug,
 }
 
@@ -370,7 +366,7 @@ impl Default for GameConfig {
         Self {
             max_turns: game_flow::DEFAULT_MAX_TURNS,
             ai_difficulty: AIDifficulty::Normal,
-            world_size: WorldSize::Medium,
+            world_size: WorldSize::Debug,
             random_seed,
             debug_logging: false,
             ai_only: false,

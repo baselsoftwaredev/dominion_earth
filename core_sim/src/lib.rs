@@ -12,7 +12,8 @@ pub mod pathfinding;
 pub mod resource_loading;
 pub mod resources;
 pub mod systems;
-pub mod world_gen;
+// DISABLED: Only using static TMX map loading (debug map)
+// pub mod world_gen;
 
 pub mod tile;
 

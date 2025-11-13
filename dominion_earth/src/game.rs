@@ -5,10 +5,8 @@ use crate::constants::game::{map, timing};
 use crate::debug_utils::DebugUtils;
 use ai_planner::ai_coordinator::AICoordinatorSystem;
 use bevy::prelude::*;
-use core_sim::{
-    resources::{GameConfig, GameRng, TurnAdvanceRequest, WorldMap},
-    world_gen,
-};
+use bevy_ecs_tiled::prelude::*;
+use core_sim::resources::{GameConfig, GameRng, TurnAdvanceRequest, WorldMap};
 use rand::SeedableRng;
 
 /// Main game state resource
@@ -22,6 +20,10 @@ pub struct GameState {
     pub turn_timer: Timer,
     pub next_turn_requested: bool,
 }
+
+/// Resource to track if the TMX map has been loaded and converted
+#[derive(Resource, Default)]
+pub struct MapLoaded(pub bool);
 
 impl GameState {
     pub fn with_auto_advance(auto: bool) -> Self {
@@ -92,40 +94,8 @@ pub fn sync_settings_to_game_config(
         );
     }
 
-    // Update map from settings
-    use crate::settings::Map;
-    let new_world_size = match game_settings.map {
-        Map::Small => core_sim::resources::WorldSize::Small,
-        Map::Medium => core_sim::resources::WorldSize::Medium,
-        Map::Large => core_sim::resources::WorldSize::Large,
-        Map::Huge => core_sim::resources::WorldSize::Huge,
-        Map::Debug => core_sim::resources::WorldSize::Debug,
-    };
-    if !matches!(
-        (&game_config.world_size, &new_world_size),
-        (
-            core_sim::resources::WorldSize::Small,
-            core_sim::resources::WorldSize::Small
-        ) | (
-            core_sim::resources::WorldSize::Medium,
-            core_sim::resources::WorldSize::Medium
-        ) | (
-            core_sim::resources::WorldSize::Large,
-            core_sim::resources::WorldSize::Large
-        ) | (
-            core_sim::resources::WorldSize::Huge,
-            core_sim::resources::WorldSize::Huge
-        ) | (
-            core_sim::resources::WorldSize::Debug,
-            core_sim::resources::WorldSize::Debug
-        )
-    ) {
-        game_config.world_size = new_world_size;
-        crate::debug_println!(
-            "🗺️ Updated map from settings: {:?}",
-            game_settings.map
-        );
-    }
+    // Map is always Debug (static TMX loading)
+    game_config.world_size = core_sim::resources::WorldSize::Debug;
 
     // Update civilization count from settings
     if game_state.total_civilizations != game_settings.num_civilizations {
@@ -137,36 +107,85 @@ pub fn sync_settings_to_game_config(
     }
 }
 
-/// Setup the initial game world
+/// Setup the initial game world by spawning the TiledMap entity
+/// The actual map loading and conversion happens asynchronously via the convert_tiled_to_world_map system
 pub fn setup_game(
     mut commands: Commands,
-    mut world_map: ResMut<WorldMap>,
+    asset_server: Res<AssetServer>,
     mut rng: ResMut<GameRng>,
     game_config: Res<GameConfig>,
-    game_state: Res<GameState>,
 ) {
     // Initialize the random number generator with configured seed
     rng.0 = rand_pcg::Pcg64::seed_from_u64(game_config.random_seed);
     DebugUtils::log_world_generation(game_config.random_seed);
 
-    // Determine map dimensions based on world size
-    let (width, height) = match game_config.world_size {
-        core_sim::resources::WorldSize::Debug => (map::DEBUG_WIDTH, map::DEBUG_HEIGHT),
-        _ => (map::DEFAULT_WIDTH, map::DEFAULT_HEIGHT),
-    };
+    // For now, only support the Debug map loaded from TMX
+    let map_path = "tiles/grass-land.tmx";
 
-    // Generate the world map
-    *world_map = world_gen::generate_island_map(width, height, &mut rng.0);
+    commands.spawn((
+        TiledMap(asset_server.load(map_path)),
+        TilemapAnchor::BottomLeft,
+    ));
 
+    // Insert the MapLoaded resource to track when the map is ready
+    commands.insert_resource(MapLoaded(false));
+
+    println!("Spawned TiledMap entity for {}", map_path);
+}
+
+/// Clean up extra TiledMap background layers that might be stretching beyond the map bounds
+/// bevy_ecs_tiled may spawn background/object layer entities that we don't need
+pub fn cleanup_extra_tiled_layers(mut commands: Commands) {
+    // This cleanup is handled automatically by bevy_ecs_tiled
+    // If there are extra layers visible, they may be from the TMX file itself
+    // Check the TMX file to ensure it only has one layer
+}
+
+/// Tile ID to TerrainType mapping
+/// Maps Tiled tile IDs to our terrain type system
+fn map_tile_id_to_terrain(tile_id: u32) -> core_sim::components::TerrainType {
+    use core_sim::components::TerrainType;
+
+    match tile_id {
+        1 => TerrainType::Plains,
+        2 => TerrainType::Plains, // Grassland -> Plains
+        3 => TerrainType::Desert,
+        4 => TerrainType::Desert, // Tundra -> Desert (placeholder)
+        5 => TerrainType::Ocean,
+        6 => TerrainType::Mountains, // Note: Mountains (plural)
+        7 => TerrainType::Hills,
+        8 => TerrainType::Forest,
+        _ => TerrainType::Plains, // default
+    }
+}
+
+// Spawn civilizations only after the map has been fully loaded and converted
+pub fn spawn_civilizations_when_ready(
+    mut commands: Commands,
+    mut world_map: ResMut<WorldMap>,
+    map_loaded: Res<MapLoaded>,
+    mut rng: ResMut<GameRng>,
+    game_state: Res<GameState>,
+    mut initialized: Local<bool>,
+) {
+    if *initialized {
+        return;
+    }
+
+    if !map_loaded.0 {
+        // Still waiting for map to load
+        return;
+    }
+
+    if world_map.width == 0 {
+        warn!("Map not ready yet (width is 0)");
+        return;
+    }
+
+    println!("🎮 MAP READY! Converting starting civilization spawning");
     println!(
-        "World map generated with size {}x{}",
-        world_map.width, world_map.height
-    );
-
-    // Spawn initial civilizations
-    println!(
-        "About to spawn {} civilizations",
-        game_state.total_civilizations
+        "About to spawn {} civilizations on {}x{} map",
+        game_state.total_civilizations, world_map.width, world_map.height
     );
 
     spawn_initial_civilizations(
@@ -179,6 +198,8 @@ pub fn setup_game(
 
     println!("Finished spawning civilizations");
     DebugUtils::log_world_initialization(world_map.width, world_map.height);
+
+    *initialized = true;
 }
 
 /// Initialize fog of war for all civilizations after they're spawned
@@ -186,7 +207,16 @@ pub fn initialize_fog_of_war(
     mut fog_of_war: ResMut<core_sim::FogOfWarMaps>,
     world_map: Res<WorldMap>,
     civilizations: Query<&core_sim::Civilization>,
+    mut initialized: Local<bool>,
 ) {
+    if *initialized {
+        return;
+    }
+
+    if civilizations.is_empty() {
+        return;
+    }
+
     println!(
         "FOG_OF_WAR: Initializing fog of war for {} civilizations",
         civilizations.iter().count()
@@ -198,6 +228,8 @@ pub fn initialize_fog_of_war(
             civ.id, civ.name
         );
     }
+
+    *initialized = true;
 }
 
 pub fn initialize_active_civ_turn(

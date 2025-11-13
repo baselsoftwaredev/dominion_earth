@@ -1,7 +1,6 @@
 use crate::rendering;
 use crate::screens::Screen;
 use bevy::prelude::*;
-use bevy_ecs_tilemap::TilemapPlugin;
 use core_sim::ChunkManager;
 
 /// Plugin for all rendering systems and setup
@@ -10,7 +9,6 @@ pub struct RenderingPlugin;
 impl Plugin for RenderingPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ChunkManager::default())
-            .add_plugins(TilemapPlugin)
             .add_systems(Update, core_sim::tile::tile_assets::load_tile_assets)
             .add_systems(
                 Update,

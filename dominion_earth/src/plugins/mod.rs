@@ -10,6 +10,7 @@ pub mod resources;
 pub mod ui_integration;
 
 pub use audio::AudioPlugin;
+pub use bevy_ecs_tiled::prelude::TiledPlugin;
 pub use camera::CameraPlugin;
 pub use civilization_audio::CivilizationAudioPlugin;
 pub use core_simulation::CoreSimulationPlugin;
@@ -28,6 +29,7 @@ impl bevy::app::PluginGroup for DominionEarthPlugins {
             .add(crate::settings::SettingsPersistencePlugin)
             .add(ResourcesPlugin)
             .add(MenuPlugin)
+            .add(TiledPlugin::default())
             .add(CoreSimulationPlugin)
             .add(CameraPlugin)
             .add(RenderingPlugin)
@@ -54,6 +56,7 @@ impl bevy::app::PluginGroup for DominionEarthPluginsWithConfig {
             .add(crate::settings::SettingsPersistencePlugin)
             .add(ResourcesPlugin::with_config(self.config))
             .add(MenuPlugin)
+            .add(TiledPlugin::default())
             .add(CoreSimulationPlugin)
             .add(CameraPlugin)
             .add(RenderingPlugin)

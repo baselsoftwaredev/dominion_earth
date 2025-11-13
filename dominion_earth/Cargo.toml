@@ -35,6 +35,7 @@ rand = { workspace = true }
 rand_pcg = { workspace = true }
 clap = { workspace = true, features = ["derive"] }
 bevy_ecs_tilemap = "0.17"
+bevy_ecs_tiled = "0.9"
 moonshine-save = "0.6"
 bevy-inspector-egui = "0.35"
 bevy_egui = "0.38"

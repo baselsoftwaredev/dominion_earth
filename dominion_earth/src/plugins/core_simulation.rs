@@ -20,12 +20,24 @@ impl Plugin for CoreSimulationPlugin {
                     game::sync_settings_to_game_config,
                     load_event_definitions,
                     game::setup_game.after(game::sync_settings_to_game_config),
-                    game::initialize_fog_of_war.after(game::setup_game),
+                    game::cleanup_extra_tiled_layers.after(game::setup_game),
                 ),
             )
             .add_systems(
                 Update,
                 (
+                    // Map loading and spawning - run until map is loaded
+                    // Note: TMX loading is handled by bevy_ecs_tiled plugin automatically
+                    game::spawn_civilizations_when_ready.run_if(in_state(Screen::Gameplay)),
+                    game::initialize_fog_of_war
+                        .after(game::spawn_civilizations_when_ready)
+                        .run_if(in_state(Screen::Gameplay)),
+                ),
+            )
+            .add_systems(
+                Update,
+                (
+                    // Core gameplay systems
                     game::initialize_active_civ_turn
                         .run_if(resource_exists::<core_sim::resources::ActiveCivTurn>),
                     game::initialize_turn_order.run_if(resource_exists::<core_sim::TurnOrder>),
