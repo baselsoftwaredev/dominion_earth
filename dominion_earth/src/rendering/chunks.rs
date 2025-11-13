@@ -5,11 +5,6 @@ pub mod constants {
     pub const CHUNK_POSITION_CHANGE_THRESHOLD: f32 = 64.0;
 }
 
-#[derive(Component)]
-pub struct RenderChunk {
-    pub chunk_id: ChunkId,
-}
-
 /// System to update chunk manager based on camera position
 /// This tracks the camera and marks which chunks should be active
 pub fn update_chunk_manager_from_camera(
@@ -136,14 +131,4 @@ fn log_loaded_chunks_initialized(chunk_count: usize, chunk_manager: &ChunkManage
     );
 }
 
-pub fn spawn_chunks_for_camera_position(chunk_manager: Res<ChunkManager>) {
-    if let Some(pos) = chunk_manager.last_camera_pos {
-        let chunk_id = ChunkId::from_position(
-            core_sim::Position::new(pos.0 as i32, pos.1 as i32),
-            chunk_manager.config.chunk_size,
-        );
-        let _ = chunk_id;
-    }
-}
-
-pub fn despawn_distant_chunks() {}
+// Unused placeholder functions removed
