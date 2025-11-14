@@ -18,7 +18,6 @@ pub struct GameState {
     pub paused: bool,
     pub ai_only: bool,
     pub total_civilizations: u32,
-    pub turn_timer: Timer,
     pub next_turn_requested: bool,
 }
 
@@ -33,7 +32,6 @@ impl GameState {
             paused: false,
             ai_only: false,
             total_civilizations: 2,
-            turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
             next_turn_requested: false,
         }
     }
@@ -44,7 +42,6 @@ impl GameState {
             paused: false,
             ai_only,
             total_civilizations: 2,
-            turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
             next_turn_requested: false,
         }
     }
@@ -55,7 +52,6 @@ impl GameState {
             paused: false,
             ai_only,
             total_civilizations,
-            turn_timer: Timer::from_seconds(timing::BASE_TURN_TIMER_SECONDS, TimerMode::Repeating),
             next_turn_requested: false,
         }
     }
@@ -380,8 +376,6 @@ pub fn game_update_system(
     if game_state.paused {
         return;
     }
-
-    game_state.turn_timer.tick(time.delta());
 
     let should_advance = game_state.next_turn_requested;
 
