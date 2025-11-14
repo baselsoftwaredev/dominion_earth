@@ -28,7 +28,10 @@ impl Plugin for CoreSimulationPlugin {
                 (
                     // Map loading and spawning - run until map is loaded
                     // Note: TMX loading is handled by bevy_ecs_tiled plugin automatically
-                    game::spawn_civilizations_when_ready.run_if(in_state(Screen::Gameplay)),
+                    game::convert_tiled_map_to_world_map.run_if(in_state(Screen::Gameplay)),
+                    game::spawn_civilizations_when_ready
+                        .after(game::convert_tiled_map_to_world_map)
+                        .run_if(in_state(Screen::Gameplay)),
                     game::initialize_fog_of_war
                         .after(game::spawn_civilizations_when_ready)
                         .run_if(in_state(Screen::Gameplay)),

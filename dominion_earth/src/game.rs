@@ -6,6 +6,7 @@ use crate::debug_utils::DebugUtils;
 use ai_planner::ai_coordinator::AICoordinatorSystem;
 use bevy::prelude::*;
 use bevy_ecs_tiled::prelude::*;
+use bevy_ecs_tilemap::prelude::*;
 use core_sim::resources::{GameConfig, GameRng, TurnAdvanceRequest, WorldMap};
 use rand::SeedableRng;
 
@@ -139,6 +140,57 @@ pub fn cleanup_extra_tiled_layers(mut commands: Commands) {
     // This cleanup is handled automatically by bevy_ecs_tiled
     // If there are extra layers visible, they may be from the TMX file itself
     // Check the TMX file to ensure it only has one layer
+}
+
+/// Convert the Tiled map data to our WorldMap resource
+/// This system reads the TilemapSize from the rendered tilemap
+/// and populates the WorldMap resource with default terrain data
+pub fn convert_tiled_map_to_world_map(
+    mut world_map: ResMut<WorldMap>,
+    mut map_loaded: ResMut<MapLoaded>,
+    tilemap_q: Query<(&TilemapSize, &TilemapType), Added<TilemapSize>>,
+    mut initialized: Local<bool>,
+) {
+    if *initialized {
+        return;
+    }
+
+    let Ok((map_size, _map_type)) = tilemap_q.single() else {
+        return;
+    };
+
+    println!(
+        "Converting Tiled map to WorldMap: {}x{}",
+        map_size.x, map_size.y
+    );
+
+    // Create new 2D tile vector with proper dimensions
+    // For now, initialize all tiles as Plains (buildable terrain)
+    let mut new_tiles: Vec<Vec<core_sim::resources::MapTile>> =
+        vec![
+            vec![
+                core_sim::resources::MapTile {
+                    terrain: core_sim::TerrainType::Plains,
+                    owner: None,
+                    city: None,
+                    resource: None,
+                };
+                map_size.y as usize
+            ];
+            map_size.x as usize
+        ];
+
+    // Update the WorldMap resource
+    world_map.width = map_size.x;
+    world_map.height = map_size.y;
+    world_map.tiles = new_tiles;
+
+    println!(
+        "Populated WorldMap with {}x{} tiles (all Plains)",
+        world_map.width, world_map.height
+    );
+    map_loaded.0 = true;
+    *initialized = true;
 }
 
 /// Tile ID to TerrainType mapping
