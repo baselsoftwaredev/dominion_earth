@@ -162,9 +162,8 @@ pub fn convert_tiled_map_to_world_map(
 
     // Create new 2D tile vector with proper dimensions
     // For now, initialize all tiles as Plains (buildable terrain)
-    let mut new_tiles: Vec<Vec<core_sim::resources::MapTile>> =
+    let mut new_tiles: Vec<Vec<core_sim::resources::MapTile>> = vec![
         vec![
-            vec![
                 core_sim::resources::MapTile {
                     terrain: core_sim::TerrainType::Plains,
                     owner: None,
@@ -173,8 +172,8 @@ pub fn convert_tiled_map_to_world_map(
                 };
                 map_size.y as usize
             ];
-            map_size.x as usize
-        ];
+        map_size.x as usize
+    ];
 
     // Update the WorldMap resource
     world_map.width = map_size.x;

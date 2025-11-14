@@ -57,12 +57,13 @@ pub fn render_civilization_borders(
             let half_height = tile_size.y * borders::UNIT_BORDER_HALF_HEIGHT_FACTOR;
             let center = world_pos.truncate();
 
+            // Isometric diamond shape: top, right, bottom, left
             let corners = [
-                center + Vec2::new(-half_width, -half_height),
-                center + Vec2::new(half_width, -half_height),
-                center + Vec2::new(half_width, half_height),
-                center + Vec2::new(-half_width, half_height),
-                center + Vec2::new(-half_width, -half_height),
+                center + Vec2::new(0.0, half_height),  // top
+                center + Vec2::new(half_width, 0.0),   // right
+                center + Vec2::new(0.0, -half_height), // bottom
+                center + Vec2::new(-half_width, 0.0),  // left
+                center + Vec2::new(0.0, half_height),  // back to top
             ];
 
             gizmos.linestrip_2d(corners, border_color);
@@ -94,12 +95,13 @@ pub fn render_civilization_borders(
             let half_height = tile_size.y * borders::CAPITAL_OUTER_BORDER_HALF_HEIGHT_FACTOR;
             let center = world_pos.truncate();
 
+            // Outer isometric diamond
             let outer_corners = [
-                center + Vec2::new(-half_width, -half_height),
-                center + Vec2::new(half_width, -half_height),
-                center + Vec2::new(half_width, half_height),
-                center + Vec2::new(-half_width, half_height),
-                center + Vec2::new(-half_width, -half_height),
+                center + Vec2::new(0.0, half_height),
+                center + Vec2::new(half_width, 0.0),
+                center + Vec2::new(0.0, -half_height),
+                center + Vec2::new(-half_width, 0.0),
+                center + Vec2::new(0.0, half_height),
             ];
 
             gizmos.linestrip_2d(outer_corners, border_color);
@@ -107,12 +109,13 @@ pub fn render_civilization_borders(
             let inner_half_width = tile_size.x * borders::CAPITAL_INNER_BORDER_HALF_WIDTH_FACTOR;
             let inner_half_height = tile_size.y * borders::CAPITAL_INNER_BORDER_HALF_HEIGHT_FACTOR;
 
+            // Inner isometric diamond
             let inner_corners = [
-                center + Vec2::new(-inner_half_width, -inner_half_height),
-                center + Vec2::new(inner_half_width, -inner_half_height),
-                center + Vec2::new(inner_half_width, inner_half_height),
-                center + Vec2::new(-inner_half_width, inner_half_height),
-                center + Vec2::new(-inner_half_width, -inner_half_height),
+                center + Vec2::new(0.0, inner_half_height),
+                center + Vec2::new(inner_half_width, 0.0),
+                center + Vec2::new(0.0, -inner_half_height),
+                center + Vec2::new(-inner_half_width, 0.0),
+                center + Vec2::new(0.0, inner_half_height),
             ];
 
             gizmos.linestrip_2d(inner_corners, border_color);
