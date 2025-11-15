@@ -2,8 +2,6 @@ use crate::ui::traits::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 
-pub use crate::ui::unit_labels::{spawn_unit_labels, update_unit_labels};
-
 /// Native Bevy UI system implementation
 pub struct BevyUiSystem;
 
@@ -26,8 +24,6 @@ impl BevyUiSystem {
             Update,
             (
                 handle_ui_scroll.before(crate::input::handle_mouse_input),
-                spawn_unit_labels,
-                update_unit_labels,
                 crate::ui::top_panel::update_player_resources,
                 crate::ui::top_panel::update_turn_display,
                 crate::ui::right_panel::update_statistics_panel,
@@ -74,8 +70,6 @@ impl BevyUiSystem {
         .add_systems(
             Update,
             (
-                spawn_unit_labels,
-                update_unit_labels,
                 crate::ui::top_panel::update_player_resources,
                 crate::ui::top_panel::update_turn_display,
                 crate::ui::right_panel::update_statistics_panel,
