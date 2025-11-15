@@ -53,7 +53,8 @@ fn main() {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: window::TITLE.to_string(),
-                    resolution: (window::DEFAULT_WIDTH as u32, window::DEFAULT_HEIGHT as u32).into(),
+                    resolution: (window::DEFAULT_WIDTH as u32, window::DEFAULT_HEIGHT as u32)
+                        .into(),
                     mode: window_mode,
                     ..default()
                 }),
