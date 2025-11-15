@@ -48,15 +48,19 @@ fn main() {
 
     let mut app = App::new();
 
-    app.add_plugins(DefaultPlugins.set(WindowPlugin {
-        primary_window: Some(Window {
-            title: window::TITLE.to_string(),
-            resolution: (window::DEFAULT_WIDTH as u32, window::DEFAULT_HEIGHT as u32).into(),
-            mode: window_mode,
-            ..default()
-        }),
-        ..default()
-    }));
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: window::TITLE.to_string(),
+                    resolution: (window::DEFAULT_WIDTH as u32, window::DEFAULT_HEIGHT as u32).into(),
+                    mode: window_mode,
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(ImagePlugin::default_nearest()), // Prevents blurry sprites
+    );
 
     let plugins = DominionEarthPlugins::with_config(config);
 
