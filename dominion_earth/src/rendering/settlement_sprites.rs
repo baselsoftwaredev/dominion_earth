@@ -75,7 +75,6 @@ impl Plugin for SettlementSpritePlugin {
                     spawn_settlement_sprites.run_if(in_state(Screen::Gameplay)),
                     spawn_settlement_labels.run_if(in_state(Screen::Gameplay)),
                     update_settlement_sprite_positions.run_if(in_state(Screen::Gameplay)),
-                    update_settlement_label_positions.run_if(in_state(Screen::Gameplay)),
                     despawn_settlement_sprites.run_if(in_state(Screen::Gameplay)),
                 ),
             );
