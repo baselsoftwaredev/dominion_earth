@@ -3,6 +3,7 @@
 //! This module handles loading the sprite sheet and rendering sprites for military units.
 
 use super::common::calculate_world_position_for_gizmo;
+use crate::screens::Screen;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::military::{MilitaryUnit, UnitType};
@@ -137,6 +138,7 @@ fn spawn_infantry_sprites(
                 Transform::from_translation(world_pos).with_scale(Vec3::splat(0.5)),
                 GlobalTransform::default(),
                 Visibility::Visible,
+                DespawnOnExit(Screen::Gameplay),
             ))
             .id();
 

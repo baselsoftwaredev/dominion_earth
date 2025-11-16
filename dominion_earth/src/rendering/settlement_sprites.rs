@@ -3,6 +3,7 @@
 //! This module handles loading and rendering sprites for settlements (capitals, cities, etc.)
 
 use super::common::calculate_world_position_for_gizmo;
+use crate::screens::Screen;
 use bevy::prelude::*;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::city::Capital;
@@ -27,14 +28,15 @@ pub struct SettlementSpritePlugin;
 
 impl Plugin for SettlementSpritePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, load_settlement_sprite_sheet).add_systems(
-            Update,
-            (
-                spawn_settlement_sprites,
-                update_settlement_sprite_positions,
-                despawn_settlement_sprites,
-            ),
-        );
+        app.add_systems(Startup, load_settlement_sprite_sheet)
+            .add_systems(
+                Update,
+                (
+                    spawn_settlement_sprites,
+                    update_settlement_sprite_positions,
+                    despawn_settlement_sprites,
+                ),
+            );
     }
 }
 
@@ -111,12 +113,7 @@ fn spawn_settlement_sprites(
 
         // Calculate world position using the same method as gizmos
         let world_pos = calculate_world_position_for_gizmo(
-            *position,
-            map_size,
-            tile_size,
-            grid_size,
-            map_type,
-            anchor,
+            *position, map_size, tile_size, grid_size, map_type, anchor,
         );
 
         // Spawn the sprite entity as a standalone entity
@@ -132,6 +129,7 @@ fn spawn_settlement_sprites(
                 Transform::from_translation(world_pos).with_scale(Vec3::splat(0.5)),
                 GlobalTransform::default(),
                 Visibility::Visible,
+                DespawnOnExit(Screen::Gameplay),
             ))
             .id();
 
@@ -148,8 +146,56 @@ fn spawn_settlement_sprites(
         info!("Sprite world position: {:?}", world_pos);
         info!(
             "Sprite texture: {:?}, Layout: {:?}, Index: {}",
-            sprite_sheet.texture, sprite_sheet.layout, sprite_indices::CAPITAL_ANCIENT
+            sprite_sheet.texture,
+            sprite_sheet.layout,
+            sprite_indices::CAPITAL_ANCIENT
         );
+    }
+}
+
+/// System that updates sprite positions when settlements move
+fn update_settlement_sprite_positions(
+    mut sprite_transforms: Query<&mut Transform>,
+    tilemap_q: Query<(
+        &TilemapSize,
+        &TilemapTileSize,
+        &TilemapGridSize,
+        &TilemapType,
+        &TilemapAnchor,
+    )>,
+    // Query for capitals that have moved
+    changed_settlements: Query<(&Position, &SettlementSpriteLink), Changed<Position>>,
+) {
+    // Wait until tilemap is loaded
+    let Ok((map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single() else {
+        return;
+    };
+
+    for (position, sprite_link) in changed_settlements.iter() {
+        info!(
+            "Settlement at position ({}, {}), updating sprite",
+            position.x, position.y
+        );
+
+        // Calculate new world position
+        let world_pos = calculate_world_position_for_gizmo(
+            *position, map_size, tile_size, grid_size, map_type, anchor,
+        );
+
+        // Update sprite transform
+        if let Ok(mut transform) = sprite_transforms.get_mut(sprite_link.settlement_entity) {
+            let old_pos = transform.translation;
+            transform.translation = world_pos;
+            info!(
+                "Updated settlement sprite position from {:?} to {:?}",
+                old_pos, world_pos
+            );
+        } else {
+            info!(
+                "Could not find sprite entity {:?} for update",
+                sprite_link.settlement_entity
+            );
+        }
     }
 }
 
