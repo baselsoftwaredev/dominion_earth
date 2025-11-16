@@ -58,7 +58,7 @@ cargo build --release
 cargo run
 
 # Run with debug logging
-cargo run -- --debug-logging
+cargo run -- --debug-logging > dominion_earth_debug.log 2>&1 # With debug output
 ```
 
 **Note**: Seed and AI-only mode settings are controlled from the main menu settings. Set these in the Settings menu on the main screen before starting a game.

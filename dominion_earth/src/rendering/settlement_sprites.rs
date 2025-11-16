@@ -5,6 +5,7 @@
 use super::common::calculate_world_position_for_gizmo;
 use crate::screens::Screen;
 use bevy::prelude::*;
+use crate::debug_println;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::city::Capital;
 use core_sim::constants::{sprite_indices, texture_atlas};
@@ -46,10 +47,7 @@ fn load_settlement_sprite_sheet(
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    info!(
-        "Loading settlement sprite sheet from: {}",
-        texture_atlas::SPRITE_SHEET_PATH
-    );
+    debug_println!("Loading settlement sprite sheet from: {}", texture_atlas::SPRITE_SHEET_PATH);
 
     // Load the texture
     let texture = asset_server.load(texture_atlas::SPRITE_SHEET_PATH);
@@ -71,7 +69,7 @@ fn load_settlement_sprite_sheet(
         layout: layout_handle,
     });
 
-    info!("Settlement sprite sheet loaded successfully");
+    debug_println!("Settlement sprite sheet loaded successfully");
 }
 
 /// System that spawns sprites for newly added capitals
@@ -90,23 +88,23 @@ fn spawn_settlement_sprites(
 ) {
     // Wait until sprite sheet is loaded
     let Some(sprite_sheet) = sprite_sheet else {
-        info!("Settlement sprite sheet not loaded yet, skipping spawn");
+        debug_println!("Settlement sprite sheet not loaded yet, skipping spawn");
         return;
     };
 
     // Wait until tilemap is loaded
     let Ok((map_size, tile_size, grid_size, map_type, anchor)) = tilemap_q.single() else {
-        info!("Tilemap not ready for settlement sprites, skipping spawn");
+        debug_println!("Tilemap not ready for settlement sprites, skipping spawn");
         return;
     };
 
     let count = capital_query.iter().count();
     if count > 0 {
-        info!("Found {} capitals to spawn sprites for", count);
+        debug_println!("Found {} capitals to spawn sprites for", count);
     }
 
     for (settlement_entity, capital, position) in capital_query.iter() {
-        info!(
+        debug_println!(
             "Spawning capital sprite for settlement at position ({}, {})",
             position.x, position.y
         );
@@ -140,11 +138,11 @@ fn spawn_settlement_sprites(
                 settlement_entity: sprite_entity,
             });
 
-        info!("Capital sprite spawned for settlement entity");
-        info!("Sprite entity ID: {:?}", sprite_entity);
-        info!("Settlement entity ID: {:?}", settlement_entity);
-        info!("Sprite world position: {:?}", world_pos);
-        info!(
+        debug_println!("Capital sprite spawned for settlement entity");
+        debug_println!("Sprite entity ID: {:?}", sprite_entity);
+        debug_println!("Settlement entity ID: {:?}", settlement_entity);
+        debug_println!("Sprite world position: {:?}", world_pos);
+        debug_println!(
             "Sprite texture: {:?}, Layout: {:?}, Index: {}",
             sprite_sheet.texture,
             sprite_sheet.layout,
@@ -172,7 +170,7 @@ fn update_settlement_sprite_positions(
     };
 
     for (position, sprite_link) in changed_settlements.iter() {
-        info!(
+        debug_println!(
             "Settlement at position ({}, {}), updating sprite",
             position.x, position.y
         );
@@ -186,12 +184,12 @@ fn update_settlement_sprite_positions(
         if let Ok(mut transform) = sprite_transforms.get_mut(sprite_link.settlement_entity) {
             let old_pos = transform.translation;
             transform.translation = world_pos;
-            info!(
+            debug_println!(
                 "Updated settlement sprite position from {:?} to {:?}",
                 old_pos, world_pos
             );
         } else {
-            info!(
+            debug_println!(
                 "Could not find sprite entity {:?} for update",
                 sprite_link.settlement_entity
             );
@@ -208,7 +206,7 @@ fn despawn_settlement_sprites(
     for settlement_entity in removed_settlements.read() {
         // Check if this settlement had a linked sprite
         if let Ok(sprite_link) = sprite_links.get(settlement_entity) {
-            info!(
+            debug_println!(
                 "Despawning sprite for removed settlement entity: {:?}",
                 settlement_entity
             );

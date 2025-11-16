@@ -631,7 +631,7 @@ All components and resources derive `Serialize` and `Deserialize`, ensuring the 
 Successfully tested with:
 
 ```bash
-cargo run -- --seed 1756118413 --debug-logging
+cargo run -- --debug-logging
 ```
 
 **Verification Checklist**:

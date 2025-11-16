@@ -20,13 +20,9 @@ If you don't understad my requirements, ask questions!
 Always use these commands for building and running the game. Don't use the `--release` flag unless instructed.
 
 ```bash
-cargo run -- --debug-logging        # With debug output
+cargo run -- --debug-logging > dominion_earth_debug.log 2>&1 # With debug output
 ```
 
-## When needing to grep logs
-
-Make the user run the game with `--debug-logging` and then grep the logs.
-Work with the user so you can grep the log.
 
 ## Data-Driven Design
 
