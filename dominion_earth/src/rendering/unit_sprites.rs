@@ -31,9 +31,9 @@ impl Plugin for UnitSpritePlugin {
         app.add_systems(Startup, load_sprite_sheet).add_systems(
             Update,
             (
-                spawn_infantry_sprites,
-                update_infantry_sprite_positions,
-                despawn_unit_sprites,
+                spawn_infantry_sprites.run_if(in_state(Screen::Gameplay)),
+                update_infantry_sprite_positions.run_if(in_state(Screen::Gameplay)),
+                despawn_unit_sprites.run_if(in_state(Screen::Gameplay)),
             ),
         );
     }

@@ -3,9 +3,9 @@
 //! This module handles loading and rendering sprites for settlements (capitals, cities, etc.)
 
 use super::common::calculate_world_position_for_gizmo;
+use crate::debug_println;
 use crate::screens::Screen;
 use bevy::prelude::*;
-use crate::debug_println;
 use bevy_ecs_tilemap::prelude::*;
 use core_sim::components::city::Capital;
 use core_sim::constants::{sprite_indices, texture_atlas};
@@ -33,9 +33,9 @@ impl Plugin for SettlementSpritePlugin {
             .add_systems(
                 Update,
                 (
-                    spawn_settlement_sprites,
-                    update_settlement_sprite_positions,
-                    despawn_settlement_sprites,
+                    spawn_settlement_sprites.run_if(in_state(Screen::Gameplay)),
+                    update_settlement_sprite_positions.run_if(in_state(Screen::Gameplay)),
+                    despawn_settlement_sprites.run_if(in_state(Screen::Gameplay)),
                 ),
             );
     }
@@ -47,7 +47,10 @@ fn load_settlement_sprite_sheet(
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    debug_println!("Loading settlement sprite sheet from: {}", texture_atlas::SPRITE_SHEET_PATH);
+    debug_println!(
+        "Loading settlement sprite sheet from: {}",
+        texture_atlas::SPRITE_SHEET_PATH
+    );
 
     // Load the texture
     let texture = asset_server.load(texture_atlas::SPRITE_SHEET_PATH);
@@ -106,7 +109,8 @@ fn spawn_settlement_sprites(
     for (settlement_entity, capital, position) in capital_query.iter() {
         debug_println!(
             "Spawning capital sprite for settlement at position ({}, {})",
-            position.x, position.y
+            position.x,
+            position.y
         );
 
         // Calculate world position using the same method as gizmos
@@ -172,7 +176,8 @@ fn update_settlement_sprite_positions(
     for (position, sprite_link) in changed_settlements.iter() {
         debug_println!(
             "Settlement at position ({}, {}), updating sprite",
-            position.x, position.y
+            position.x,
+            position.y
         );
 
         // Calculate new world position
@@ -186,7 +191,8 @@ fn update_settlement_sprite_positions(
             transform.translation = world_pos;
             debug_println!(
                 "Updated settlement sprite position from {:?} to {:?}",
-                old_pos, world_pos
+                old_pos,
+                world_pos
             );
         } else {
             debug_println!(
