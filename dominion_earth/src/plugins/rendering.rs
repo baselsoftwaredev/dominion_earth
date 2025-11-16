@@ -10,6 +10,7 @@ impl Plugin for RenderingPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ChunkManager::default())
             .add_plugins(rendering::UnitSpritePlugin) // Add unit sprite plugin
+            .add_plugins(rendering::SettlementSpritePlugin) // Add settlement sprite plugin
             .add_systems(Update, core_sim::tile::tile_assets::load_tile_assets)
             .add_systems(
                 Update,
